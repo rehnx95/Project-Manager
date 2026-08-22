@@ -33,7 +33,7 @@ async function updateUser(id, email) {
     "email:",
     email,
   );
-  const user=await userRepository.getUser(id);
+  const user = await userRepository.getUser(id);
   const updatedUser = await userRepository.updateUser(id, email);
 
   if (!updatedUser) {
@@ -152,7 +152,7 @@ async function login(email, password) {
     return { success: false, error: "Unauthorize" };
   }
   const token = jwt.sign(
-    { id: user.id, email: user.email },
+    { id: user.id, email: user.email, role: user.role },
     process.env.JWT_SECRET,
     { expiresIn: "1h" },
   );

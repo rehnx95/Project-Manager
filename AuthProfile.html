@@ -42,7 +42,7 @@
   <section>
     <h2>1. Signup</h2>
     <input id="signupEmail" placeholder="email">
-    <input id="signupPassword" placeholder="password (min 6 chars)"  type="password">
+    <input id="signupPassword" placeholder="password (min 6 chars)" type="password">
     <button onclick="signup()">Signup</button>
     <pre id="signupResult"></pre>
   </section>
@@ -62,8 +62,6 @@
     <pre id="loginResult"></pre>
     <p><strong>Token in use:</strong></p>
     <pre id="tokenDisplay">(none yet)</pre>
-    <p><strong>Your user id (from last login):</strong></p>
-    <pre id="myIdDisplay">(none yet)</pre>
   </section>
 </div>
 
@@ -215,6 +213,7 @@
   let token = null;
   let currentEmail = null;
   let currentUserId = null;
+  let currentRole = null;
   const signedUpUsers = [];
 
   function base() {
@@ -235,21 +234,41 @@
     currentEmail = email;
     document.getElementById("statusBar").innerHTML =
       "Logged in as <strong>" + email + "</strong>" +
+      " | id: <strong>" + (currentUserId ?? "?") + "</strong>" +
+      " | role: <strong>" + (currentRole ?? "?") + "</strong>" +
       "<button id='logoutBtn' onclick='logout()' style='margin-left:10px;'>Logout</button>";
+  }
+
+  // Every result <pre> that could contain data from an authenticated
+  // request. Cleared on logout so nothing from the previous session
+  // stays visible on screen.
+  const RESULT_ELEMENT_IDS = [
+    "loginResult", "createResult", "tasksResult", "getTaskResult",
+    "updateResult", "completeResult", "deleteResult", "profileResult",
+    "allUsersResult", "getUserResult", "updateUserResult", "deleteUserResult",
+  ];
+
+  function clearAllResults() {
+    RESULT_ELEMENT_IDS.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = "";
+    });
   }
 
   function logout() {
     token = null;
     currentEmail = null;
     currentUserId = null;
+    currentRole = null;
     sessionStorage.removeItem("token");
     sessionStorage.removeItem("email");
     sessionStorage.removeItem("userId");
+    sessionStorage.removeItem("role");
     document.getElementById("tokenDisplay").textContent = "(none yet)";
-    document.getElementById("myIdDisplay").textContent = "(none yet)";
     document.getElementById("statusBar").innerHTML =
       "Not logged in" +
       "<button id='logoutBtn' onclick='logout()' style='display:none; margin-left:10px;'>Logout</button>";
+    clearAllResults();
   }
 
   // Decodes the payload of a JWT without checking its signature — fine for a
@@ -272,12 +291,13 @@
     const savedToken = sessionStorage.getItem("token");
     const savedEmail = sessionStorage.getItem("email");
     const savedUserId = sessionStorage.getItem("userId");
+    const savedRole = sessionStorage.getItem("role");
 
     if (savedToken) {
       token = savedToken;
       currentUserId = savedUserId;
+      currentRole = savedRole;
       document.getElementById("tokenDisplay").textContent = token;
-      document.getElementById("myIdDisplay").textContent = savedUserId ?? "(unknown)";
       if (savedEmail) setLoggedIn(savedEmail);
     }
   });
@@ -315,15 +335,15 @@
       document.getElementById("tokenDisplay").textContent = token || "(couldn't extract token)";
 
       if (token) {
-        setLoggedIn(email);
         const payload = decodeJwtPayload(token);
         currentUserId = payload ? payload.id : null;
-        document.getElementById("myIdDisplay").textContent =
-          currentUserId !== null ? currentUserId : "(couldn't decode token)";
+        currentRole = payload ? payload.role : null;
+        setLoggedIn(email);
 
         sessionStorage.setItem("token", token);
         sessionStorage.setItem("email", email);
         if (currentUserId !== null) sessionStorage.setItem("userId", currentUserId);
+        if (currentRole !== null) sessionStorage.setItem("role", currentRole);
       }
     }
   }
@@ -376,10 +396,17 @@
   }
 
   async function getAllUsers() {
-    // Response shape: { success, value: [ {id, email}, ... ], trusteduser, trusteduser_id }
+    // Admin-only route. Non-admins get a 403 with a plain-text body
+    // ("Forbidden: insufficient role"), not JSON — so check status first.
     const res = await fetch(base() + "/users", {
       headers: { "Authorization": "Bearer " + token },
     });
+    if (res.status === 403) {
+      const text = await res.text();
+      document.getElementById("allUsersResult").textContent = text;
+      return;
+    }
+    // Response shape: { success, value: [ {id, email}, ... ], trusteduser, trusteduser_id }
     const data = await res.json();
     document.getElementById("allUsersResult").textContent = JSON.stringify(data, null, 2);
   }
@@ -389,6 +416,11 @@
     const res = await fetch(base() + "/users/" + id, {
       headers: { "Authorization": "Bearer " + token },
     });
+    if (res.status === 403) {
+      const text = await res.text();
+      document.getElementById("getUserResult").textContent = text;
+      return;
+    }
     const data = await res.json();
     document.getElementById("getUserResult").textContent = JSON.stringify(data, null, 2);
   }

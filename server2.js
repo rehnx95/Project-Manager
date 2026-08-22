@@ -4,6 +4,8 @@ const express = require("express");
 const userController = require("./controllers/userControllers2");
 const taskController = require("./controllers/taskControllers2");
 const authenticateToken = require("./middleware/authenticateToken");
+const authenticateRole = require("./middleware/authenticateRole");
+
 const asyncHandler = require("./utils/asyncHandler");
 
 const app = express();
@@ -26,7 +28,6 @@ app.use((req, res, next) => {
 
 app.get("/", (req, res) => {
   console.log(new Date().toLocaleTimeString("en-GB"), "[app] GET / hit");
- 
   res.sendFile(path.join(__dirname, "AuthProfile.html"));
 });
 
@@ -68,7 +69,12 @@ app.get(
 
 app.post("/users/signup", asyncHandler(userController.signup));
 app.post("/users/login", asyncHandler(userController.login));
-app.get("/users", authenticateToken, asyncHandler(userController.getall));
+app.get(
+  "/users",
+  authenticateToken,
+  authenticateRole("admin"),
+  asyncHandler(userController.getall),
+);
 app.delete(
   "/users",
   authenticateToken,
@@ -80,7 +86,12 @@ app.patch(
   asyncHandler(userController.updateUser),
 );
 
-app.get("/users/:id", authenticateToken, asyncHandler(userController.getUser));
+app.get(
+  "/users/:id",
+  authenticateToken,
+  authenticateRole("admin"),
+  asyncHandler(userController.getUser),
+);
 
 app.use((req, res) => {
   res.status(404).json({ success: false, error: "Route not found" });
