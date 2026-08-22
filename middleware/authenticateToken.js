@@ -15,7 +15,7 @@ async function authenticateToken(req, res, next) {
     console.log(new Date().toLocaleTimeString("en-GB"),"[middleware] token valid, decoded:", decoded);
     const user = await userRepository.getUser(decoded.id); 
     if (!user) return res.status(401).send("User no longer exists");
-    req.user = decoded;
+    req.user = user;
     next();
   } catch (err) {
     console.log(new Date().toLocaleTimeString("en-GB"),"[middleware] token invalid:", err.message);

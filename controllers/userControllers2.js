@@ -11,6 +11,10 @@ const loginSchema = z.object({
   password: z.string(),
 });
 
+const updateUserSchema = z.object({
+  email: z.string().email().toLowerCase(),
+});
+
 async function deleteUser(req, res) {
   console.log(
     new Date().toLocaleTimeString("en-GB"),
@@ -19,16 +23,18 @@ async function deleteUser(req, res) {
   );
   const email = req.user.email;
   const id = req.user.id;
-  await UserService.deleteUser(email);
+  const outcome = await UserService.deleteUser(email);
   console.log(
     new Date().toLocaleTimeString("en-GB"),
-    "[controller:user] deleteUser done for email:",
-    email,
+    "[controller:user] deleteUser outcome:",
+    outcome,
   );
+  if (outcome.success === false) {
+    return res.status(404).json({ success: false, error: outcome.error });
+  }
   res.json({
     success: true,
-    id,
-    email,
+    value: { id, email },
   });
 }
 
@@ -39,19 +45,19 @@ async function getUser(req, res) {
     req.params,
   );
   const requested_id = req.params.id;
-  // if (requested_id !== req.user.id) {
-  //   return res.status(404).json({ success: false, value: "User Not Exist" });
-  // }
-  const user = await UserService.getUser(requested_id);
+  // Intentionally no ownership check here: this route is admin-only
+  // (gated by authenticateRole("admin") in app.js), so any authenticated
+  // admin is allowed to look up any user by id.
+  const requested_user = await UserService.getUser(requested_id);
   console.log(
     new Date().toLocaleTimeString("en-GB"),
     "[controller:user] getUser outcome:",
-    user,
+    requested_user,
   );
-  if (user.success === false) {
-    return res.json({ success: false, error: user.error });
+  if (requested_user.success === false) {
+    return res.status(404).json({ success: false, error: requested_user.error });
   }
-  res.json({ success: true, user: user.value });
+  res.json({ success: true, value: requested_user.value });
 }
 
 async function updateUser(req, res) {
@@ -73,18 +79,29 @@ async function updateUser(req, res) {
       "!= req.user.id:",
       req.user.id,
     );
-    return res.status(403).json({ success: false, value: "Forbidden" });
+    return res.status(403).json({ success: false, error: "Forbidden" });
   }
-  const user = await UserService.updateUser(requested_id, req.body.email);
+
+  const result = updateUserSchema.safeParse(req.body);
+  if (!result.success) {
+    console.log(
+      new Date().toLocaleTimeString("en-GB"),
+      "[controller:user] updateUser validation failed:",
+      result.error.issues,
+    );
+    return res.status(400).json({ success: false, error: result.error.issues });
+  }
+
+  const outcome = await UserService.updateUser(requested_id, result.data.email);
   console.log(
     new Date().toLocaleTimeString("en-GB"),
     "[controller:user] updateUser outcome:",
-    user,
+    outcome,
   );
-  if (user.success === false) {
-    return res.json({ success: false, error: user.error });
+  if (outcome.success === false) {
+    return res.status(404).json({ success: false, error: outcome.error });
   }
-  res.json({ success: true, updatedUser: user.value });
+  res.json({ success: true, value: outcome.value });
 }
 
 async function getall(req, res) {
@@ -93,19 +110,15 @@ async function getall(req, res) {
     "[controller:user] getall hit, requester:",
     req.user,
   );
-  const trusteduser = req.user.email;
-  const trusteduser_id = req.user.id;
-  const users = await UserService.getall();
+  const outcome = await UserService.getall();
   console.log(
     new Date().toLocaleTimeString("en-GB"),
     "[controller:user] getall outcome count:",
-    users.value ? users.value.length : 0,
+    outcome.value ? outcome.value.length : 0,
   );
   res.json({
     success: true,
-    value: users.value,
-    trusteduser,
-    trusteduser_id,
+    value: outcome.value,
   });
 }
 
@@ -132,13 +145,12 @@ async function signup(req, res) {
     outcome,
   );
   if (outcome.success === false) {
-    res.status(409).json({ success: false, error: outcome.error });
-  } else {
-    res.json({
-      success: true,
-      value: `SignUp Successful With Email: ${outcome.value}`,
-    });
+    return res.status(409).json({ success: false, error: outcome.error });
   }
+  res.status(201).json({
+    success: true,
+    value: `SignUp Successful With Email: ${outcome.value}`,
+  });
 }
 
 async function login(req, res) {
@@ -163,16 +175,14 @@ async function login(req, res) {
     "[controller:user] login outcome:",
     outcome.success ? "success" : outcome.error,
   );
-  const token =outcome.value;
   if (outcome.success === false) {
     return res.status(401).json({ success: false, error: outcome.error });
-  } else {
-    res.json({
-      success: true,
-      value: "Login Successful",
-      token: token, 
-    });
   }
+  res.json({
+    success: true,
+    value: "Login Successful",
+    token: outcome.value,
+  });
 }
 
 module.exports = { signup, login, getall, deleteUser, getUser, updateUser };

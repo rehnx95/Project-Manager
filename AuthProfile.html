@@ -1,261 +1,686 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>API Test Page</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SignUp Login Task Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  body { font-family: sans-serif; max-width: 500px; margin: 40px auto; }
-  section { border: 1px solid #ccc; padding: 15px; margin-bottom: 20px; border-radius: 6px; }
-  h2 { margin-top: 0; font-size: 16px; }
-  input { display: block; width: 100%; margin: 6px 0; padding: 6px; box-sizing: border-box; }
-  button { padding: 8px 12px; margin-top: 6px; cursor: pointer; }
-  button.danger { background: #c0392b; color: #fff; border: none; border-radius: 4px; }
-  pre { background: #f4f4f4; padding: 10px; white-space: pre-wrap; word-break: break-all; }
-  .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 20px; }
-  .tabs button { margin: 0; padding: 6px 10px; font-size: 13px; background: #eee; border: 1px solid #ccc; border-radius: 4px; }
-  .tabs button.active { background: #333; color: #fff; }
-  .tabpanel { display: none; }
-  .tabpanel.active { display: block; }
-  .subtabpanel { display: none; }
-  .subtabpanel.active { display: block; }
+  :root{
+    --bg: #14161A;
+    --surface: #1D2026;
+    --surface-raised: #23262E;
+    --border: #2C303A;
+    --text: #EDEEF0;
+    --text-dim: #8B8F99;
+    --text-faint: #565A66;
+    --accent: #3DDC97;
+    --accent-dim: #2A9F6E;
+    --warn: #E8A33D;
+    --danger: #E85D4D;
+    --mono: 'JetBrains Mono', ui-monospace, monospace;
+    --sans: 'Inter', system-ui, sans-serif;
+    --radius: 6px;
+  }
+
+  *{ box-sizing: border-box; }
+  html{ color-scheme: dark; }
+  body{
+    margin:0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+
+  /* subtle grid texture in the background, like graph paper for engineers */
+  body::before{
+    content:"";
+    position: fixed; inset:0;
+    background-image:
+      linear-gradient(to right, rgba(255,255,255,0.025) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 32px 32px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  a{ color: var(--accent); }
+
+  /* ---------- Top identity bar ---------- */
+  .topbar{
+    position: relative;
+    z-index: 2;
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(20,22,26,0.85);
+    backdrop-filter: blur(8px);
+    position: sticky;
+    top:0;
+  }
+  .brand{
+    display:flex; align-items:center; gap:10px;
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: -0.02em;
+  }
+  .brand .dot{
+    width:8px; height:8px; border-radius:50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 3px rgba(61,220,151,0.15);
+    flex-shrink:0;
+  }
+  .brand .path{ color: var(--text-dim); font-weight:500; }
+
+  .session{
+    display:flex; align-items:center; gap:10px;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    color: var(--text-dim);
+  }
+  .session .badge{
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    display:flex; align-items:center; gap:6px;
+  }
+  .session .badge.online{
+    border-color: rgba(61,220,151,0.3);
+    color: var(--accent);
+  }
+  .session .badge .pulse{
+    width:6px; height:6px; border-radius:50%;
+    background: var(--text-faint);
+  }
+  .session .badge.online .pulse{
+    background: var(--accent);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse{
+    0%,100%{ box-shadow: 0 0 0 0 rgba(61,220,151,0.5); }
+    50%{ box-shadow: 0 0 0 4px rgba(61,220,151,0); }
+  }
+  .logout-link{
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-faint);
+    background:none; border: 1px solid var(--border);
+    padding: 5px 10px; border-radius: var(--radius);
+    cursor:pointer;
+    transition: all .15s ease;
+  }
+  .logout-link:hover{ color: var(--danger); border-color: rgba(232,93,77,0.4); }
+
+  /* ---------- Layout shell ---------- */
+  .shell{
+    position: relative;
+    z-index: 1;
+    display:grid;
+    grid-template-columns: 220px 1fr;
+    max-width: 1180px;
+    margin: 0 auto;
+    min-height: calc(100vh - 53px);
+  }
+
+  /* ---------- Sidebar nav ---------- */
+  nav.sidenav{
+    padding: 28px 16px;
+    border-right: 1px solid var(--border);
+  }
+  .nav-group-label{
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    padding: 0 10px;
+    margin-bottom: 8px;
+  }
+  .nav-btn{
+    display:flex; align-items:center; gap:10px;
+    width:100%;
+    text-align:left;
+    background:none;
+    border:none;
+    color: var(--text-dim);
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 500;
+    padding: 9px 10px;
+    border-radius: var(--radius);
+    cursor:pointer;
+    margin-bottom: 2px;
+    transition: all .12s ease;
+    position: relative;
+  }
+  .nav-btn .num{
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-faint);
+    width: 16px;
+  }
+  .nav-btn:hover{ background: var(--surface); color: var(--text); }
+  .nav-btn.active{
+    background: var(--surface-raised);
+    color: var(--text);
+  }
+  .nav-btn.active .num{ color: var(--accent); }
+  .nav-btn.active::before{
+    content:"";
+    position:absolute; left:-16px; top:50%; transform:translateY(-50%);
+    width:3px; height:18px;
+    background: var(--accent);
+    border-radius: 0 3px 3px 0;
+  }
+  nav.sidenav > .nav-group{ margin-bottom: 24px; }
+
+  /* mobile tab bar (hidden on desktop) */
+  .mobile-tabs{ display:none; }
+
+  /* ---------- Main content ---------- */
+  main{ padding: 32px 28px 60px; min-width:0; }
+
+  .panel{ display:none; animation: fadein .2s ease; }
+  .panel.active{ display:block; }
+  @keyframes fadein{ from{ opacity:0; transform: translateY(4px); } to{ opacity:1; transform:none; } }
+
+  .panel-head{ margin-bottom: 20px; }
+  .panel-head h1{
+    font-family: var(--mono);
+    font-size: 20px;
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+  }
+  .panel-head p{
+    margin:0;
+    color: var(--text-dim);
+    font-size: 13.5px;
+    line-height:1.5;
+    max-width: 52ch;
+  }
+
+  .subtabs{
+    display:flex; gap:4px; flex-wrap:wrap;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 10px;
+  }
+  .subtab-btn{
+    font-family: var(--mono);
+    font-size: 12px;
+    background: none;
+    border: 1px solid transparent;
+    color: var(--text-faint);
+    padding: 6px 12px;
+    border-radius: var(--radius);
+    cursor:pointer;
+    transition: all .12s ease;
+  }
+  .subtab-btn:hover{ color: var(--text-dim); }
+  .subtab-btn.active{
+    color: var(--accent);
+    border-color: rgba(61,220,151,0.25);
+    background: rgba(61,220,151,0.06);
+  }
+  .subtabpanel{ display:none; }
+  .subtabpanel.active{ display:block; animation: fadein .15s ease; }
+
+  /* ---------- Cards ---------- */
+  .card{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .card-title{
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 0 0 4px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .method-tag{
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.03em;
+  }
+  .method-tag.get{ background: rgba(61,220,151,0.12); color: var(--accent); }
+  .method-tag.post{ background: rgba(232,163,61,0.12); color: var(--warn); }
+  .method-tag.patch{ background: rgba(122,162,247,0.12); color: #7AA2F7; }
+  .method-tag.delete{ background: rgba(232,93,77,0.12); color: var(--danger); }
+
+  .card-note{
+    font-size: 12.5px;
+    color: var(--text-dim);
+    line-height:1.5;
+    margin: 6px 0 14px;
+  }
+
+  input{
+    display:block;
+    width:100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 10px 12px;
+    border-radius: var(--radius);
+    margin-bottom: 8px;
+    transition: border-color .15s ease;
+  }
+  input::placeholder{ color: var(--text-faint); }
+  input:focus{
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(61,220,151,0.12);
+  }
+  input:focus-visible{ outline: none; }
+
+  .row{ display:flex; gap:8px; }
+  .row input{ flex:1; }
+
+  button.action{
+    font-family: var(--mono);
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    background: var(--accent);
+    color: #0B1410;
+    border: none;
+    padding: 9px 16px;
+    border-radius: var(--radius);
+    cursor:pointer;
+    transition: all .15s ease;
+    margin-top: 4px;
+  }
+  button.action:hover{ background: #52E5A9; transform: translateY(-1px); }
+  button.action:active{ transform: translateY(0); }
+  button.action:focus-visible{ outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  button.action.danger{ background: var(--danger); color: #2A0D08; }
+  button.action.danger:hover{ background: #F17766; }
+
+  /* ---------- Output blocks ---------- */
+  pre.output{
+    background: #0F1114;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    margin: 12px 0 0;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--text-dim);
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-height: 320px;
+    overflow-y: auto;
+  }
+  pre.output:empty{ display:none; }
+
+  ul.plain{ list-style:none; padding:0; margin:0; }
+  ul.plain li{
+    font-family: var(--mono);
+    font-size: 12.5px;
+    color: var(--text-dim);
+    padding: 7px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  ul.plain li:last-child{ border-bottom:none; }
+  ul.plain li em{ color: var(--text-faint); font-style: normal; }
+
+  .token-box{
+    background: #0F1114;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent-dim);
+    word-break: break-all;
+    margin-top: 4px;
+  }
+
+  @media (max-width: 820px){
+    .shell{ grid-template-columns: 1fr; }
+    nav.sidenav{ display:none; }
+    .mobile-tabs{
+      display:flex;
+      overflow-x:auto;
+      gap:6px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      -webkit-overflow-scrolling: touch;
+    }
+    .mobile-tabs::-webkit-scrollbar{ display:none; }
+    .mobile-tabs button{
+      flex-shrink:0;
+      font-family: var(--mono);
+      font-size: 12.5px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      padding: 7px 13px;
+      border-radius: 999px;
+      cursor:pointer;
+    }
+    .mobile-tabs button.active{
+      background: rgba(61,220,151,0.1);
+      border-color: rgba(61,220,151,0.35);
+      color: var(--accent);
+    }
+    main{ padding: 22px 18px 50px; }
+    .topbar{ padding: 12px 16px; flex-wrap:wrap; }
+    .session{ font-size: 11px; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
 </style>
 </head>
 <body>
 
-<h1>API Test</h1>
-
-<!-- Status bar: shows who's logged in right now -->
-<div id="statusBar" style="padding:10px; background:#eee; border-radius:6px; margin-bottom:20px;">
-  Not logged in
-  <button id="logoutBtn" onclick="logout()" style="display:none; margin-left:10px;">Logout</button>
-</div>
-
-<div class="tabs">
-  <button class="tab-btn active" onclick="showTab('signup')">Signup</button>
-  <button class="tab-btn" onclick="showTab('login')">Login</button>
-  <button class="tab-btn" onclick="showTab('users')">Users</button>
-  <button class="tab-btn" onclick="showTab('tasks')">Tasks</button>
-  <button class="tab-btn" onclick="showTab('profile')">Profile</button>
-</div>
-
-<div id="tab-signup" class="tabpanel active">
-  <section>
-    <h2>1. Signup</h2>
-    <input id="signupEmail" placeholder="email">
-    <input id="signupPassword" placeholder="password (min 6 chars)" type="password">
-    <button onclick="signup()">Signup</button>
-    <pre id="signupResult"></pre>
-  </section>
-
-  <section>
-    <h2>Signed Up Users (this session)</h2>
-    <ul id="signedUpList"><li><em>none yet</em></li></ul>
-  </section>
-</div>
-
-<div id="tab-login" class="tabpanel">
-  <section>
-    <h2>2. Login</h2>
-    <input id="loginEmail" placeholder="email">
-    <input id="loginPassword" placeholder="password" type="password">
-    <button onclick="login()">Login</button>
-    <pre id="loginResult"></pre>
-    <p><strong>Token in use:</strong></p>
-    <pre id="tokenDisplay">(none yet)</pre>
-  </section>
-</div>
-
-<div id="tab-users" class="tabpanel">
-  <div class="tabs">
-    <button class="subtab-btn active" onclick="showSubTab('u-all')">List All</button>
-    <button class="subtab-btn" onclick="showSubTab('u-one')">Get One</button>
-    <button class="subtab-btn" onclick="showSubTab('u-update')">Update Mine</button>
-    <button class="subtab-btn" onclick="showSubTab('u-delete')">Delete Mine</button>
-  </div>
-
-  <div id="subtab-u-all" class="subtabpanel active">
-    <section>
-      <h2>Get All Users (requires login)</h2>
-      <button onclick="getAllUsers()">Get All Users</button>
-      <pre id="allUsersResult"></pre>
-    </section>
-  </div>
-
-  <div id="subtab-u-one" class="subtabpanel">
-    <section>
-      <h2>Get One User By Id</h2>
-      <input id="getUserId" placeholder="user id">
-      <button onclick="getOneUser()">Get User</button>
-      <pre id="getUserResult"></pre>
-    </section>
-  </div>
-
-  <div id="subtab-u-update" class="subtabpanel">
-    <section>
-      <h2>Update My Email</h2>
-      <p style="font-size:13px; color:#555;">
-        Server only allows updating your own account — the id below must match your logged-in user id shown on the Login tab.
-      </p>
-      <input id="updateUserId" placeholder="your user id">
-      <input id="updateUserEmail" placeholder="new email">
-      <button onclick="updateUser()">Update Email</button>
-      <pre id="updateUserResult"></pre>
-    </section>
-  </div>
-
-  <div id="subtab-u-delete" class="subtabpanel">
-    <section>
-      <h2>Delete My Account</h2>
-      <p style="font-size:13px; color:#555;">
-        Deletes the account you're currently logged in as. No id needed — the server identifies you from your token.
-      </p>
-      <button class="danger" onclick="deleteMyAccount()">Delete My Account</button>
-      <pre id="deleteUserResult"></pre>
-    </section>
+<div class="topbar">
+  <div class="brand"><span class="dot"></span>SignUp Login Task Manager<span class="path"></span></div>
+  <div class="session" id="sessionInfo">
+    <span class="badge" id="statusBadge"><span class="pulse"></span> not authenticated</span>
+    <button class="logout-link" id="logoutBtn" onclick="logout()" style="display:none;">log out</button>
   </div>
 </div>
 
-<div id="tab-tasks" class="tabpanel">
-  <div class="tabs">
-    <button class="subtab-btn active" onclick="showSubTab('create')">Create</button>
-    <button class="subtab-btn" onclick="showSubTab('list')">List</button>
-    <button class="subtab-btn" onclick="showSubTab('one')">Get One</button>
-    <button class="subtab-btn" onclick="showSubTab('update')">Update</button>
-    <button class="subtab-btn" onclick="showSubTab('complete')">Toggle Complete</button>
-    <button class="subtab-btn" onclick="showSubTab('delete')">Delete</button>
-  </div>
-
-  <div id="subtab-create" class="subtabpanel active">
-    <section>
-      <h2>3. Create Task</h2>
-      <input id="taskTitle" placeholder="task title">
-      <button onclick="createTask()">Create Task</button>
-      <pre id="createResult"></pre>
-    </section>
-  </div>
-
-  <div id="subtab-list" class="subtabpanel">
-    <section>
-      <h2>4. Get My Tasks</h2>
-      <input id="tasksPage" placeholder="page (default 1)">
-      <input id="tasksLimit" placeholder="limit (default 10)">
-      <button onclick="getTasks()">Get Tasks</button>
-      <pre id="tasksResult"></pre>
-    </section>
-  </div>
-
-  <div id="subtab-one" class="subtabpanel">
-    <section>
-      <h2>Get One Task By Id</h2>
-      <input id="getTaskId" placeholder="task id">
-      <button onclick="getOneTask()">Get Task</button>
-      <pre id="getTaskResult"></pre>
-    </section>
-  </div>
-
-  <div id="subtab-update" class="subtabpanel">
-    <section>
-      <h2>6. Update Task</h2>
-      <input id="updateTaskId" placeholder="task id">
-      <input id="updateTaskTitle" placeholder="new title">
-      <button onclick="updateTask()">Update Task</button>
-      <pre id="updateResult"></pre>
-    </section>
-  </div>
-
-  <div id="subtab-complete" class="subtabpanel">
-    <section>
-      <h2>Toggle Task Completed</h2>
-      <p style="font-size:13px; color:#555;">
-        Flips the task's completed status (false → true, true → false). Only works on a task you own.
-      </p>
-      <input id="completeTaskId" placeholder="task id">
-      <button onclick="toggleComplete()">Toggle Complete</button>
-      <pre id="completeResult"></pre>
-    </section>
-  </div>
-
-  <div id="subtab-delete" class="subtabpanel">
-    <section>
-      <h2>7. Delete Task</h2>
-      <input id="deleteTaskId" placeholder="task id">
-      <button onclick="deleteTask()">Delete Task</button>
-      <pre id="deleteResult"></pre>
-    </section>
-  </div>
+<div class="mobile-tabs" id="mobileTabs">
+  <button class="active" data-tab="signup">Signup</button>
+  <button data-tab="login">Login</button>
+  <button data-tab="tasks">Tasks</button>
+  <button data-tab="users">Users</button>
+  <button data-tab="profile">Profile</button>
 </div>
 
-<div id="tab-profile" class="tabpanel">
-  <section>
-    <h2>5. Get Profile</h2>
-    <button onclick="getProfile()">Get Profile</button>
-    <pre id="profileResult"></pre>
-  </section>
+<div class="shell">
+  <nav class="sidenav">
+    <div class="nav-group">
+      <div class="nav-group-label">Auth</div>
+      <button class="nav-btn active" data-tab="signup"><span class="num">01</span> Signup</button>
+      <button class="nav-btn" data-tab="login"><span class="num">02</span> Login</button>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Resources</div>
+      <button class="nav-btn" data-tab="tasks"><span class="num">03</span> Tasks</button>
+      <button class="nav-btn" data-tab="users"><span class="num">04</span> Users</button>
+      <button class="nav-btn" data-tab="profile"><span class="num">05</span> Profile</button>
+    </div>
+  </nav>
+
+  <main>
+
+    <!-- SIGNUP -->
+    <div class="panel active" id="panel-signup">
+      <div class="panel-head">
+        <h1>Signup</h1>
+        <p>Create an account against the auth service. Successful signups are listed below for this browser session.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span class="method-tag post">POST</span> /users/signup</div>
+        <input id="signupEmail" placeholder="email">
+        <input id="signupPassword" placeholder="password (min 6 chars)" type="password">
+        <button class="action" onclick="signup()">Create account</button>
+        <pre class="output" id="signupResult"></pre>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Signed up this session</div>
+        <ul class="plain" id="signedUpList"><li><em>none yet</em></li></ul>
+      </div>
+    </div>
+
+    <!-- LOGIN -->
+    <div class="panel" id="panel-login">
+      <div class="panel-head">
+        <h1>Login</h1>
+        <p>Exchange credentials for a JWT. The decoded id and role populate the session badge above.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span class="method-tag post">POST</span> /users/login</div>
+        <input id="loginEmail" placeholder="email">
+        <input id="loginPassword" placeholder="password" type="password">
+        <button class="action" onclick="login()">Log in</button>
+        <pre class="output" id="loginResult"></pre>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Token in use</div>
+        <div class="token-box" id="tokenDisplay">(none yet)</div>
+      </div>
+    </div>
+
+    <!-- TASKS -->
+    <div class="panel" id="panel-tasks">
+      <div class="panel-head">
+        <h1>Tasks</h1>
+        <p>Every request below sends your bearer token and operates on tasks scoped to the logged-in user.</p>
+      </div>
+
+      <div class="subtabs">
+        <button class="subtab-btn active" data-sub="create">Create</button>
+        <button class="subtab-btn" data-sub="list">List</button>
+        <button class="subtab-btn" data-sub="one">Get one</button>
+        <button class="subtab-btn" data-sub="update">Update</button>
+        <button class="subtab-btn" data-sub="complete">Complete</button>
+        <button class="subtab-btn" data-sub="delete">Delete</button>
+      </div>
+
+      <div class="subtabpanel active" data-sub="create">
+        <div class="card">
+          <div class="card-title"><span class="method-tag post">POST</span> /tasks</div>
+          <input id="taskTitle" placeholder="task title">
+          <button class="action" onclick="createTask()">Create task</button>
+          <pre class="output" id="createResult"></pre>
+        </div>
+      </div>
+
+      <div class="subtabpanel" data-sub="list">
+        <div class="card">
+          <div class="card-title"><span class="method-tag get">GET</span> /tasks</div>
+          <div class="row">
+            <input id="tasksPage" placeholder="page (default 1)">
+            <input id="tasksLimit" placeholder="limit (default 10)">
+          </div>
+          <button class="action" onclick="getTasks()">Fetch tasks</button>
+          <pre class="output" id="tasksResult"></pre>
+        </div>
+      </div>
+
+      <div class="subtabpanel" data-sub="one">
+        <div class="card">
+          <div class="card-title"><span class="method-tag get">GET</span> /tasks/:id</div>
+          <input id="getTaskId" placeholder="task id">
+          <button class="action" onclick="getOneTask()">Fetch task</button>
+          <pre class="output" id="getTaskResult"></pre>
+        </div>
+      </div>
+
+      <div class="subtabpanel" data-sub="update">
+        <div class="card">
+          <div class="card-title"><span class="method-tag patch">PATCH</span> /tasks/:id</div>
+          <input id="updateTaskId" placeholder="task id">
+          <input id="updateTaskTitle" placeholder="new title">
+          <button class="action" onclick="updateTask()">Update task</button>
+          <pre class="output" id="updateResult"></pre>
+        </div>
+      </div>
+
+      <div class="subtabpanel" data-sub="complete">
+        <div class="card">
+          <div class="card-title"><span class="method-tag patch">PATCH</span> /tasks/:id/completed</div>
+          <p class="card-note">Flips completed: false → true, true → false. Only works on a task you own.</p>
+          <input id="completeTaskId" placeholder="task id">
+          <button class="action" onclick="toggleComplete()">Toggle complete</button>
+          <pre class="output" id="completeResult"></pre>
+        </div>
+      </div>
+
+      <div class="subtabpanel" data-sub="delete">
+        <div class="card">
+          <div class="card-title"><span class="method-tag delete">DELETE</span> /tasks/:id</div>
+          <input id="deleteTaskId" placeholder="task id">
+          <button class="action danger" onclick="deleteTask()">Delete task</button>
+          <pre class="output" id="deleteResult"></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- USERS -->
+    <div class="panel" id="panel-users">
+      <div class="panel-head">
+        <h1>Users</h1>
+        <p>Admin and self-service account routes.</p>
+      </div>
+
+      <div class="subtabs">
+        <button class="subtab-btn active" data-sub="u-all">List all</button>
+        <button class="subtab-btn" data-sub="u-one">Get one</button>
+        <button class="subtab-btn" data-sub="u-update">Update mine</button>
+        <button class="subtab-btn" data-sub="u-delete">Delete mine</button>
+      </div>
+
+      <div class="subtabpanel active" data-sub="u-all">
+        <div class="card">
+          <div class="card-title"><span class="method-tag get">GET</span> /users</div>
+          <p class="card-note">Admin-only. Non-admins receive a 403 with a plain-text body.</p>
+          <button class="action" onclick="getAllUsers()">Fetch all users</button>
+          <pre class="output" id="allUsersResult"></pre>
+        </div>
+      </div>
+
+      <div class="subtabpanel" data-sub="u-one">
+        <div class="card">
+          <div class="card-title"><span class="method-tag get">GET</span> /users/:id</div>
+          <input id="getUserId" placeholder="user id">
+          <button class="action" onclick="getOneUser()">Fetch user</button>
+          <pre class="output" id="getUserResult"></pre>
+        </div>
+      </div>
+
+      <div class="subtabpanel" data-sub="u-update">
+        <div class="card">
+          <div class="card-title"><span class="method-tag patch">PATCH</span> /users/:id</div>
+          <p class="card-note">The id must match your logged-in user id, shown in the top session badge.</p>
+          <input id="updateUserId" placeholder="your user id">
+          <input id="updateUserEmail" placeholder="new email">
+          <button class="action" onclick="updateUser()">Update email</button>
+          <pre class="output" id="updateUserResult"></pre>
+        </div>
+      </div>
+
+      <div class="subtabpanel" data-sub="u-delete">
+        <div class="card">
+          <div class="card-title"><span class="method-tag delete">DELETE</span> /users</div>
+          <p class="card-note">Deletes the account you're currently logged in as — identified by your token, no id needed.</p>
+          <button class="action danger" onclick="deleteMyAccount()">Delete my account</button>
+          <pre class="output" id="deleteUserResult"></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROFILE -->
+    <div class="panel" id="panel-profile">
+      <div class="panel-head">
+        <h1>Profile</h1>
+        <p>Returns a plain-text response for the authenticated user.</p>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="method-tag get">GET</span> /profile</div>
+        <button class="action" onclick="getProfile()">Fetch profile</button>
+        <pre class="output" id="profileResult"></pre>
+      </div>
+    </div>
+
+  </main>
 </div>
 
 <script>
-  function showTab(name) {
-    document.querySelectorAll(".tabpanel").forEach(p => p.classList.remove("active"));
-    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
-    document.getElementById("tab-" + name).classList.add("active");
-    event.target.classList.add("active");
+  /* ---------- Tab wiring (desktop sidenav + mobile pill bar stay in sync) ---------- */
+  function activateTab(name){
+    document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+    document.getElementById("panel-" + name).classList.add("active");
+    document.querySelectorAll(".nav-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
+    document.querySelectorAll(".mobile-tabs button").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
+    sessionStorage.setItem("activeTab", name);
   }
+  document.querySelectorAll(".nav-btn, .mobile-tabs button").forEach(btn=>{
+    btn.addEventListener("click", ()=> activateTab(btn.dataset.tab));
+  });
 
-  function showSubTab(name) {
-    // scoped to whichever tabpanel is currently visible, so Users and Tasks subtabs don't clash
-    const activeTabPanel = document.querySelector(".tabpanel.active");
-    activeTabPanel.querySelectorAll(".subtabpanel").forEach(p => p.classList.remove("active"));
-    activeTabPanel.querySelectorAll(".subtab-btn").forEach(b => b.classList.remove("active"));
-    document.getElementById("subtab-" + name).classList.add("active");
-    event.target.classList.add("active");
+  function activateSub(panelEl, name){
+    panelEl.querySelectorAll(".subtabpanel").forEach(p => p.classList.toggle("active", p.dataset.sub === name));
+    panelEl.querySelectorAll(".subtab-btn").forEach(b => b.classList.toggle("active", b.dataset.sub === name));
+    if (panelEl.id) sessionStorage.setItem("activeSub:" + panelEl.id, name);
   }
+  document.querySelectorAll(".subtab-btn").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const panelEl = btn.closest(".panel");
+      activateSub(panelEl, btn.dataset.sub);
+    });
+  });
 
+  /* ---------- App state & API calls (unchanged behavior) ---------- */
   let token = null;
   let currentEmail = null;
   let currentUserId = null;
   let currentRole = null;
   const signedUpUsers = [];
 
-  function base() {
-    // Always relative: requests go back to whatever domain served this page.
-    return "";
-  }
+  function base(){ return ""; }
 
-  function renderSignedUpList() {
+  function renderSignedUpList(){
     const list = document.getElementById("signedUpList");
-    if (signedUpUsers.length === 0) {
+    if (signedUpUsers.length === 0){
       list.innerHTML = "<li><em>none yet</em></li>";
       return;
     }
     list.innerHTML = signedUpUsers.map(email => "<li>" + email + "</li>").join("");
   }
 
-  function setLoggedIn(email) {
+  function setLoggedIn(email){
     currentEmail = email;
-    document.getElementById("statusBar").innerHTML =
-      "Logged in as <strong>" + email + "</strong>" +
-      " | id: <strong>" + (currentUserId ?? "?") + "</strong>" +
-      " | role: <strong>" + (currentRole ?? "?") + "</strong>" +
-      "<button id='logoutBtn' onclick='logout()' style='margin-left:10px;'>Logout</button>";
+    document.getElementById("sessionInfo").innerHTML =
+      "<span class='badge online'><span class='pulse'></span>" + email +
+      " · id " + (currentUserId ?? "?") +
+      " · " + (currentRole ?? "?") + "</span>" +
+      "<button class='logout-link' id='logoutBtn' onclick='logout()'>log out</button>";
   }
 
-  // Every result <pre> that could contain data from an authenticated
-  // request. Cleared on logout so nothing from the previous session
-  // stays visible on screen.
   const RESULT_ELEMENT_IDS = [
     "loginResult", "createResult", "tasksResult", "getTaskResult",
     "updateResult", "completeResult", "deleteResult", "profileResult",
     "allUsersResult", "getUserResult", "updateUserResult", "deleteUserResult",
   ];
 
-  function clearAllResults() {
-    RESULT_ELEMENT_IDS.forEach(id => {
+  function clearAllResults(){
+    RESULT_ELEMENT_IDS.forEach(id=>{
       const el = document.getElementById(id);
       if (el) el.textContent = "";
     });
   }
 
-  function logout() {
+  function logout(){
     token = null;
     currentEmail = null;
     currentUserId = null;
@@ -265,44 +690,47 @@
     sessionStorage.removeItem("userId");
     sessionStorage.removeItem("role");
     document.getElementById("tokenDisplay").textContent = "(none yet)";
-    document.getElementById("statusBar").innerHTML =
-      "Not logged in" +
-      "<button id='logoutBtn' onclick='logout()' style='display:none; margin-left:10px;'>Logout</button>";
+    document.getElementById("sessionInfo").innerHTML =
+      "<span class='badge'><span class='pulse'></span> not authenticated</span>" +
+      "<button class='logout-link' id='logoutBtn' onclick='logout()' style='display:none;'>log out</button>";
     clearAllResults();
   }
 
-  // Decodes the payload of a JWT without checking its signature — fine for a
-  // local test client just reading our own token, but never do this to trust
-  // a token from someone else; real verification happens server-side only.
-  function decodeJwtPayload(jwt) {
-    try {
+  function decodeJwtPayload(jwt){
+    try{
       const payload = jwt.split(".")[1];
       return JSON.parse(atob(payload));
-    } catch {
-      return null;
-    }
+    } catch { return null; }
   }
 
-  // Restore session on page load, if a token was saved from a previous login.
-  // Note: this only restores what's in sessionStorage; it does not verify the
-  // token is still valid server-side (e.g. it may have expired). The first
-  // authenticated request made after refresh will fail with 401 if so.
   window.addEventListener("DOMContentLoaded", () => {
     const savedToken = sessionStorage.getItem("token");
     const savedEmail = sessionStorage.getItem("email");
     const savedUserId = sessionStorage.getItem("userId");
     const savedRole = sessionStorage.getItem("role");
 
-    if (savedToken) {
+    if (savedToken){
       token = savedToken;
       currentUserId = savedUserId;
       currentRole = savedRole;
       document.getElementById("tokenDisplay").textContent = token;
       if (savedEmail) setLoggedIn(savedEmail);
     }
+
+    // Restore whichever tab and subtab the user was last on.
+    const savedTab = sessionStorage.getItem("activeTab");
+    if (savedTab && document.getElementById("panel-" + savedTab)){
+      activateTab(savedTab);
+    }
+    document.querySelectorAll(".panel").forEach(panelEl => {
+      const savedSub = sessionStorage.getItem("activeSub:" + panelEl.id);
+      if (savedSub && panelEl.querySelector(".subtabpanel[data-sub='" + savedSub + "']")){
+        activateSub(panelEl, savedSub);
+      }
+    });
   });
 
-  async function signup() {
+  async function signup(){
     const email = document.getElementById("signupEmail").value;
     const password = document.getElementById("signupPassword").value;
     const res = await fetch(base() + "/users/signup", {
@@ -312,15 +740,14 @@
     });
     const data = await res.json();
     document.getElementById("signupResult").textContent = JSON.stringify(data, null, 2);
-
-    if (data.success) {
+    if (data.success){
       signedUpUsers.push(email);
       renderSignedUpList();
     }
   }
 
-  async function login() {
-   const email = document.getElementById("loginEmail").value;
+  async function login(){
+    const email = document.getElementById("loginEmail").value;
     const password = document.getElementById("loginPassword").value;
     const res = await fetch(base() + "/users/login", {
       method: "POST",
@@ -330,16 +757,14 @@
     const data = await res.json();
     document.getElementById("loginResult").textContent = JSON.stringify(data, null, 2);
 
-    if (data.success) {
+    if (data.success){
       token = data.token || null;
       document.getElementById("tokenDisplay").textContent = token || "(couldn't extract token)";
-
-      if (token) {
+      if (token){
         const payload = decodeJwtPayload(token);
         currentUserId = payload ? payload.id : null;
         currentRole = payload ? payload.role : null;
         setLoggedIn(email);
-
         sessionStorage.setItem("token", token);
         sessionStorage.setItem("email", email);
         if (currentUserId !== null) sessionStorage.setItem("userId", currentUserId);
@@ -348,75 +773,57 @@
     }
   }
 
-  async function createTask() {
+  async function createTask(){
     const title = document.getElementById("taskTitle").value;
     const res = await fetch(base() + "/tasks", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer " + token,
-      },
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
       body: JSON.stringify({ title }),
     });
     const data = await res.json();
     document.getElementById("createResult").textContent = JSON.stringify(data, null, 2);
   }
 
-  async function getTasks() {
+  async function getTasks(){
     const page = document.getElementById("tasksPage").value;
     const limit = document.getElementById("tasksLimit").value;
     const params = new URLSearchParams();
     if (page) params.set("page", page);
     if (limit) params.set("limit", limit);
     const qs = params.toString() ? "?" + params.toString() : "";
-
-    const res = await fetch(base() + "/tasks" + qs, {
-      headers: { "Authorization": "Bearer " + token },
-    });
+    const res = await fetch(base() + "/tasks" + qs, { headers: { "Authorization": "Bearer " + token } });
     const data = await res.json();
     document.getElementById("tasksResult").textContent = JSON.stringify(data, null, 2);
   }
 
-  async function getOneTask() {
+  async function getOneTask(){
     const id = document.getElementById("getTaskId").value;
-    const res = await fetch(base() + "/tasks/" + id, {
-      headers: { "Authorization": "Bearer " + token },
-    });
+    const res = await fetch(base() + "/tasks/" + id, { headers: { "Authorization": "Bearer " + token } });
     const data = await res.json();
     document.getElementById("getTaskResult").textContent = JSON.stringify(data, null, 2);
   }
 
-  async function getProfile() {
-    // Your /profile route returns plain text, not JSON, so read it as text.
-    const res = await fetch(base() + "/profile", {
-      headers: { "Authorization": "Bearer " + token },
-    });
+  async function getProfile(){
+    const res = await fetch(base() + "/profile", { headers: { "Authorization": "Bearer " + token } });
     const text = await res.text();
     document.getElementById("profileResult").textContent = text;
   }
 
-  async function getAllUsers() {
-    // Admin-only route. Non-admins get a 403 with a plain-text body
-    // ("Forbidden: insufficient role"), not JSON — so check status first.
-    const res = await fetch(base() + "/users", {
-      headers: { "Authorization": "Bearer " + token },
-    });
-    if (res.status === 403) {
+  async function getAllUsers(){
+    const res = await fetch(base() + "/users", { headers: { "Authorization": "Bearer " + token } });
+    if (res.status === 403){
       const text = await res.text();
       document.getElementById("allUsersResult").textContent = text;
       return;
     }
-    // Response shape: { success, value: [ {id, email}, ... ], trusteduser, trusteduser_id }
     const data = await res.json();
     document.getElementById("allUsersResult").textContent = JSON.stringify(data, null, 2);
   }
 
-  async function getOneUser() {
+  async function getOneUser(){
     const id = document.getElementById("getUserId").value;
-    const res = await fetch(base() + "/users/" + id, {
-      headers: { "Authorization": "Bearer " + token },
-    });
-    if (res.status === 403) {
+    const res = await fetch(base() + "/users/" + id, { headers: { "Authorization": "Bearer " + token } });
+    if (res.status === 403){
       const text = await res.text();
       document.getElementById("getUserResult").textContent = text;
       return;
@@ -425,62 +832,46 @@
     document.getElementById("getUserResult").textContent = JSON.stringify(data, null, 2);
   }
 
-  async function updateUser() {
+  async function updateUser(){
     const id = document.getElementById("updateUserId").value;
     const email = document.getElementById("updateUserEmail").value;
     const res = await fetch(base() + "/users/" + id, {
       method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer " + token,
-      },
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
       body: JSON.stringify({ email }),
     });
     const data = await res.json();
     document.getElementById("updateUserResult").textContent = JSON.stringify(data, null, 2);
 
-    // If we just renamed the account we're logged in as, keep the UI and
-    // saved session in sync so a refresh doesn't show the stale email.
-    if (data.success && email === currentEmail) {
-      // no-op: server identifies by id, not email, so nothing else to update
-    } else if (data.success && String(id) === String(currentUserId)) {
+    if (data.success && email === currentEmail){
+      // no-op: server identifies by id, not email
+    } else if (data.success && String(id) === String(currentUserId)){
       currentEmail = email;
       sessionStorage.setItem("email", email);
       setLoggedIn(email);
     }
   }
 
-  async function deleteMyAccount() {
-    const res = await fetch(base() + "/users", {
-      method: "DELETE",
-      headers: { "Authorization": "Bearer " + token },
-    });
+  async function deleteMyAccount(){
+    const res = await fetch(base() + "/users", { method: "DELETE", headers: { "Authorization": "Bearer " + token } });
     const data = await res.json();
     document.getElementById("deleteUserResult").textContent = JSON.stringify(data, null, 2);
-
-    if (data.success) {
-      logout();
-    }
+    if (data.success) logout();
   }
 
-  async function updateTask() {
+  async function updateTask(){
     const id = document.getElementById("updateTaskId").value;
     const title = document.getElementById("updateTaskTitle").value;
     const res = await fetch(base() + "/tasks/" + id, {
       method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer " + token,
-      },
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
       body: JSON.stringify({ title }),
     });
     const data = await res.json();
     document.getElementById("updateResult").textContent = JSON.stringify(data, null, 2);
   }
 
-  // New feature: toggle a task's completed status via
-  // PATCH /tasks/:id/complete (taskController.completed).
-  async function toggleComplete() {
+  async function toggleComplete(){
     const id = document.getElementById("completeTaskId").value;
     const res = await fetch(base() + "/tasks/" + id + "/completed", {
       method: "PATCH",
@@ -490,13 +881,9 @@
     document.getElementById("completeResult").textContent = JSON.stringify(data, null, 2);
   }
 
-  async function deleteTask() {
+  async function deleteTask(){
     const id = document.getElementById("deleteTaskId").value;
-    const res = await fetch(base() + "/tasks/" + id, {
-      method: "DELETE",
-      headers: { "Authorization": "Bearer " + token },
-    });
-    // Your delete route returns 204 No Content, so there's no JSON body to read.
+    const res = await fetch(base() + "/tasks/" + id, { method: "DELETE", headers: { "Authorization": "Bearer " + token } });
     document.getElementById("deleteResult").textContent =
       "Status: " + res.status + (res.status === 204 ? " (deleted, no content)" : "");
   }

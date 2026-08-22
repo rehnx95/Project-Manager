@@ -1,11 +1,25 @@
 const taskService = require("../services/taskService2");
-const { z, success } = require("zod");
+const { z } = require("zod");
 
 // req.user.id is unique identification of user extracted from login and pass to authenticate funtion that return req.user as decoded
 
 const taskSchema = z.object({
   title: z.string().min(1, "Title is required"),
 });
+
+// Task ids come from the URL as strings; this rejects non-numeric ids
+// early with a clean 400 instead of letting a bad value hit Postgres
+// and bubble up as a generic 500 from the type-cast error.
+const idParamSchema = z.coerce.number().int().positive();
+
+function parseTaskId(req, res) {
+  const result = idParamSchema.safeParse(req.params.id);
+  if (!result.success) {
+    res.status(400).json({ success: false, error: "Invalid task id" });
+    return null;
+  }
+  return result.data;
+}
 
 async function createTask(req, res) {
   console.log(
@@ -36,12 +50,22 @@ async function createTask(req, res) {
   );
   res.status(201).json({
     success: true,
-    value: `Task Created With Title ${outcome.value.title}`,
+    value: outcome.value,
   });
 }
 
 async function completed(req, res) {
-  const outcome = await taskService.getoneTask(req.params.id);
+  console.log(
+    new Date().toLocaleTimeString("en-GB"),
+    "[controller:task] completed hit, params:",
+    req.params,
+    "user:",
+    req.user,
+  );
+  const id = parseTaskId(req, res);
+  if (id === null) return;
+
+  const outcome = await taskService.getoneTask(id);
   const task = outcome.value;
   console.log(
     new Date().toLocaleTimeString("en-GB"),
@@ -52,11 +76,11 @@ async function completed(req, res) {
   if (!task || task.user_id !== req.user.id) {
     console.log(
       new Date().toLocaleTimeString("en-GB"),
-      "[controller:task] getoneTask - not found or not owned by user",
+      "[controller:task] completed - not found or not owned by user",
     );
     return res.status(404).json({ success: false, error: "Task not found" });
   }
-  const result = await taskService.completed(req.params.id);
+  const result = await taskService.completed(id);
   if (!result.success) {
     return res.status(404).json({ success: false, error: result.error });
   }
@@ -98,7 +122,10 @@ async function getoneTask(req, res) {
     "user:",
     req.user,
   );
-  const outcome = await taskService.getoneTask(req.params.id);
+  const id = parseTaskId(req, res);
+  if (id === null) return;
+
+  const outcome = await taskService.getoneTask(id);
   const task = outcome.value;
   console.log(
     new Date().toLocaleTimeString("en-GB"),
@@ -126,6 +153,9 @@ async function updateTask(req, res) {
     "user:",
     req.user,
   );
+  const id = parseTaskId(req, res);
+  if (id === null) return;
+
   const result = taskSchema.safeParse(req.body);
   if (!result.success) {
     console.log(
@@ -136,7 +166,6 @@ async function updateTask(req, res) {
     return res.status(400).json({ success: false, error: result.error.issues });
   }
   const { title } = result.data;
-  const id = req.params.id;
   const outcome = await taskService.getoneTask(id);
   const task = outcome.value;
   console.log(
@@ -168,7 +197,9 @@ async function deleteTask(req, res) {
     "user:",
     req.user,
   );
-  const id = req.params.id;
+  const id = parseTaskId(req, res);
+  if (id === null) return;
+
   const outcome = await taskService.getoneTask(id);
   const task = outcome.value;
   console.log(

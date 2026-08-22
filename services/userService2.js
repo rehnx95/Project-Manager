@@ -34,8 +34,16 @@ async function updateUser(id, email) {
     email,
   );
   const user = await userRepository.getUser(id);
-  const updatedUser = await userRepository.updateUser(id, email);
+  if (!user) {
+    console.log(
+      new Date().toLocaleTimeString("en-GB"),
+      "[service:user] updateUser - no user found for id:",
+      id,
+    );
+    return { success: false, error: "User Not Exist" };
+  }
 
+  const updatedUser = await userRepository.updateUser(id, email);
   if (!updatedUser) {
     console.log(
       new Date().toLocaleTimeString("en-GB"),
@@ -50,7 +58,7 @@ async function updateUser(id, email) {
     updatedUser,
   );
   const newuser = {
-    id: id,
+    id: updatedUser.id,
     oldEmail: user.email,
     newEmail: updatedUser.email,
   };
@@ -63,7 +71,15 @@ async function deleteUser(email) {
     "[service:user] deleteUser called with email:",
     email,
   );
-  await userRepository.deleteUser(email);
+  const deleted = await userRepository.deleteUser(email);
+  if (!deleted) {
+    console.log(
+      new Date().toLocaleTimeString("en-GB"),
+      "[service:user] deleteUser - no user deleted for email:",
+      email,
+    );
+    return { success: false, error: "User Not Exist" };
+  }
   console.log(
     new Date().toLocaleTimeString("en-GB"),
     "[service:user] deleteUser done for email:",
@@ -116,7 +132,7 @@ async function signup(email, password) {
   console.log(
     new Date().toLocaleTimeString("en-GB"),
     "[service:user] signup - user created:",
-    result,
+    result.email,
   );
   return { success: true, value: result.email };
 }

@@ -1,11 +1,19 @@
 const pool = require("../db");
 
+// Strips the password hash before logging a user row, so bcrypt hashes
+// never end up in server logs even though they're not plaintext.
+function safeForLog(row) {
+  if (!row) return row;
+  const { password, ...rest } = row;
+  return rest;
+}
+
 async function findByEmail(email) {
   console.log(new Date().toLocaleTimeString("en-GB"),"[repo:users] findByEmail called with email:", email);
   const result = await pool.query("SELECT * FROM users WHERE email=$1", [
     email,
   ]);
-  console.log(new Date().toLocaleTimeString("en-GB"),"[repo:users] findByEmail result:", result.rows[0]);
+  console.log(new Date().toLocaleTimeString("en-GB"),"[repo:users] findByEmail result:", safeForLog(result.rows[0]));
   return result.rows[0];
 }
 
@@ -15,7 +23,7 @@ async function create(user) {
     "INSERT INTO users (email,password) VALUES ($1,$2) RETURNING *",
     [user.email, user.password],
   );
-  console.log(new Date().toLocaleTimeString("en-GB"),"[repo:users] create inserted row:", result.rows[0]);
+  console.log(new Date().toLocaleTimeString("en-GB"),"[repo:users] create inserted row:", safeForLog(result.rows[0]));
   return result.rows[0];
 }
 
@@ -32,7 +40,7 @@ async function deleteUser(email) {
     "DELETE FROM users WHERE email=$1 returning *",
     [email],
   );
-  console.log(new Date().toLocaleTimeString("en-GB"),"[repo:users] deleteUser deleted row:", result.rows[0]);
+  console.log(new Date().toLocaleTimeString("en-GB"),"[repo:users] deleteUser deleted row:", safeForLog(result.rows[0]));
   return result.rows[0];
 }
 
@@ -42,13 +50,13 @@ async function updateUser(id, email) {
     "UPDATE users SET email=$1 WHERE id=$2 RETURNING *",
     [email, id],
   );
-  console.log(new Date().toLocaleTimeString("en-GB"),"[repo:users] updateUser updated row:", result.rows[0]);
+  console.log(new Date().toLocaleTimeString("en-GB"),"[repo:users] updateUser updated row:", safeForLog(result.rows[0]));
   return result.rows[0];
 }
 
 async function getUser(id) {
   console.log(new Date().toLocaleTimeString("en-GB"),"[repo:users] getUser called with id:", id);
-  const result = await pool.query("SELECT id,email FROM users WHERE id=$1", [
+  const result = await pool.query("SELECT id,email,role FROM users WHERE id=$1", [
     id,
   ]);
   console.log(new Date().toLocaleTimeString("en-GB"),"[repo:users] getUser result:", result.rows[0]);
