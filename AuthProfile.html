@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>API Test Page</title>
+<style>
+  body { font-family: sans-serif; max-width: 500px; margin: 40px auto; }
+  section { border: 1px solid #ccc; padding: 15px; margin-bottom: 20px; border-radius: 6px; }
+  h2 { margin-top: 0; font-size: 16px; }
+  input { display: block; width: 100%; margin: 6px 0; padding: 6px; box-sizing: border-box; }
+  button { padding: 8px 12px; margin-top: 6px; cursor: pointer; }
+  button.danger { background: #c0392b; color: #fff; border: none; border-radius: 4px; }
+  pre { background: #f4f4f4; padding: 10px; white-space: pre-wrap; word-break: break-all; }
+  .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 20px; }
+  .tabs button { margin: 0; padding: 6px 10px; font-size: 13px; background: #eee; border: 1px solid #ccc; border-radius: 4px; }
+  .tabs button.active { background: #333; color: #fff; }
+  .tabpanel { display: none; }
+  .tabpanel.active { display: block; }
+  .subtabpanel { display: none; }
+  .subtabpanel.active { display: block; }
+</style>
+</head>
+<body>
+
+<h1>API Test</h1>
+
+<!-- Status bar: shows who's logged in right now -->
+<div id="statusBar" style="padding:10px; background:#eee; border-radius:6px; margin-bottom:20px;">
+  Not logged in
+  <button id="logoutBtn" onclick="logout()" style="display:none; margin-left:10px;">Logout</button>
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('signup')">Signup</button>
+  <button class="tab-btn" onclick="showTab('login')">Login</button>
+  <button class="tab-btn" onclick="showTab('users')">Users</button>
+  <button class="tab-btn" onclick="showTab('tasks')">Tasks</button>
+  <button class="tab-btn" onclick="showTab('profile')">Profile</button>
+</div>
+
+<div id="tab-signup" class="tabpanel active">
+  <section>
+    <h2>1. Signup</h2>
+    <input id="signupEmail" placeholder="email">
+    <input id="signupPassword" placeholder="password (min 6 chars)"  type="password">
+    <button onclick="signup()">Signup</button>
+    <pre id="signupResult"></pre>
+  </section>
+
+  <section>
+    <h2>Signed Up Users (this session)</h2>
+    <ul id="signedUpList"><li><em>none yet</em></li></ul>
+  </section>
+</div>
+
+<div id="tab-login" class="tabpanel">
+  <section>
+    <h2>2. Login</h2>
+    <input id="loginEmail" placeholder="email">
+    <input id="loginPassword" placeholder="password" type="password">
+    <button onclick="login()">Login</button>
+    <pre id="loginResult"></pre>
+    <p><strong>Token in use:</strong></p>
+    <pre id="tokenDisplay">(none yet)</pre>
+    <p><strong>Your user id (from last login):</strong></p>
+    <pre id="myIdDisplay">(none yet)</pre>
+  </section>
+</div>
+
+<div id="tab-users" class="tabpanel">
+  <div class="tabs">
+    <button class="subtab-btn active" onclick="showSubTab('u-all')">List All</button>
+    <button class="subtab-btn" onclick="showSubTab('u-one')">Get One</button>
+    <button class="subtab-btn" onclick="showSubTab('u-update')">Update Mine</button>
+    <button class="subtab-btn" onclick="showSubTab('u-delete')">Delete Mine</button>
+  </div>
+
+  <div id="subtab-u-all" class="subtabpanel active">
+    <section>
+      <h2>Get All Users (requires login)</h2>
+      <button onclick="getAllUsers()">Get All Users</button>
+      <pre id="allUsersResult"></pre>
+    </section>
+  </div>
+
+  <div id="subtab-u-one" class="subtabpanel">
+    <section>
+      <h2>Get One User By Id</h2>
+      <input id="getUserId" placeholder="user id">
+      <button onclick="getOneUser()">Get User</button>
+      <pre id="getUserResult"></pre>
+    </section>
+  </div>
+
+  <div id="subtab-u-update" class="subtabpanel">
+    <section>
+      <h2>Update My Email</h2>
+      <p style="font-size:13px; color:#555;">
+        Server only allows updating your own account — the id below must match your logged-in user id shown on the Login tab.
+      </p>
+      <input id="updateUserId" placeholder="your user id">
+      <input id="updateUserEmail" placeholder="new email">
+      <button onclick="updateUser()">Update Email</button>
+      <pre id="updateUserResult"></pre>
+    </section>
+  </div>
+
+  <div id="subtab-u-delete" class="subtabpanel">
+    <section>
+      <h2>Delete My Account</h2>
+      <p style="font-size:13px; color:#555;">
+        Deletes the account you're currently logged in as. No id needed — the server identifies you from your token.
+      </p>
+      <button class="danger" onclick="deleteMyAccount()">Delete My Account</button>
+      <pre id="deleteUserResult"></pre>
+    </section>
+  </div>
+</div>
+
+<div id="tab-tasks" class="tabpanel">
+  <div class="tabs">
+    <button class="subtab-btn active" onclick="showSubTab('create')">Create</button>
+    <button class="subtab-btn" onclick="showSubTab('list')">List</button>
+    <button class="subtab-btn" onclick="showSubTab('one')">Get One</button>
+    <button class="subtab-btn" onclick="showSubTab('update')">Update</button>
+    <button class="subtab-btn" onclick="showSubTab('complete')">Toggle Complete</button>
+    <button class="subtab-btn" onclick="showSubTab('delete')">Delete</button>
+  </div>
+
+  <div id="subtab-create" class="subtabpanel active">
+    <section>
+      <h2>3. Create Task</h2>
+      <input id="taskTitle" placeholder="task title">
+      <button onclick="createTask()">Create Task</button>
+      <pre id="createResult"></pre>
+    </section>
+  </div>
+
+  <div id="subtab-list" class="subtabpanel">
+    <section>
+      <h2>4. Get My Tasks</h2>
+      <input id="tasksPage" placeholder="page (default 1)">
+      <input id="tasksLimit" placeholder="limit (default 10)">
+      <button onclick="getTasks()">Get Tasks</button>
+      <pre id="tasksResult"></pre>
+    </section>
+  </div>
+
+  <div id="subtab-one" class="subtabpanel">
+    <section>
+      <h2>Get One Task By Id</h2>
+      <input id="getTaskId" placeholder="task id">
+      <button onclick="getOneTask()">Get Task</button>
+      <pre id="getTaskResult"></pre>
+    </section>
+  </div>
+
+  <div id="subtab-update" class="subtabpanel">
+    <section>
+      <h2>6. Update Task</h2>
+      <input id="updateTaskId" placeholder="task id">
+      <input id="updateTaskTitle" placeholder="new title">
+      <button onclick="updateTask()">Update Task</button>
+      <pre id="updateResult"></pre>
+    </section>
+  </div>
+
+  <div id="subtab-complete" class="subtabpanel">
+    <section>
+      <h2>Toggle Task Completed</h2>
+      <p style="font-size:13px; color:#555;">
+        Flips the task's completed status (false → true, true → false). Only works on a task you own.
+      </p>
+      <input id="completeTaskId" placeholder="task id">
+      <button onclick="toggleComplete()">Toggle Complete</button>
+      <pre id="completeResult"></pre>
+    </section>
+  </div>
+
+  <div id="subtab-delete" class="subtabpanel">
+    <section>
+      <h2>7. Delete Task</h2>
+      <input id="deleteTaskId" placeholder="task id">
+      <button onclick="deleteTask()">Delete Task</button>
+      <pre id="deleteResult"></pre>
+    </section>
+  </div>
+</div>
+
+<div id="tab-profile" class="tabpanel">
+  <section>
+    <h2>5. Get Profile</h2>
+    <button onclick="getProfile()">Get Profile</button>
+    <pre id="profileResult"></pre>
+  </section>
+</div>
+
+<script>
+  function showTab(name) {
+    document.querySelectorAll(".tabpanel").forEach(p => p.classList.remove("active"));
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    document.getElementById("tab-" + name).classList.add("active");
+    event.target.classList.add("active");
+  }
+
+  function showSubTab(name) {
+    // scoped to whichever tabpanel is currently visible, so Users and Tasks subtabs don't clash
+    const activeTabPanel = document.querySelector(".tabpanel.active");
+    activeTabPanel.querySelectorAll(".subtabpanel").forEach(p => p.classList.remove("active"));
+    activeTabPanel.querySelectorAll(".subtab-btn").forEach(b => b.classList.remove("active"));
+    document.getElementById("subtab-" + name).classList.add("active");
+    event.target.classList.add("active");
+  }
+
+  let token = null;
+  let currentEmail = null;
+  let currentUserId = null;
+  const signedUpUsers = [];
+
+  function base() {
+    // Always relative: requests go back to whatever domain served this page.
+    return "";
+  }
+
+  function renderSignedUpList() {
+    const list = document.getElementById("signedUpList");
+    if (signedUpUsers.length === 0) {
+      list.innerHTML = "<li><em>none yet</em></li>";
+      return;
+    }
+    list.innerHTML = signedUpUsers.map(email => "<li>" + email + "</li>").join("");
+  }
+
+  function setLoggedIn(email) {
+    currentEmail = email;
+    document.getElementById("statusBar").innerHTML =
+      "Logged in as <strong>" + email + "</strong>" +
+      "<button id='logoutBtn' onclick='logout()' style='margin-left:10px;'>Logout</button>";
+  }
+
+  function logout() {
+    token = null;
+    currentEmail = null;
+    currentUserId = null;
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("email");
+    sessionStorage.removeItem("userId");
+    document.getElementById("tokenDisplay").textContent = "(none yet)";
+    document.getElementById("myIdDisplay").textContent = "(none yet)";
+    document.getElementById("statusBar").innerHTML =
+      "Not logged in" +
+      "<button id='logoutBtn' onclick='logout()' style='display:none; margin-left:10px;'>Logout</button>";
+  }
+
+  // Decodes the payload of a JWT without checking its signature — fine for a
+  // local test client just reading our own token, but never do this to trust
+  // a token from someone else; real verification happens server-side only.
+  function decodeJwtPayload(jwt) {
+    try {
+      const payload = jwt.split(".")[1];
+      return JSON.parse(atob(payload));
+    } catch {
+      return null;
+    }
+  }
+
+  // Restore session on page load, if a token was saved from a previous login.
+  // Note: this only restores what's in sessionStorage; it does not verify the
+  // token is still valid server-side (e.g. it may have expired). The first
+  // authenticated request made after refresh will fail with 401 if so.
+  window.addEventListener("DOMContentLoaded", () => {
+    const savedToken = sessionStorage.getItem("token");
+    const savedEmail = sessionStorage.getItem("email");
+    const savedUserId = sessionStorage.getItem("userId");
+
+    if (savedToken) {
+      token = savedToken;
+      currentUserId = savedUserId;
+      document.getElementById("tokenDisplay").textContent = token;
+      document.getElementById("myIdDisplay").textContent = savedUserId ?? "(unknown)";
+      if (savedEmail) setLoggedIn(savedEmail);
+    }
+  });
+
+  async function signup() {
+    const email = document.getElementById("signupEmail").value;
+    const password = document.getElementById("signupPassword").value;
+    const res = await fetch(base() + "/users/signup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
+    document.getElementById("signupResult").textContent = JSON.stringify(data, null, 2);
+
+    if (data.success) {
+      signedUpUsers.push(email);
+      renderSignedUpList();
+    }
+  }
+
+  async function login() {
+   const email = document.getElementById("loginEmail").value;
+    const password = document.getElementById("loginPassword").value;
+    const res = await fetch(base() + "/users/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
+    document.getElementById("loginResult").textContent = JSON.stringify(data, null, 2);
+
+    if (data.success) {
+      token = data.token || null;
+      document.getElementById("tokenDisplay").textContent = token || "(couldn't extract token)";
+
+      if (token) {
+        setLoggedIn(email);
+        const payload = decodeJwtPayload(token);
+        currentUserId = payload ? payload.id : null;
+        document.getElementById("myIdDisplay").textContent =
+          currentUserId !== null ? currentUserId : "(couldn't decode token)";
+
+        sessionStorage.setItem("token", token);
+        sessionStorage.setItem("email", email);
+        if (currentUserId !== null) sessionStorage.setItem("userId", currentUserId);
+      }
+    }
+  }
+
+  async function createTask() {
+    const title = document.getElementById("taskTitle").value;
+    const res = await fetch(base() + "/tasks", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token,
+      },
+      body: JSON.stringify({ title }),
+    });
+    const data = await res.json();
+    document.getElementById("createResult").textContent = JSON.stringify(data, null, 2);
+  }
+
+  async function getTasks() {
+    const page = document.getElementById("tasksPage").value;
+    const limit = document.getElementById("tasksLimit").value;
+    const params = new URLSearchParams();
+    if (page) params.set("page", page);
+    if (limit) params.set("limit", limit);
+    const qs = params.toString() ? "?" + params.toString() : "";
+
+    const res = await fetch(base() + "/tasks" + qs, {
+      headers: { "Authorization": "Bearer " + token },
+    });
+    const data = await res.json();
+    document.getElementById("tasksResult").textContent = JSON.stringify(data, null, 2);
+  }
+
+  async function getOneTask() {
+    const id = document.getElementById("getTaskId").value;
+    const res = await fetch(base() + "/tasks/" + id, {
+      headers: { "Authorization": "Bearer " + token },
+    });
+    const data = await res.json();
+    document.getElementById("getTaskResult").textContent = JSON.stringify(data, null, 2);
+  }
+
+  async function getProfile() {
+    // Your /profile route returns plain text, not JSON, so read it as text.
+    const res = await fetch(base() + "/profile", {
+      headers: { "Authorization": "Bearer " + token },
+    });
+    const text = await res.text();
+    document.getElementById("profileResult").textContent = text;
+  }
+
+  async function getAllUsers() {
+    // Response shape: { success, value: [ {id, email}, ... ], trusteduser, trusteduser_id }
+    const res = await fetch(base() + "/users", {
+      headers: { "Authorization": "Bearer " + token },
+    });
+    const data = await res.json();
+    document.getElementById("allUsersResult").textContent = JSON.stringify(data, null, 2);
+  }
+
+  async function getOneUser() {
+    const id = document.getElementById("getUserId").value;
+    const res = await fetch(base() + "/users/" + id, {
+      headers: { "Authorization": "Bearer " + token },
+    });
+    const data = await res.json();
+    document.getElementById("getUserResult").textContent = JSON.stringify(data, null, 2);
+  }
+
+  async function updateUser() {
+    const id = document.getElementById("updateUserId").value;
+    const email = document.getElementById("updateUserEmail").value;
+    const res = await fetch(base() + "/users/" + id, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token,
+      },
+      body: JSON.stringify({ email }),
+    });
+    const data = await res.json();
+    document.getElementById("updateUserResult").textContent = JSON.stringify(data, null, 2);
+
+    // If we just renamed the account we're logged in as, keep the UI and
+    // saved session in sync so a refresh doesn't show the stale email.
+    if (data.success && email === currentEmail) {
+      // no-op: server identifies by id, not email, so nothing else to update
+    } else if (data.success && String(id) === String(currentUserId)) {
+      currentEmail = email;
+      sessionStorage.setItem("email", email);
+      setLoggedIn(email);
+    }
+  }
+
+  async function deleteMyAccount() {
+    const res = await fetch(base() + "/users", {
+      method: "DELETE",
+      headers: { "Authorization": "Bearer " + token },
+    });
+    const data = await res.json();
+    document.getElementById("deleteUserResult").textContent = JSON.stringify(data, null, 2);
+
+    if (data.success) {
+      logout();
+    }
+  }
+
+  async function updateTask() {
+    const id = document.getElementById("updateTaskId").value;
+    const title = document.getElementById("updateTaskTitle").value;
+    const res = await fetch(base() + "/tasks/" + id, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token,
+      },
+      body: JSON.stringify({ title }),
+    });
+    const data = await res.json();
+    document.getElementById("updateResult").textContent = JSON.stringify(data, null, 2);
+  }
+
+  // New feature: toggle a task's completed status via
+  // PATCH /tasks/:id/complete (taskController.completed).
+  async function toggleComplete() {
+    const id = document.getElementById("completeTaskId").value;
+    const res = await fetch(base() + "/tasks/" + id + "/completed", {
+      method: "PATCH",
+      headers: { "Authorization": "Bearer " + token },
+    });
+    const data = await res.json();
+    document.getElementById("completeResult").textContent = JSON.stringify(data, null, 2);
+  }
+
+  async function deleteTask() {
+    const id = document.getElementById("deleteTaskId").value;
+    const res = await fetch(base() + "/tasks/" + id, {
+      method: "DELETE",
+      headers: { "Authorization": "Bearer " + token },
+    });
+    // Your delete route returns 204 No Content, so there's no JSON body to read.
+    document.getElementById("deleteResult").textContent =
+      "Status: " + res.status + (res.status === 204 ? " (deleted, no content)" : "");
+  }
+</script>
+
+</body>
+</html>
