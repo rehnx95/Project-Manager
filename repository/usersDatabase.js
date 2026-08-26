@@ -1,5 +1,5 @@
 const pool = require("../db");
-
+const crypto = require("crypto");
 // Strips the password hash before logging a user row, so bcrypt hashes
 // never end up in server logs even though they're not plaintext.
 function safeForLog(row) {
@@ -8,66 +8,76 @@ function safeForLog(row) {
   return rest;
 }
 
-async function findByEmail(email) {
-  console.log(new Date().toLocaleTimeString("en-GB"),"[repo:users] findByEmail called with email:", email);
-  const result = await pool.query("SELECT * FROM users WHERE email=$1", [
-    email,
-  ]);
-  console.log(new Date().toLocaleTimeString("en-GB"),"[repo:users] findByEmail result:", safeForLog(result.rows[0]));
-  return result.rows[0];
-}
-
-async function create(user) {
-  console.log(new Date().toLocaleTimeString("en-GB"),"[repo:users] create called with email:", user.email);
+async function createUsers(user) {
+  const id = crypto.randomUUID();
   const result = await pool.query(
-    "INSERT INTO users (email,password) VALUES ($1,$2) RETURNING *",
-    [user.email, user.password],
+    "INSERT INTO users (id,email,password) VALUES ($1,$2,$3) RETURNING id,email",
+    [id, user.email, user.password],
   );
-  console.log(new Date().toLocaleTimeString("en-GB"),"[repo:users] create inserted row:", safeForLog(result.rows[0]));
   return result.rows[0];
 }
 
-async function getall() {
-  console.log(new Date().toLocaleTimeString("en-GB"),"[repo:users] getall called");
-  const result = await pool.query("SELECT id,email FROM users");
-  console.log(new Date().toLocaleTimeString("en-GB"),"[repo:users] getall found", result.rows.length, "rows");
-  return result.rows;
-}
-
-async function deleteUser(email) {
-  console.log(new Date().toLocaleTimeString("en-GB"),"[repo:users] deleteUser called with email:", email);
+async function findByEmail(email) {
   const result = await pool.query(
-    "DELETE FROM users WHERE email=$1 returning *",
+    "SELECT id,email,password FROM users WHERE email=$1",
     [email],
   );
-  console.log(new Date().toLocaleTimeString("en-GB"),"[repo:users] deleteUser deleted row:", safeForLog(result.rows[0]));
   return result.rows[0];
 }
 
 async function updateUser(id, email) {
-  console.log(new Date().toLocaleTimeString("en-GB"),"[repo:users] updateUser called with id:", id, "email:", email);
   const result = await pool.query(
-    "UPDATE users SET email=$1 WHERE id=$2 RETURNING *",
-    [email, id],
+    "UPDATE users SET email=$2 WHERE id=$1 RETURNING id,email,role",
+    [id, email],
   );
-  console.log(new Date().toLocaleTimeString("en-GB"),"[repo:users] updateUser updated row:", safeForLog(result.rows[0]));
+  return result.rows[0];
+}
+
+async function deleteUser(email) {
+  const result = await pool.query(
+    "DELETE FROM users WHERE email=$1 returning *",
+    [email],
+  );
   return result.rows[0];
 }
 
 async function getUser(id) {
-  console.log(new Date().toLocaleTimeString("en-GB"),"[repo:users] getUser called with id:", id);
-  const result = await pool.query("SELECT id,email,role FROM users WHERE id=$1", [
-    id,
-  ]);
-  console.log(new Date().toLocaleTimeString("en-GB"),"[repo:users] getUser result:", result.rows[0]);
+  const result = await pool.query(
+    "SELECT id,email,role FROM users WHERE id=$1",
+    [id],
+  );
+  return result.rows[0];
+}
+
+async function getall() {
+  const result = await pool.query("SELECT id,email,role FROM users");
+  return result.rows;
+}
+
+async function createProfile(profile) {
+  const result = await pool.query(
+    "INSERT INTO  profile (user_id,name,bio) VALUES ($1,$2,$3) RETURNING *",
+    [profile.user_id, profile.name, profile.bio],
+  );
+  return result.rows[0];
+}
+
+async function updateProfile(userID, name, bio) {
+  const result = await pool.query(
+    "UPDATE profile SET name=COALESCE($2,name), bio=COALESCE($3,bio) WHERE user_id=$1 RETURNING *",
+    [userID, name, bio],
+  );
   return result.rows[0];
 }
 
 module.exports = {
+  createUsers,
   findByEmail,
-  create,
+  getUser,
   getall,
   deleteUser,
-  getUser,
   updateUser,
+  createProfile,
+  updateProfile,
+  safeForLog,
 };

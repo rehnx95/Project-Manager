@@ -1,5 +1,10 @@
 require("dotenv").config();
-const { Pool } = require("pg");
+const { Pool, types } = require("pg"); // 1. Added 'types' import
+
+// 2. Force Postgres TIMESTAMP (1114) and TIMESTAMPTZ (1184) to return as clean text strings
+types.setTypeParser(1114, (val) => val.replace("T", " ").split(".")[0]); 
+types.setTypeParser(1184, (val) => val.replace("T", " ").split(".")[0]);
+
 const pool = new Pool({
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
@@ -9,11 +14,11 @@ const pool = new Pool({
 });
 
 pool.on("connect", () => {
-  console.log(new Date().toLocaleTimeString("en-GB"),"[db] new client connected to pool");
+  console.log(new Date().toLocaleTimeString("en-GB"), "[db] new client connected to pool");
 });
 
 pool.on("error", (err) => {
-  console.log(new Date().toLocaleTimeString("en-GB"),"[db] unexpected pool error:", err.message);
+  console.log(new Date().toLocaleTimeString("en-GB"), "[db] unexpected pool error:", err.message);
 });
 
 module.exports = pool;
