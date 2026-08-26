@@ -11,7 +11,7 @@ function safeForLog(row) {
 async function createUsers(user) {
   const id = crypto.randomUUID();
   const result = await pool.query(
-    "INSERT INTO users (id,email,password) VALUES ($1,$2,$3) RETURNING id,email",
+    "INSERT INTO users (id,email,password) VALUES ($1,$2,$3) RETURNING id,role,email",
     [id, user.email, user.password],
   );
   return result.rows[0];
@@ -27,7 +27,7 @@ async function findByEmail(email) {
 
 async function updateUser(id, email) {
   const result = await pool.query(
-    "UPDATE users SET email=$2 WHERE id=$1 RETURNING id,email,role",
+    "UPDATE users SET email=$2, updated_at=now() WHERE id=$1 RETURNING id,email,role",
     [id, email],
   );
   return result.rows[0];
@@ -56,16 +56,16 @@ async function getall() {
 
 async function createProfile(profile) {
   const result = await pool.query(
-    "INSERT INTO  profile (user_id,name,bio) VALUES ($1,$2,$3) RETURNING *",
+    "INSERT INTO profiles (user_id,name,bio) VALUES ($1,$2,$3) RETURNING *",
     [profile.user_id, profile.name, profile.bio],
   );
   return result.rows[0];
 }
 
-async function updateProfile(userID, name, bio) {
+async function updateProfile(user_id, name, bio) {
   const result = await pool.query(
-    "UPDATE profile SET name=COALESCE($2,name), bio=COALESCE($3,bio) WHERE user_id=$1 RETURNING *",
-    [userID, name, bio],
+    "UPDATE profiles SET name=COALESCE($2,name), bio=COALESCE($3,bio) WHERE user_id=$1 RETURNING *",
+    [user_id, name, bio],
   );
   return result.rows[0];
 }

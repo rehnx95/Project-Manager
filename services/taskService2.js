@@ -1,25 +1,28 @@
 const taskRepository = require("../repository/tasksDatabase");
 
-async function completed(id) {
+async function completeTask(id) {
   const task = await taskRepository.getoneTask(id);
   if (!task) return { success: false, error: "Task Not Found" };
-  const result = await taskRepository.completed(id, !task.completed);
+  const result = await taskRepository.completeTask(id, !task.completed);
   return { success: true, value: result };
 }
 
-async function createTask(userID, title) {
+async function createTask(user_id, project_id, title, priority, due_date) {
   console.log(
     new Date().toLocaleTimeString("en-GB"),
     "[service:task] createTask called with userID:",
-    userID,
+    user_id,
     "title:",
     title,
   );
   let newtask = {
-    user_id: userID,
+    user_id: user_id,
+    project_id: project_id,
     title: title,
+    priority: priority,
+    due_date: due_date,
   };
-  const result = await taskRepository.create(newtask);
+  const result = await taskRepository.createTask(newtask);
   console.log(
     new Date().toLocaleTimeString("en-GB"),
     "[service:task] createTask result:",
@@ -28,17 +31,17 @@ async function createTask(userID, title) {
   return { success: true, value: result };
 }
 
-async function getTask(userID, page = 1, limit = 10) {
+async function getTaskByUser(user_id, page = 1, limit = 10) {
   console.log(
     new Date().toLocaleTimeString("en-GB"),
     "[service:task] getTask called with userID:",
-    userID,
+    user_id,
     "page:",
     page,
     "limit:",
     limit,
   );
-  const allTasks = await taskRepository.getTask(userID);
+  const allTasks = await taskRepository.getTaskByUser(user_id);
   const total = allTasks.length;
   const totalPages = Math.ceil(total / limit);
 
@@ -82,7 +85,7 @@ async function getoneTask(id) {
   return { success: true, value: task };
 }
 
-async function updateTask(id, title) {
+async function updateTask(id, title, priority, due_date) {
   console.log(
     new Date().toLocaleTimeString("en-GB"),
     "[service:task] updateTask called with id:",
@@ -92,7 +95,7 @@ async function updateTask(id, title) {
   );
   const task = await taskRepository.getoneTask(id);
   if (!task) return { success: false, error: "Task Not Found" };
-  const result = await taskRepository.updateTask(id, title);
+  const result = await taskRepository.updateTask(id, title, priority, due_date);
   console.log(
     new Date().toLocaleTimeString("en-GB"),
     "[service:task] updateTask result:",
@@ -115,13 +118,13 @@ async function deleteTask(id) {
     "[service:task] deleteTask done for id:",
     id,
   );
-  return { success: true };
+  return { success: true, value: "no content" };
 }
 module.exports = {
   createTask,
-  getTask,
+  getTaskByUser,
   getoneTask,
   updateTask,
   deleteTask,
-  completed,
+  completeTask,
 };

@@ -1,107 +1,7 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const userRepository = require("../repository/usersDatabase");
-
-async function getUser(id) {
-  console.log(
-    new Date().toLocaleTimeString("en-GB"),
-    "[service:user] getUser called with id:",
-    id,
-  );
-  const user = await userRepository.getUser(id);
-  if (!user) {
-    console.log(
-      new Date().toLocaleTimeString("en-GB"),
-      "[service:user] getUser - user not found for id:",
-      id,
-    );
-    return { success: false, error: "User Not Exist" };
-  }
-  console.log(
-    new Date().toLocaleTimeString("en-GB"),
-    "[service:user] getUser found:",
-    user,
-  );
-  return { success: true, value: user };
-}
-
-async function updateUser(id, email) {
-  console.log(
-    new Date().toLocaleTimeString("en-GB"),
-    "[service:user] updateUser called with id:",
-    id,
-    "email:",
-    email,
-  );
-  const user = await userRepository.getUser(id);
-  if (!user) {
-    console.log(
-      new Date().toLocaleTimeString("en-GB"),
-      "[service:user] updateUser - no user found for id:",
-      id,
-    );
-    return { success: false, error: "User Not Exist" };
-  }
-
-  const updatedUser = await userRepository.updateUser(id, email);
-  if (!updatedUser) {
-    console.log(
-      new Date().toLocaleTimeString("en-GB"),
-      "[service:user] updateUser - no user updated for id:",
-      id,
-    );
-    return { success: false, error: "User Not Exist" };
-  }
-  console.log(
-    new Date().toLocaleTimeString("en-GB"),
-    "[service:user] updateUser result:",
-    updatedUser,
-  );
-  const newuser = {
-    id: updatedUser.id,
-    oldEmail: user.email,
-    newEmail: updatedUser.email,
-  };
-  return { success: true, value: newuser };
-}
-
-async function deleteUser(email) {
-  console.log(
-    new Date().toLocaleTimeString("en-GB"),
-    "[service:user] deleteUser called with email:",
-    email,
-  );
-  const deleted = await userRepository.deleteUser(email);
-  if (!deleted) {
-    console.log(
-      new Date().toLocaleTimeString("en-GB"),
-      "[service:user] deleteUser - no user deleted for email:",
-      email,
-    );
-    return { success: false, error: "User Not Exist" };
-  }
-  console.log(
-    new Date().toLocaleTimeString("en-GB"),
-    "[service:user] deleteUser done for email:",
-    email,
-  );
-  return { success: true };
-}
-
-async function getall() {
-  console.log(
-    new Date().toLocaleTimeString("en-GB"),
-    "[service:user] getall called",
-  );
-  const result = await userRepository.getall();
-  console.log(
-    new Date().toLocaleTimeString("en-GB"),
-    "[service:user] getall found",
-    result.length,
-    "users",
-  );
-  return { success: true, value: result };
-}
+const { success } = require("zod");
 
 async function signup(email, password) {
   console.log(
@@ -132,9 +32,9 @@ async function signup(email, password) {
   console.log(
     new Date().toLocaleTimeString("en-GB"),
     "[service:user] signup - user created:",
-    result.email,
+    result,
   );
-  return { success: true, value: result.email };
+  return { success: true, value: result };
 }
 
 async function login(email, password) {
@@ -180,4 +80,133 @@ async function login(email, password) {
   return { success: true, value: token };
 }
 
-module.exports = { signup, login, getall, deleteUser, getUser, updateUser };
+async function updateUser(id, newEmail) {
+  console.log(
+    new Date().toLocaleTimeString("en-GB"),
+    "[service:user] updateUser called with id:",
+    id,
+    "email:",
+    newEmail,
+  );
+  const user = await userRepository.getUser(id);
+  if (!user) {
+    console.log(
+      new Date().toLocaleTimeString("en-GB"),
+      "[service:user] updateUser - no user found for id:",
+      id,
+    );
+    return { success: false, error: "User Not Exist" };
+  }
+  const emailCheck = await userRepository.findByEmail(newEmail);
+  if (emailCheck) {
+    return { success: false, error: "Email Already Exist" };
+  }
+  const updatedUser = await userRepository.updateUser(id, newEmail);
+  console.log(
+    new Date().toLocaleTimeString("en-GB"),
+    "[service:user] updateUser result:",
+    updatedUser,
+  );
+  const newuser = {
+    id: updatedUser.id,
+    oldEmail: user.email,
+    newEmail: updatedUser.email,
+  };
+  return { success: true, value: newuser };
+}
+
+async function getUser(id) {
+  console.log(
+    new Date().toLocaleTimeString("en-GB"),
+    "[service:user] getUser called with id:",
+    id,
+  );
+  const user = await userRepository.getUser(id);
+  if (!user) {
+    console.log(
+      new Date().toLocaleTimeString("en-GB"),
+      "[service:user] getUser - user not found for id:",
+      id,
+    );
+    return { success: false, error: "User Not Exist" };
+  }
+  console.log(
+    new Date().toLocaleTimeString("en-GB"),
+    "[service:user] getUser found:",
+    user,
+  );
+  return { success: true, value: user };
+}
+
+async function getall() {
+  console.log(
+    new Date().toLocaleTimeString("en-GB"),
+    "[service:user] getall called",
+  );
+  const result = await userRepository.getall();
+  console.log(
+    new Date().toLocaleTimeString("en-GB"),
+    "[service:user] getall found",
+    result.length,
+    "users",
+  );
+  return { success: true, value: result };
+}
+
+async function deleteUser(email) {
+  console.log(
+    new Date().toLocaleTimeString("en-GB"),
+    "[service:user] deleteUser called with email:",
+    email,
+  );
+  const deleted = await userRepository.deleteUser(email);
+  if (!deleted) {
+    console.log(
+      new Date().toLocaleTimeString("en-GB"),
+      "[service:user] deleteUser - no user deleted for email:",
+      email,
+    );
+    return { success: false, error: "User Not Exist" };
+  }
+  console.log(
+    new Date().toLocaleTimeString("en-GB"),
+    "[service:user] deleteUser done for email:",
+    email,
+  );
+  return { success: true, value: "no content" };
+}
+
+async function createProfile(user_id, name, bio) {
+  const user = await userRepository.getUser(user_id);
+  if (!user) {
+    return { success: false, error: "User Not Found" };
+  }
+
+  const newProfile = {
+    user_id: user_id,
+    name: name,
+    bio: bio,
+  };
+  const createdProfile = await userRepository.createProfile(newProfile);
+  return { success: true, value: createdProfile };
+}
+
+async function updateProfile(user_id, name, bio) {
+  const user = await userRepository.getUser(user_id);
+  if (!user) {
+    return { success: false, error: "User Not Found" };
+  }
+  const updatedProfile = await userRepository.updateProfile(user_id, name, bio);
+  return { success: true, value: updatedProfile };
+}
+
+module.exports = {
+  signup,
+  login,
+  getall,
+  deleteUser,
+  getUser,
+  updateUser,
+  updateProfile,
+  createProfile,
+};

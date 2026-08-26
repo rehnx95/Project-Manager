@@ -20,16 +20,18 @@ async function getTaskByUser(userID) {
   return result.rows;
 }
 
-async function updateTask(
-  id,
-  newtitle,
-  newPriority,
-  newDue_date,
-  completedValue,
-) {
+async function updateTask(id, newtitle, newPriority, newDue_date) {
   const result = await pool.query(
-    "UPDATE tasks SET title=COALESCE($2,title),priority=COALESCE($3,priority),due_date=COALESCE($4,due_date),completed=COALESCE($5,completed) WHERE id=$1 RETURNING *",
-    [id, newtitle, newPriority, newDue_date, completedValue],
+    "UPDATE tasks SET title=COALESCE($2,title),priority=COALESCE($3,priority),due_date=COALESCE($4,due_date) WHERE id=$1 RETURNING *",
+    [id, newtitle, newPriority, newDue_date],
+  );
+  return result.rows[0];
+}
+
+async function completeTask(id, completedValue) {
+  const result = await pool.query(
+    "UPDATE tasks SET completed=$2 WHERE id=$1 RETURNING *",
+    [id, completedValue],
   );
   return result.rows[0];
 }
@@ -48,4 +50,5 @@ module.exports = {
   getTaskByUser,
   updateTask,
   deleteTask,
+  completeTask,
 };
