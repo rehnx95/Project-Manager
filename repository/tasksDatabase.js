@@ -1,37 +1,37 @@
 const pool = require("../db");
 
-async function createTask(task) {
+async function createTask(new_task) {
   const result = await pool.query(
     "INSERT INTO tasks (user_id,project_id,title,priority,due_date) VALUES ($1,$2,$3,$4,$5) RETURNING *",
-    [task.user_id, task.project_id, task.title, task.priority, task.due_date],
+    [new_task.user_id, new_task.project_id, new_task.new_title, new_task.new_priority, new_task.new_due_date],
   );
   return result.rows[0];
 }
 
-async function getoneTask(id) {
+async function getOneTask(id) {
   const result = await pool.query("SELECT * FROM tasks WHERE id=$1", [id]);
   return result.rows[0];
 }
 
-async function getTaskByUser(userID) {
+async function getTaskByUser(user_id) {
   const result = await pool.query("SELECT * FROM tasks WHERE user_id=$1", [
-    userID,
+    user_id,
   ]);
   return result.rows;
 }
 
-async function updateTask(id, newtitle, newPriority, newDue_date) {
+async function updateTask(id, new_title, new_priority, new_due_date) {
   const result = await pool.query(
     "UPDATE tasks SET title=COALESCE($2,title),priority=COALESCE($3,priority),due_date=COALESCE($4,due_date) WHERE id=$1 RETURNING *",
-    [id, newtitle, newPriority, newDue_date],
+    [id, new_title, new_priority, new_due_date],
   );
   return result.rows[0];
 }
 
-async function completeTask(id, completedValue) {
+async function completeTask(id, completed_value) {
   const result = await pool.query(
     "UPDATE tasks SET completed=$2 WHERE id=$1 RETURNING *",
-    [id, completedValue],
+    [id, completed_value],
   );
   return result.rows[0];
 }
@@ -46,7 +46,7 @@ async function deleteTask(id) {
 
 module.exports = {
   createTask,
-  getoneTask,
+  getOneTask,
   getTaskByUser,
   updateTask,
   deleteTask,

@@ -1,6 +1,6 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const userRepository = require("../repository/usersDatabase");
+const usersDatabase = require("../repository/usersDatabase");
 
 async function signup(email, password) {
   console.log(
@@ -8,7 +8,7 @@ async function signup(email, password) {
     "[service] signup called for:",
     email,
   );
-  const existing = await userRepository.findByEmail(email);
+  const existing = await usersDatabase.findByEmail(email);
   if (existing) {
     console.log(
       new Date().toLocaleTimeString("en-GB"),
@@ -17,17 +17,17 @@ async function signup(email, password) {
     );
     return { success: false, error: "Email Already Exist" };
   }
-  const hashedPassword = await bcrypt.hash(password, 10);
+  const hashed_password = await bcrypt.hash(password, 10);
   console.log(
     new Date().toLocaleTimeString("en-GB"),
     "[service:user] signup - password hashed for:",
     email,
   );
-  const newUser = {
+  const new_user = {
     email,
-    password: hashedPassword,
+    password: hashed_password,
   };
-  const result = await userRepository.createUsers(newUser);
+  const result = await usersDatabase.createUsers(new_user);
   console.log(
     new Date().toLocaleTimeString("en-GB"),
     "[service:user] signup - user created:",
@@ -42,23 +42,23 @@ async function login(email, password) {
     "[service] login called for:",
     email,
   );
-  const user = await userRepository.findByEmail(email);
+  const user = await usersDatabase.findByEmail(email);
   console.log(
     new Date().toLocaleTimeString("en-GB"),
     "[service:user] login - user lookup result:",
     user ? "found" : "not found",
   );
-  const hashToCompare = user
+  const hash_to_compare = user
     ? user.password
     : "$2b$10$invalidsaltinvalidsaltinvalidsa";
-  const isMatch = await bcrypt.compare(password, hashToCompare);
+  const is_match = await bcrypt.compare(password, hash_to_compare);
   console.log(
     new Date().toLocaleTimeString("en-GB"),
     "[service:user] login - password match:",
-    isMatch,
+    is_match,
   );
 
-  if (!user || !isMatch) {
+  if (!user || !is_match) {
     console.log(
       new Date().toLocaleTimeString("en-GB"),
       "[service:user] login - unauthorized for:",
@@ -79,15 +79,15 @@ async function login(email, password) {
   return { success: true, value: token };
 }
 
-async function updateUser(id, newEmail) {
+async function updateUser(id, new_email) {
   console.log(
     new Date().toLocaleTimeString("en-GB"),
     "[service:user] updateUser called with id:",
     id,
     "email:",
-    newEmail,
+    new_email,
   );
-  const user = await userRepository.getUser(id);
+  const user = await usersDatabase.getUser(id);
   if (!user) {
     console.log(
       new Date().toLocaleTimeString("en-GB"),
@@ -96,22 +96,22 @@ async function updateUser(id, newEmail) {
     );
     return { success: false, error: "User Not Exist" };
   }
-  const emailCheck = await userRepository.findByEmail(newEmail);
-  if (emailCheck) {
+  const email_check = await usersDatabase.findByEmail(new_email);
+  if (email_check && email_check.id !== id) {
     return { success: false, error: "Email Already Exist" };
   }
-  const updatedUser = await userRepository.updateUser(id, newEmail);
+  const updated_user = await usersDatabase.updateUser(id, new_email);
   console.log(
     new Date().toLocaleTimeString("en-GB"),
     "[service:user] updateUser result:",
-    updatedUser,
+    updated_user,
   );
-  const newuser = {
-    id: updatedUser.id,
+  const new_user = {
+    id: updated_user.id,
     oldEmail: user.email,
-    newEmail: updatedUser.email,
+    newEmail: updated_user.email,
   };
-  return { success: true, value: newuser };
+  return { success: true, value: new_user };
 }
 
 async function getUser(id) {
@@ -120,7 +120,7 @@ async function getUser(id) {
     "[service:user] getUser called with id:",
     id,
   );
-  const user = await userRepository.getUser(id);
+  const user = await usersDatabase.getUser(id);
   if (!user) {
     console.log(
       new Date().toLocaleTimeString("en-GB"),
@@ -142,7 +142,7 @@ async function getall() {
     new Date().toLocaleTimeString("en-GB"),
     "[service:user] getall called",
   );
-  const result = await userRepository.getall();
+  const result = await usersDatabase.getall();
   console.log(
     new Date().toLocaleTimeString("en-GB"),
     "[service:user] getall found",
@@ -158,8 +158,8 @@ async function deleteUser(email) {
     "[service:user] deleteUser called with email:",
     email,
   );
-  const deleted = await userRepository.deleteUser(email);
-  if (!deleted) {
+  const result = await usersDatabase.deleteUser(email);
+  if (!result) {
     console.log(
       new Date().toLocaleTimeString("en-GB"),
       "[service:user] deleteUser - no user deleted for email:",
@@ -172,31 +172,35 @@ async function deleteUser(email) {
     "[service:user] deleteUser done for email:",
     email,
   );
-  return { success: true, value: "no content" };
+  return { success: true, value: result };
 }
 
-async function createProfile(user_id, name, bio) {
-  const user = await userRepository.getUser(user_id);
+async function createProfile(user_id, new_name, new_bio) {
+  const user = await usersDatabase.getUser(user_id);
   if (!user) {
     return { success: false, error: "User Not Found" };
   }
 
-  const newProfile = {
-    user_id: user_id,
-    name: name,
-    bio: bio,
+  const new_profile = {
+    user_id,
+    new_name,
+    new_bio,
   };
-  const createdProfile = await userRepository.createProfile(newProfile);
-  return { success: true, value: createdProfile };
+  const created_profile = await usersDatabase.createProfile(new_profile);
+  return { success: true, value: created_profile };
 }
 
-async function updateProfile(user_id, name, bio) {
-  const user = await userRepository.getUser(user_id);
+async function updateProfile(user_id, new_name, new_bio) {
+  const user = await usersDatabase.getUser(user_id);
   if (!user) {
     return { success: false, error: "User Not Found" };
   }
-  const updatedProfile = await userRepository.updateProfile(user_id, name, bio);
-  return { success: true, value: updatedProfile };
+  const updated_profile = await usersDatabase.updateProfile(
+    user_id,
+    new_name,
+    new_bio,
+  );
+  return { success: true, value: updated_profile };
 }
 
 module.exports = {

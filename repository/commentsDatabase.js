@@ -1,9 +1,9 @@
 const pool = require("../db");
 
-async function createComment(task_id, user_id, body) {
+async function createComment(task_id, user_id, new_body) {
   const result = await pool.query(
     "INSERT INTO comments (task_id, user_id, body) VALUES ($1, $2, $3) RETURNING *",
-    [task_id, user_id, body],
+    [task_id, user_id, new_body],
   );
   return result.rows[0];
 }

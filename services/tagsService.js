@@ -1,49 +1,49 @@
-const tagsRepository = require("../repository/tagsDatabase");
-const taskRepository = require("../repository/tasksDatabase");
+const tagsDatabase = require("../repository/tagsDatabase");
+const tasksDatabase = require("../repository/tasksDatabase");
 
-async function createTag(tagName) {
-  const result = await tagsRepository.createTag(tagName);
+async function createTag(tag_name) {
+  const result = await tagsDatabase.createTag(tag_name);
   return { success: true, value: result };
 }
 
 async function getAllTags() {
-  const result = await tagsRepository.getAllTags();
+  const result = await tagsDatabase.getAllTags();
   return { success: true, value: result };
 }
 
-async function addTagToTask(taskId, tagId) {
-  const task = await taskRepository.getoneTask(taskId);
+async function addTagToTask(task_id, tag_id) {
+  const task = await tasksDatabase.getOneTask(task_id);
   if (!task) {
     return { success: false, error: "Task Not Exist" };
   }
-  const tag = await tagsRepository.getoneTag(tagId);
+  const tag = await tagsDatabase.getOneTag(tag_id);
   if (!tag) {
     return { success: false, error: "Tag Not Exist" };
   }
-  const result = await tagsRepository.addTagToTask(taskId, tagId);
+  const result = await tagsDatabase.addTagToTask(task_id, tag_id);
   return { success: true, value: result };
 }
 
-async function getTaskTags(taskId) {
-  const task = await taskRepository.getoneTask(taskId);
+async function getTaskTags(task_id) {
+  const task = await tasksDatabase.getOneTask(task_id);
   if (!task) {
     return { success: false, error: "Task Not Exist" };
   }
-  const result = await tagsRepository.getTaskTags(taskId);
+  const result = await tagsDatabase.getTaskTags(task_id);
   return { success: true, value: result };
 }
 
-async function removeTagFromTask(taskId, tagId) {
-  const task = await taskRepository.getoneTask(taskId);
+async function removeTagFromTask(task_id, tag_id) {
+  const task = await tasksDatabase.getOneTask(task_id);
   if (!task) {
     return { success: false, error: "Task Not Exist" };
   }
-  const tag = await tagsRepository.getoneTag(tagId);
+  const tag = await tagsDatabase.getOneTag(tag_id);
   if (!tag) {
     return { success: false, error: "Tag Not Exist" };
   }
-  const result = await tagsRepository.removeTagFromTask(taskId, tagId);
-  return { success: true, value: "no content" };
+  const result = await tagsDatabase.removeTagFromTask(task_id, tag_id);
+  return { success: true, value: result };
 }
 
 module.exports = {

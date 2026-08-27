@@ -8,10 +8,10 @@ async function getMembership(project_id, user_id) {
   return result.rows[0];
 }
 
-async function addMemberToProject(project_id, user_id, role) {
+async function addMemberToProject(project_id, user_id, new_role) {
   const result = await pool.query(
     "INSERT INTO project_members (project_id, user_id, role) VALUES ($1, $2, $3) RETURNING *",
-    [project_id, user_id, role],
+    [project_id, user_id, new_role],
   );
   return result.rows[0];
 }

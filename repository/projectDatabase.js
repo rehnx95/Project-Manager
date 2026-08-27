@@ -1,22 +1,22 @@
 const pool = require("../db");
 const crypto = require("crypto");
 
-async function createProject(project) {
+async function createProject(new_project) {
   const id = crypto.randomUUID();
   const result = await pool.query(
     "INSERT INTO projects (id,user_id,project_name,description,status) VALUES ($1,$2,$3,$4,$5) RETURNING *",
     [
       id,
-      project.user_id,
-      project.project_name,
-      project.description,
-      project.status,
+      new_project.user_id,
+      new_project.new_project_name,
+      new_project.new_description,
+      new_project.new_status,
     ],
   );
   return result.rows[0];
 }
 
-async function getoneProject(project_id) {
+async function getOneProject(project_id) {
   const result = await pool.query("SELECT * FROM projects WHERE id=$1", [
     project_id,
   ]);
@@ -37,10 +37,10 @@ async function getTaskByProject(project_id) {
   return result.rows;
 }
 
-async function updateProject(id, newProjectName, newDescription, newStatus) {
+async function updateProject(id, new_project_name, new_description, new_status) {
   const result = await pool.query(
     "UPDATE projects SET project_name=COALESCE($2,project_name),description=COALESCE($3,description),status=COALESCE($4,status) WHERE id=$1 RETURNING *",
-    [id, newProjectName, newDescription, newStatus],
+    [id, new_project_name, new_description, new_status],
   );
   return result.rows[0];
 }
@@ -55,7 +55,7 @@ async function deleteProject(id) {
 
 module.exports = {
   createProject,
-  getoneProject,
+  getOneProject,
   getProject,
   getTaskByProject,
   updateProject,

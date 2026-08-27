@@ -8,11 +8,11 @@ function safeForLog(row) {
   return rest;
 }
 
-async function createUsers(user) {
+async function createUsers(new_user) {
   const id = crypto.randomUUID();
   const result = await pool.query(
     "INSERT INTO users (id,email,password) VALUES ($1,$2,$3) RETURNING id,role,email",
-    [id, user.email, user.password],
+    [id, new_user.email, new_user.password],
   );
   return result.rows[0];
 }
@@ -25,17 +25,17 @@ async function findByEmail(email) {
   return result.rows[0];
 }
 
-async function updateUser(id, email) {
+async function updateUser(id, new_email) {
   const result = await pool.query(
     "UPDATE users SET email=$2, updated_at=now() WHERE id=$1 RETURNING id,email,role",
-    [id, email],
+    [id, new_email],
   );
   return result.rows[0];
 }
 
 async function deleteUser(email) {
   const result = await pool.query(
-    "DELETE FROM users WHERE email=$1 returning *",
+    "DELETE FROM users WHERE email=$1 RETURNING *",
     [email],
   );
   return result.rows[0];
@@ -54,18 +54,18 @@ async function getall() {
   return result.rows;
 }
 
-async function createProfile(profile) {
+async function createProfile(new_profile) {
   const result = await pool.query(
     "INSERT INTO profiles (user_id,name,bio) VALUES ($1,$2,$3) RETURNING *",
-    [profile.user_id, profile.name, profile.bio],
+    [new_profile.user_id, new_profile.new_name, new_profile.new_bio],
   );
   return result.rows[0];
 }
 
-async function updateProfile(user_id, name, bio) {
+async function updateProfile(user_id, updated_name, updated_bio) {
   const result = await pool.query(
     "UPDATE profiles SET name=COALESCE($2,name), bio=COALESCE($3,bio) WHERE user_id=$1 RETURNING *",
-    [user_id, name, bio],
+    [user_id, updated_name, updated_bio],
   );
   return result.rows[0];
 }

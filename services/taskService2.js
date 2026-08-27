@@ -1,37 +1,50 @@
-const taskRepository = require("../repository/tasksDatabase");
-const projectRepository = require("../repository/projectDatabase");
-const projectMemberRepository = require("../repository/projectMemberDatabase");
+const tasksDatabase = require("../repository/tasksDatabase");
+const projectDatabase = require("../repository/projectDatabase");
+const projectMemberDatabase = require("../repository/projectMemberDatabase");
 
 async function completeTask(id) {
-  const task = await taskRepository.getoneTask(id);
+  const task = await tasksDatabase.getOneTask(id);
   if (!task) return { success: false, error: "Task Not Found" };
-  const result = await taskRepository.completeTask(id, !task.completed);
+  const result = await tasksDatabase.completeTask(id, !task.completed);
   return { success: true, value: result };
 }
 
-async function createTask(user_id, project_id, title, priority, due_date) {
+async function createTask(
+  user_id,
+  project_id,
+  new_title,
+  new_priority,
+  new_due_date,
+) {
   console.log(
     new Date().toLocaleTimeString("en-GB"),
     "[service:task] createTask called with userID:",
     user_id,
     "title:",
-    title,
+    new_title,
   );
-  const project = await projectRepository.getoneProject(project_id);
+  const project = await projectDatabase.getOneProject(project_id);
+
+  const membership = await projectMemberDatabase.getMembership(
+    project_id,
+    user_id,
+  );
 
   if (!project) {
     return { success: false, error: "Project Not Exist" };
   }
 
-
-  let newtask = {
-    user_id: user_id,
-    project_id: project_id,
-    title: title,
-    priority: priority,
-    due_date: due_date,
+  if (!membership) {
+    return { success: false, error: "Forbidden" };
+  }
+  let new_task = {
+    user_id,
+    project_id,
+    new_title,
+    new_priority,
+    new_due_date,
   };
-  const result = await taskRepository.createTask(newtask);
+  const result = await tasksDatabase.createTask(new_task);
   console.log(
     new Date().toLocaleTimeString("en-GB"),
     "[service:task] createTask result:",
@@ -50,61 +63,66 @@ async function getTaskByUser(user_id, page = 1, limit = 10) {
     "limit:",
     limit,
   );
-  const allTasks = await taskRepository.getTaskByUser(user_id);
-  const total = allTasks.length;
-  const totalPages = Math.ceil(total / limit);
+  const all_task = await tasksDatabase.getTaskByUser(user_id);
+  const total = all_task.length;
+  const total_pages = Math.ceil(total / limit);
 
   const start = (page - 1) * limit;
   const end = start + limit;
-  const paginatedTasks = allTasks.slice(start, end);
+  const paginated_tasks = all_task.slice(start, end);
 
   console.log(
     new Date().toLocaleTimeString("en-GB"),
     "[service:task] getTask total:",
     total,
     "totalPages:",
-    totalPages,
+    total_pages,
     "returning:",
-    paginatedTasks.length,
+    paginated_tasks.length,
     "tasks",
   );
 
   return {
     success: true,
-    value: paginatedTasks,
+    value: paginated_tasks,
     total,
     page,
-    totalPages,
+    totalPages: total_pages,
   };
 }
 
-async function getoneTask(id) {
+async function getOneTask(id) {
   console.log(
     new Date().toLocaleTimeString("en-GB"),
-    "[service:task] getoneTask called with id:",
+    "[service:task] getOneTask called with id:",
     id,
   );
-  const task = await taskRepository.getoneTask(id);
+  const task = await tasksDatabase.getOneTask(id);
   if (!task) return { success: false, error: "Task Not Found" };
   console.log(
     new Date().toLocaleTimeString("en-GB"),
-    "[service:task] getoneTask result:",
+    "[service:task] getOneTask result:",
     task,
   );
   return { success: true, value: task };
 }
 
-async function updateTask(id, title, priority, due_date) {
+async function updateTask(id, new_title, new_priority, new_due_date) {
   console.log(
     new Date().toLocaleTimeString("en-GB"),
     "[service:task] updateTask called with id:",
     id,
     "title:",
-    title,
+    new_title,
   );
-  const task = await taskRepository.getoneTask(id);
+  const task = await tasksDatabase.getOneTask(id);
   if (!task) return { success: false, error: "Task Not Found" };
-  const result = await taskRepository.updateTask(id, title, priority, due_date);
+  const result = await tasksDatabase.updateTask(
+    id,
+    new_title,
+    new_priority,
+    new_due_date,
+  );
   console.log(
     new Date().toLocaleTimeString("en-GB"),
     "[service:task] updateTask result:",
@@ -119,9 +137,9 @@ async function deleteTask(id) {
     "[service:task] deleteTask called with id:",
     id,
   );
-  const task = await taskRepository.getoneTask(id);
+  const task = await tasksDatabase.getOneTask(id);
   if (!task) return { success: false, error: "Task Not Found" };
-  const membership = await projectMemberRepository.getMembership(
+  const membership = await projectMemberDatabase.getMembership(
     task.project_id,
     task.user_id,
   );
@@ -129,18 +147,18 @@ async function deleteTask(id) {
     return { success: false, error: "Only Owner Can Delete" };
   }
 
-  await taskRepository.deleteTask(id);
+  const result = await tasksDatabase.deleteTask(id);
   console.log(
     new Date().toLocaleTimeString("en-GB"),
     "[service:task] deleteTask done for id:",
     id,
   );
-  return { success: true, value: "no content" };
+  return { success: true, value: result };
 }
 module.exports = {
   createTask,
   getTaskByUser,
-  getoneTask,
+  getOneTask,
   updateTask,
   deleteTask,
   completeTask,

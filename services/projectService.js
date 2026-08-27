@@ -1,28 +1,32 @@
-const projectRepository = require("../repository/projectDatabase");
-const userRepository = require("../repository/usersDatabase");
-const projectMemberRepository = require("../repository/projectMemberDatabase");
-const { success } = require("zod");
+const projectDatabase = require("../repository/projectDatabase");
+const usersDatabase = require("../repository/usersDatabase");
+const projectMemberDatabase = require("../repository/projectMemberDatabase");
 
-async function createProject(user_id, project_name, description, status) {
-  const user = await userRepository.getUser(user_id);
+async function createProject(
+  user_id,
+  new_project_name,
+  new_description,
+  new_status,
+) {
+  const user = await usersDatabase.getUser(user_id);
   if (!user) {
     return { success: false, error: "User Not Exist" };
   }
 
-  const newProject = {
+  const new_project = {
     user_id,
-    project_name,
-    description,
-    status,
+    new_project_name,
+    new_description,
+    new_status,
   };
-  const result = await projectRepository.createProject(newProject);
-  await projectMemberRepository.addMemberToProject(result.id, user_id, "owner");
+  const result = await projectDatabase.createProject(new_project);
+  await projectMemberDatabase.addMemberToProject(result.id, user_id, "owner");
   return { success: true, value: result };
 }
 
 // logged in user can see all their by searching with project id
-async function getoneProject(project_id) {
-  const project = await projectRepository.getoneProject(project_id);
+async function getOneProject(project_id) {
+  const project = await projectDatabase.getOneProject(project_id);
   if (!project) {
     return { success: false, error: "Project Not Found" };
   }
@@ -32,65 +36,68 @@ async function getoneProject(project_id) {
 // only admins or logged in user (with their own user_id) can do
 // middleware use to check non - member or member/owner
 async function getProject(user_id) {
-  const user = await userRepository.getUser(user_id);
+  const user = await usersDatabase.getUser(user_id);
   if (!user) {
     return { success: false, error: "User Not Exist" };
   }
 
-  const project = await projectRepository.getProject(user_id);
+  const project = await projectDatabase.getProject(user_id);
   return { success: true, value: project };
 }
 
 async function getTaskByProject(project_id) {
-  const project = await projectRepository.getoneProject(project_id);
+  const project = await projectDatabase.getOneProject(project_id);
   if (!project) {
     return { success: false, error: "Project Not Found" };
   }
 
-  const tasks = await projectRepository.getTaskByProject(project_id);
+  const tasks = await projectDatabase.getTaskByProject(project_id);
   return { success: true, value: tasks };
 }
 
 async function updateProject(
   user_id,
   project_id,
-  newProjectName,
-  newDescription,
-  newStatus,
+  new_project_name,
+  new_description,
+  new_status,
 ) {
-  const project = await projectRepository.getoneProject(project_id);
+  const project = await projectDatabase.getOneProject(project_id);
   if (!project) {
     return { success: false, error: "Project Not Exist" };
   }
-  const membership = await projectMemberRepository.getMembership(project_id, user_id);
+  const membership = await projectMemberDatabase.getMembership(
+    project_id,
+    user_id,
+  );
   if (!membership || membership.role !== "owner") {
     return { success: false, error: "Project Not Exist" };
   }
-  const updatedProject = await projectRepository.updateProject(
+  const updated_project = await projectDatabase.updateProject(
     project_id,
-    newProjectName,
-    newDescription,
-    newStatus,
+    new_project_name,
+    new_description,
+    new_status,
   );
-  return { success: true, value: updatedProject };
+  return { success: true, value: updated_project };
 }
 
 async function deleteProject(project_id, user_id) {
-  const project = await projectRepository.getoneProject(project_id);
-  const membership = await projectMemberRepository.getMembership(
+  const project = await projectDatabase.getOneProject(project_id);
+  const membership = await projectMemberDatabase.getMembership(
     project_id,
     user_id,
   );
   if (!project || !membership || membership.role !== "owner") {
     return { success: false, error: "Project Not Exist" };
   }
-  const result = await projectRepository.deleteProject(project_id);
-  return { success: true, value: "no content" };
+  const result = await projectDatabase.deleteProject(project_id);
+  return { success: true, value: result };
 }
 
 module.exports = {
   createProject,
-  getoneProject,
+  getOneProject,
   getProject,
   getTaskByProject,
   updateProject,
