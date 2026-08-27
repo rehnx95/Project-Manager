@@ -16,8 +16,10 @@ async function createProject(project) {
   return result.rows[0];
 }
 
-async function getoneProject(id) {
-  const result = await pool.query("SELECT * FROM projects WHERE id=$1", [id]);
+async function getoneProject(project_id) {
+  const result = await pool.query("SELECT * FROM projects WHERE id=$1", [
+    project_id,
+  ]);
   return result.rows[0];
 }
 
@@ -43,10 +45,19 @@ async function updateProject(id, newProjectName, newDescription, newStatus) {
   return result.rows[0];
 }
 
+async function deleteProject(id) {
+  const result = await pool.query(
+    "DELETE FROM projects WHERE id=$1 RETURNING * ",
+    [id],
+  );
+  return result.rows[0];
+}
+
 module.exports = {
   createProject,
   getoneProject,
   getProject,
   getTaskByProject,
   updateProject,
+  deleteProject,
 };

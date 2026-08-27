@@ -1,7 +1,6 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const userRepository = require("../repository/usersDatabase");
-const { success } = require("zod");
 
 async function signup(email, password) {
   console.log(
@@ -28,7 +27,7 @@ async function signup(email, password) {
     email,
     password: hashedPassword,
   };
-  const result = await userRepository.create(newUser);
+  const result = await userRepository.createUsers(newUser);
   console.log(
     new Date().toLocaleTimeString("en-GB"),
     "[service:user] signup - user created:",

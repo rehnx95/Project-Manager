@@ -2,8 +2,8 @@ const pool = require("../db");
 
 async function createTag(tagName) {
   const result = await pool.query(
-    "INSERT INTO tags (tags) VALUES ($1) RETURNING *",
-    [tagName]
+    "INSERT INTO tags (tag_name) VALUES ($1) RETURNING *",
+    [tagName],
   );
   return result.rows[0];
 }
@@ -13,13 +13,18 @@ async function getAllTags() {
   return result.rows;
 }
 
+async function getoneTag(tagId) {
+  const result = await pool.query("SELECT * FROM tags WHERE id=$1", [tagId]);
+  return result.rows[0];
+}
+
 async function addTagToTask(taskId, tagId) {
   const result = await pool.query(
     `INSERT INTO tasks_tags (task_id, tags_id) 
      VALUES ($1, $2) 
      ON CONFLICT (task_id, tags_id) DO NOTHING 
      RETURNING *`,
-    [taskId, tagId]
+    [taskId, tagId],
   );
   return result.rows[0];
 }
@@ -30,7 +35,7 @@ async function getTaskTags(taskId) {
      FROM tags
      JOIN tasks_tags ON tags.id = tasks_tags.tags_id
      WHERE tasks_tags.task_id = $1`,
-    [taskId]
+    [taskId],
   );
   return result.rows;
 }
@@ -38,7 +43,7 @@ async function getTaskTags(taskId) {
 async function removeTagFromTask(taskId, tagId) {
   const result = await pool.query(
     "DELETE FROM tasks_tags WHERE task_id = $1 AND tags_id = $2 RETURNING *",
-    [taskId, tagId]
+    [taskId, tagId],
   );
   return result.rowCount > 0;
 }
@@ -49,4 +54,5 @@ module.exports = {
   addTagToTask,
   getTaskTags,
   removeTagFromTask,
+  getoneTag
 };

@@ -1,5 +1,13 @@
 const pool = require("../db");
 
+async function getMembership(project_id, user_id) {
+  const result = await pool.query(
+    "SELECT * FROM project_members WHERE project_id=$1 AND user_id=$2",
+    [project_id, user_id],
+  );
+  return result.rows[0];
+}
+
 async function addMemberToProject(project_id, user_id, role) {
   const result = await pool.query(
     "INSERT INTO project_members (project_id, user_id, role) VALUES ($1, $2, $3) RETURNING *",
@@ -46,4 +54,5 @@ module.exports = {
   getAllMembersOfProject,
   removeMemberFromProject,
   getAllProjectsOfUser,
+  getMembership,
 };

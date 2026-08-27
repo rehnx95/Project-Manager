@@ -1,4 +1,6 @@
 const taskRepository = require("../repository/tasksDatabase");
+const projectRepository = require("../repository/projectDatabase");
+const projectMemberRepository = require("../repository/projectMemberDatabase");
 
 async function completeTask(id) {
   const task = await taskRepository.getoneTask(id);
@@ -15,6 +17,13 @@ async function createTask(user_id, project_id, title, priority, due_date) {
     "title:",
     title,
   );
+  const project = await projectRepository.getoneProject(project_id);
+
+  if (!project) {
+    return { success: false, error: "Project Not Exist" };
+  }
+
+
   let newtask = {
     user_id: user_id,
     project_id: project_id,
@@ -112,6 +121,14 @@ async function deleteTask(id) {
   );
   const task = await taskRepository.getoneTask(id);
   if (!task) return { success: false, error: "Task Not Found" };
+  const membership = await projectMemberRepository.getMembership(
+    task.project_id,
+    task.user_id,
+  );
+  if (!membership || membership.role !== "owner") {
+    return { success: false, error: "Only Owner Can Delete" };
+  }
+
   await taskRepository.deleteTask(id);
   console.log(
     new Date().toLocaleTimeString("en-GB"),

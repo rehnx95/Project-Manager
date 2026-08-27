@@ -22,13 +22,6 @@ async function getCommentByUser(user_id) {
   return result.rows;
 }
 
-async function deleteCommentById(comment_id) {
-  const result = await pool.query(
-    "DELETE FROM comments WHERE id = $1 RETURNING *",
-    [comment_id],
-  );
-  return result.rows[0];
-}
 
 async function deleteCommentByUserAndId(comment_id, user_id) {
   const result = await pool.query(
@@ -43,13 +36,12 @@ async function deleteAllCommentFromTask(task_id) {
     "DELETE FROM comments WHERE task_id = $1 RETURNING *",
     [task_id],
   );
-  return result.rows;
+  return result.rows[0];
 }
 
 module.exports = {
   getCommentByTask,
   getCommentByUser,
-  deleteCommentById,
   deleteCommentByUserAndId,
   createComment,
   deleteAllCommentFromTask,
