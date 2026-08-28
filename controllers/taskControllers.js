@@ -2,39 +2,51 @@ const taskService = require("../services/taskService");
 const { z } = require("zod");
 // req.user.id is unique identification of user extracted from login and pass to authenticate funtion that return req.user as decoded
 
-const taskSchema = z.object({
+const task_schema = z.object({
   title: z.string().min(1, "Title is required"),
-  project_id: z.number().positive(),
-  priority: z.string().min(3),
-  due_date: z.string().datetime(),
-});
-const updateTaskSchema = z.object({
-  title: z.string().min(1, "Title is required"),
-  priority: z.string().min(3),
-  due_date: z.string().datetime(),
+  priority: z.enum(["low", "medium", "high"], {
+    message: "Priority must be low, medium, or high",
+  }),
+  due_date: z.iso.datetime("Please provide a valid date"),
 });
 
-// Task ids come from the URL as strings; this rejects non-numeric ids
-// early with a clean 400 instead of letting a bad value hit Postgres
-// and bubble up as a generic 500 from the type-cast error.
-const idParamSchema = z.coerce.number().int().positive();
 
-function parsePositiveIntParam(req, res) {
-  const result = idParamSchema.safeParse(req.params.id);
+const id_schema = z.coerce.number().int().positive();
+
+function parseIdParam(req, res, param_name) {
+  const result = id_schema.safeParse(req.params[param_name]);
   if (!result.success) {
-    res.status(400).json({ success: false, error: "Invalid task id" });
+    res.status(400).json({ success: false, error: `Invalid ${param_name}` });
     return null;
   }
   return result.data;
 }
 
-async function createTask(req, res) {
-  const result = taskSchema.safeParse(req.body);
-  if (!result.success) {
-    return res.status(400).json({ success: false, error: result.error.issues });
+function handleServiceError(res, error) {
+  if (
+    error === "Forbidden Not Member Of That Project" ||
+    error === "Forbidden Only Owner Can Delete Task"
+  ) {
+    return res.status(403).json({ success: false, error });
+  }
+  if (error === "Project Not Exist") {
+    return res.status(404).json({ success: false, error });
   }
 
-  const { title, project_id, priority, due_date } = result.data;
+  return res.status(400).json({ success: false, error });
+}
+
+async function createTask(req, res) {
+  const project_id = parseIdParam(req, res, "project_id");
+  if (project_id === null) return;
+
+  const result = task_schema.safeParse(req.body);
+
+  if (!result.success) {
+    const errors = result.error.issues.map((issue) => issue.message);
+    return res.status(400).json({ success: false, error: errors });
+  }
+  const { title, priority, due_date } = result.data;
 
   const outcome = await taskService.createTask(
     req.user.id,
@@ -45,10 +57,7 @@ async function createTask(req, res) {
   );
 
   if (outcome.success === false) {
-    return res.status(404).json({
-      success: false,
-      error: outcome.error,
-    });
+    return handleServiceError(res, outcome.error);
   }
 
   res.status(201).json({
@@ -68,71 +77,69 @@ async function getTaskByUser(req, res) {
     value: outcome.value,
     total: outcome.total,
     page: outcome.page,
-    totalPages: outcome.total_pages,
+    total_pages: outcome.total_pages,
   });
 }
 
 async function getOneTask(req, res) {
-  const id = parsePositiveIntParam(req, res);
-  if (id === null) return;
+  const task_id = parseIdParam(req, res, "task_id");
+  if (task_id === null) return;
 
-  const outcome = await taskService.getOneTask(req.user.id, id);
+  const outcome = await taskService.getOneTask(req.user.id, task_id);
 
   if (outcome.success === false) {
-    return res.status(404).json({ success: false, error: outcome.error });
+    return handleServiceError(res, outcome.error);
   }
   res.status(200).json({ success: true, value: outcome.value });
 }
 
 async function updateTask(req, res) {
-  const id = parsePositiveIntParam(req, res);
-  if (id === null) return;
+  const task_id = parseIdParam(req, res, "task_id");
+  if (task_id === null) return;
 
-  const result = updateTaskSchema.safeParse(req.body);
+  const result =task_schema.safeParse(req.body);
   if (!result.success) {
-    return res.status(400).json({ success: false, error: result.error.issues });
+    const errors = result.error.issues.map((issue) => issue.message);
+    return res.status(400).json({ success: false, error: errors });
   }
 
   const { title, priority, due_date } = result.data;
   const outcome = await taskService.updateTask(
     req.user.id,
-    id,
+    task_id,
     title,
     priority,
     due_date,
   );
 
   if (outcome.success === false) {
-    return res.status(404).json({ success: false, error: outcome.error });
+    return handleServiceError(res, outcome.error);
   }
 
   res.status(200).json({ success: true, value: outcome.value });
 }
 
 async function deleteTask(req, res) {
-  const id = parsePositiveIntParam(req, res);
-  if (id === null) return;
+  const task_id = parseIdParam(req, res, "task_id");
+  if (task_id === null) return;
 
-  const outcome = await taskService.deleteTask(req.user.id, id);
+  const outcome = await taskService.deleteTask(req.user.id, task_id);
 
   if (outcome.success === false) {
-    return res.status(404).json({ success: false, error: outcome.error });
+    return handleServiceError(res, outcome.error);
   }
 
   res.status(204).send();
 }
 
 async function completeTask(req, res) {
-  const id = parsePositiveIntParam(req, res);
-  if (id === null) return;
+  const task_id = parseIdParam(req, res, "task_id");
+  if (task_id === null) return;
 
-  const outcome = await taskService.completeTask(req.user.id, id);
+  const outcome = await taskService.completeTask(req.user.id, task_id);
 
   if (outcome.success === false) {
-    return res.status(404).json({
-      success: false,
-      error: outcome.error,
-    });
+    return handleServiceError(res, outcome.error);
   }
 
   res.status(200).json({ success: true, value: outcome.value });

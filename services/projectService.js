@@ -1,7 +1,6 @@
 const projectsDatabase = require("../repository/projectsDatabase");
 const usersDatabase = require("../repository/usersDatabase");
 const projectMembersDatabase = require("../repository/projectMembersDatabase");
-const { success } = require("zod");
 
 async function createProject(
   user_id,
@@ -28,16 +27,16 @@ async function createProject(
 // logged in user can see all their by searching with project id
 async function getOneProject(user_id, project_id) {
   const project = await projectsDatabase.getOneProject(project_id);
- 
+
   if (!project) {
-    return { success: false, error: "Project Not Found" };
+    return { success: false, error: "Project Not Exist" };
   }
   const membership = await projectMembersDatabase.getMembership(
     project_id,
     user_id,
   );
   if (!membership) {
-    return { success: false, error: "Forbidden" };
+    return { success: false, error: "Forbidden Not Assign To That Project" };
   }
   return { success: true, value: project };
 }
@@ -57,7 +56,7 @@ async function getProject(user_id) {
 async function getTaskByProject(user_id, project_id) {
   const project = await projectsDatabase.getOneProject(project_id);
   if (!project) {
-    return { success: false, error: "Project Not Found" };
+    return { success: false, error: "Project Not Exist" };
   }
 
   const membership = await projectMembersDatabase.getMembership(
@@ -65,7 +64,7 @@ async function getTaskByProject(user_id, project_id) {
     user_id,
   );
   if (!membership) {
-    return { success: false, error: "Forbidden" };
+    return { success: false, error: "Forbidden Not Assign To That Project" };
   }
 
   const tasks = await projectsDatabase.getTaskByProject(project_id);

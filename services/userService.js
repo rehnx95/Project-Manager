@@ -76,7 +76,7 @@ async function deleteUser(email) {
 async function createProfile(user_id, new_name, new_bio) {
   const user = await usersDatabase.getUser(user_id);
   if (!user) {
-    return { success: false, error: "User Not Found" };
+    return { success: false, error: "User Not Exist" };
   }
 
   const new_profile = {
@@ -91,7 +91,7 @@ async function createProfile(user_id, new_name, new_bio) {
 async function updateProfile(user_id, new_name, new_bio) {
   const user = await usersDatabase.getUser(user_id);
   if (!user) {
-    return { success: false, error: "User Not Found" };
+    return { success: false, error: "User Not Exist" };
   }
   const updated_profile = await usersDatabase.updateProfile(
     user_id,

@@ -1,44 +1,57 @@
-const userService = require("../services/userService");
-const taskService = require("../services/taskService");
 const projectService = require("../services/projectService");
-const projectMemberService = require("../services/projectMemberService");
-const { z, success } = require("zod");
-const { error } = require("node:console");
+const { z } = require("zod");
 
-const idParamSchema = z.coerce.number().int().positive();
+const id_schema = z.coerce.number().int().positive();
 
-function parsePositiveIntParam(req, res) {
-  const result = idParamSchema.safeParse(req.params.id);
+function parseIdParam(req, res, param_name) {
+  const result = id_schema.safeParse(req.params[param_name]);
   if (!result.success) {
-    res.status(400).json({ success: false, error: "Invalid task id" });
+    res.status(400).json({ success: false, error: `Invalid ${param_name}` });
     return null;
   }
   return result.data;
 }
 
 const project_schema = z.object({
-  new_project_name: z.string().min(3),
-  new_description: z.string(),
-  new_status: z.string().min(3),
+  name: z
+    .string()
+    .min(3, "Project name must be at least 3 characters"),
+  description: z.string(),
+  status: z.enum(["active", "archived", "completed"], {
+    message: "Status must be active, archived, or completed",
+  }),
 });
+
+function handleServiceError(res, error) {
+  if (error === "User Not Exist" || error === "Project Not Exist") {
+    return res.status(404).json({ success: false, error });
+  }
+  if (
+    error === "Forbidden Not Assign To That Project" ||
+    error === "Forbidden Only Owner Can Update Project" ||
+    error === "Forbidden Only Owner Can Delete Project"
+  ) {
+    return res.status(403).json({ success: false, error });
+  }
+
+  return res.status(400).json({ success: false, error });
+}
 
 async function createProject(req, res) {
   const result = project_schema.safeParse(req.body);
   if (!result.success) {
-    return res.status(400).json({ success: false, error: result.error.issues });
+    const errors = result.error.issues.map((issue) => issue.message);
+    return res.status(400).json({ success: false, error: errors });
   }
-  const { new_project_name, new_description, new_status } = result.data;
+  const { name, description, status } = result.data;
   const outcome = await projectService.createProject(
     req.user.id,
-    new_project_name,
-    new_description,
-    new_status,
+    name,
+    description,
+    status,
   );
   if (outcome.success === false) {
-    return res.status(404).json({
-      success: false,
-      error: outcome.error,
-    });
+    return handleServiceError(res, outcome.error);
   }
   return res.status(201).json({
     success: true,
@@ -47,14 +60,11 @@ async function createProject(req, res) {
 }
 
 async function getOneProject(req, res) {
-  const project_id = parsePositiveIntParam(req, res);
+  const project_id = parseIdParam(req, res, "project_id");
   if (project_id === null) return;
   const outcome = await projectService.getOneProject(req.user.id, project_id);
   if (outcome.success === false) {
-    return res.status(404).json({
-      success: false,
-      error: outcome.error,
-    });
+    return handleServiceError(res, outcome.error);
   }
   res.status(200).json({
     success: true,
@@ -65,10 +75,7 @@ async function getOneProject(req, res) {
 async function getProject(req, res) {
   const outcome = await projectService.getProject(req.user.id);
   if (outcome.success === false) {
-    return res.status(404).json({
-      success: false,
-      error: outcome.error,
-    });
+    return handleServiceError(res, outcome.error);
   }
   res.status(200).json({
     success: true,
@@ -77,7 +84,7 @@ async function getProject(req, res) {
 }
 
 async function getTaskByProject(req, res) {
-  const project_id = parsePositiveIntParam(req, res);
+  const project_id = parseIdParam(req, res, "project_id");
   if (project_id === null) return;
 
   const outcome = await projectService.getTaskByProject(
@@ -85,10 +92,7 @@ async function getTaskByProject(req, res) {
     project_id,
   );
   if (outcome.success === false) {
-    return res.status(404).json({
-      success: false,
-      error: outcome.error,
-    });
+    return handleServiceError(res, outcome.error);
   }
   res.status(200).json({
     success: true,
@@ -97,27 +101,25 @@ async function getTaskByProject(req, res) {
 }
 
 async function updateProject(req, res) {
-  const project_id = parsePositiveIntParam(req, res);
+  const project_id = parseIdParam(req, res, "project_id");
   if (project_id === null) return;
 
   const result = project_schema.safeParse(req.body);
 
   if (!result.success) {
-    return res.status(400).json({ success: false, error: result.error.issues });
+    const errors = result.error.issues.map((issue) => issue.message);
+    return res.status(400).json({ success: false, error: errors });
   }
-  const { new_project_name, new_description, new_status } = result.data;
+  const { name, description, status } = result.data;
   const outcome = await projectService.updateProject(
     req.user.id,
     project_id,
-    new_project_name,
-    new_description,
-    new_status,
+    name,
+    description,
+    status,
   );
   if (outcome.success === false) {
-    return res.status(404).json({
-      success: false,
-      error: outcome.error,
-    });
+    return handleServiceError(res, outcome.error);
   }
   res.status(200).json({
     success: true,
@@ -126,16 +128,13 @@ async function updateProject(req, res) {
 }
 
 async function deleteProject(req, res) {
-  const project_id = parsePositiveIntParam(req, res);
+  const project_id = parseIdParam(req, res, "project_id");
   if (project_id === null) return;
 
   const outcome = await projectService.deleteProject(project_id, req.user.id);
 
   if (outcome.success === false) {
-    return res.status(404).json({
-      success: false,
-      error: outcome.error,
-    });
+    return handleServiceError(res, outcome.error);
   }
   res.status(204).send();
 }

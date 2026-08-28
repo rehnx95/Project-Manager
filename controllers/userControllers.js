@@ -1,45 +1,61 @@
 const { z } = require("zod");
 const UserService = require("../services/userService");
 
-const idParamSchema = z.coerce.number().int().positive();
+const idSchema = z.coerce.number().int().positive();
 
-function parsePositiveIntParam(req, res) {
-  const result = idParamSchema.safeParse(req.params.id);
+function parseIdParam(req, res, param_name) {
+  const result = idSchema.safeParse(req.params[param_name]);
   if (!result.success) {
-    res.status(400).json({ success: false, error: "Invalid task id" });
+    res.status(400).json({ success: false, error: `Invalid ${param_name}` });
     return null;
   }
   return result.data;
 }
 
-const signupSchema = z.object({
-  email: z.string().email().toLowerCase(),
-  password: z.string().min(6),
+const signup_schema = z.object({
+  email: z.email("Please enter a valid email address").toLowerCase(),
+  password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
-const loginSchema = z.object({
-  email: z.string().email().toLowerCase(),
-  password: z.string(),
+const login_schema = z.object({
+  email: z.email("Please enter a valid email address").toLowerCase(),
+  password: z.string().min(1, "Password is required"),
 });
 
-const updateUserSchema = z.object({
-  email: z.string().email().toLowerCase(),
+const update_user_schema = z.object({
+  email: z.email("Please enter a valid email address").toLowerCase(),
 });
 
 const profile_schema = z.object({
-  name: z.string().min(3),
-  bio: z.string().min(1),
+  name: z.string().min(1, "Name is required"),
+  bio: z.string().min(1, "Bio is required"),
 });
 
-async function signup(req, res) {;
-  const result = signupSchema.safeParse(req.body);
+function handleServiceError(res, error) {
+  if (error === "Unauthorize") {
+    return res.status(403).json({ success: false, error });
+  }
+  if (error === "User Not Exist") {
+    return res.status(404).json({ success: false, error });
+  }
+
+  if (error === "Email Already Exist") {
+    return res.status(409).json({ success: false, error });
+  }
+
+  return res.status(400).json({ success: false, error });
+}
+
+async function signup(req, res) {
+  const result = signup_schema.safeParse(req.body);
   if (!result.success) {
-    return res.status(400).json({ success: false, error: result.error.issues });
+    const errors = result.error.issues.map((issue) => issue.message);
+    return res.status(400).json({ success: false, error: errors });
   }
   const { email, password } = result.data;
   const outcome = await UserService.signup(email, password);
   if (outcome.success === false) {
-    return res.status(409).json({ success: false, error: outcome.error });
+    return handleServiceError(res, outcome.error);
   }
   res.status(201).json({
     success: true,
@@ -48,15 +64,15 @@ async function signup(req, res) {;
 }
 
 async function login(req, res) {
-
-  const result = loginSchema.safeParse(req.body);
+  const result = login_schema.safeParse(req.body);
   if (!result.success) {
-    return res.status(400).json({ success: false, error: result.error.issues });
+    const errors = result.error.issues.map((issue) => issue.message);
+    return res.status(400).json({ success: false, error: errors });
   }
   const { email, password } = result.data;
   const outcome = await UserService.login(email, password);
   if (outcome.success === false) {
-    return res.status(401).json({ success: false, error: outcome.error });
+    return handleServiceError(res, outcome.error);
   }
   res.status(200).json({
     success: true,
@@ -66,41 +82,40 @@ async function login(req, res) {
 }
 
 async function updateUser(req, res) {
-
-  const requested_id = req.params.id;
-  if (Number(requested_id) !== req.user.id) {
-    return res.status(403).json({ success: false, error: "Forbidden" });
+  const requested_id = parseIdParam(req, res, "requested_id");
+  if (requested_id === null) return;
+  if (requested_id !== req.user.id) {
+    return res.status(403).json({
+      success: false,
+      error: "Forbidden Not Allow To Update Other Email",
+    });
   }
 
-  const result = updateUserSchema.safeParse(req.body);
+  const result = update_user_schema.safeParse(req.body);
   if (!result.success) {
-    return res.status(400).json({ success: false, error: result.error.issues });
+    const errors = result.error.issues.map((issue) => issue.message);
+    return res.status(400).json({ success: false, error: errors });
   }
 
-  const outcome = await UserService.updateUser(
-    Number(requested_id),
-    result.data.email,
-  );
+  const outcome = await UserService.updateUser(requested_id, result.data.email);
   if (outcome.success === false) {
-    return res.status(404).json({ success: false, error: outcome.error });
+    return handleServiceError(res, outcome.error);
   }
   res.status(200).json({ success: true, value: outcome.value });
 }
 
 async function getUser(req, res) {
-  const requested_id = parsePositiveIntParam(req, res);
+  const requested_id = parseIdParam(req, res, "requested_id");
   if (requested_id === null) return;
 
   // Intentionally no ownership check here: this route is admin-only
   // (gated by authenticateRole("admin") in app.js), so any authenticated
   // admin is allowed to look up any user by id.
-  const requested_user = await UserService.getUser(requested_id);
-  if (requested_user.success === false) {
-    return res
-      .status(404)
-      .json({ success: false, error: requested_user.error });
+  const outcome = await UserService.getUser(requested_id);
+  if (outcome.success === false) {
+    return handleServiceError(res, outcome.error);
   }
-  res.status(200).json({ success: true, value: requested_user.value });
+  res.status(200).json({ success: true, value: outcome.value });
 }
 
 async function getAllUser(req, res) {
@@ -113,10 +128,9 @@ async function getAllUser(req, res) {
 
 async function deleteUser(req, res) {
   const email = req.user.email;
-  const id = req.user.id;
   const outcome = await UserService.deleteUser(email);
   if (outcome.success === false) {
-    return res.status(404).json({ success: false, error: outcome.error });
+    return handleServiceError(res, outcome.error);
   }
   res.status(204).send();
 }
@@ -124,7 +138,8 @@ async function deleteUser(req, res) {
 async function createProfile(req, res) {
   const result = profile_schema.safeParse(req.body);
   if (!result.success) {
-    return res.status(400).json({ success: false, error: result.error.issues });
+    const errors = result.error.issues.map((issue) => issue.message);
+    return res.status(400).json({ success: false, error: errors });
   }
   const outcome = await UserService.createProfile(
     req.user.id,
@@ -132,7 +147,7 @@ async function createProfile(req, res) {
     result.data.bio,
   );
   if (outcome.success === false) {
-    return res.status(404).json({ success: false, error: outcome.error });
+    return handleServiceError(res, outcome.error);
   }
   res.status(201).json({ success: true, value: outcome.value });
 }
@@ -140,7 +155,8 @@ async function createProfile(req, res) {
 async function updateProfile(req, res) {
   const result = profile_schema.safeParse(req.body);
   if (!result.success) {
-    return res.status(400).json({ success: false, error: result.error.issues });
+    const errors = result.error.issues.map((issue) => issue.message);
+    return res.status(400).json({ success: false, error: errors });
   }
   const outcome = await UserService.updateProfile(
     req.user.id,
@@ -148,7 +164,7 @@ async function updateProfile(req, res) {
     result.data.bio,
   );
   if (outcome.success === false) {
-    return res.status(404).json({ success: false, error: outcome.error });
+    return handleServiceError(res, outcome.error);
   }
   res.status(200).json({ success: true, value: outcome.value });
 }
