@@ -76,10 +76,10 @@ async function deleteAllCommentFromTask(task_id, user_id) {
     task.project_id,
     user_id,
   );
-  if (!membership) {
+  if (!membership || membership.role !== "owner") {
     return {
       success: false,
-      error: "Forbidden Member Not Assign To Project's Task",
+      error: "Only Owner Can Delete Comment",
     };
   }
   const result = await commentsDatabase.deleteAllCommentFromTask(task_id);

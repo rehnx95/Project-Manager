@@ -50,21 +50,20 @@ async function createTask(
 }
 
 async function getTaskByUser(user_id, page = 1, limit = 10) {
-  const all_task = await tasksDatabase.getTaskByUser(user_id);
+  const memberships =
+    await projectMembersDatabase.getAllProjectsOfUser(user_id);
+  const taskLists = await Promise.all(
+    memberships.map((m) => tasksDatabase.getTaskByProject(m.project_id)),
+  );
+  const all_task = taskLists.flat();
+
   const total = all_task.length;
   const total_pages = Math.ceil(total / limit);
-
   const start = (page - 1) * limit;
   const end = start + limit;
   const paginated_tasks = all_task.slice(start, end);
 
-  return {
-    success: true,
-    value: paginated_tasks,
-    total,
-    page,
-    total_pages,
-  };
+  return { success: true, value: paginated_tasks, total, page, total_pages };
 }
 
 async function getOneTask(user_id, id) {

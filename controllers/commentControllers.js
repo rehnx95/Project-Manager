@@ -29,7 +29,8 @@ function handleServiceError(res, error) {
   }
   if (
     error === "Forbidden Member Not Assign To Project's Task" ||
-    error === "Comment not found or unauthorized"
+    error === "Comment not found or unauthorized" ||
+    error === "Only Owner Can Delete Comment"
   ) {
     return res.status(403).json({
       success: false,
