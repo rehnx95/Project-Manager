@@ -1,5 +1,6 @@
 const tagsDatabase = require("../repository/tagsDatabase");
 const tasksDatabase = require("../repository/tasksDatabase");
+const projectMembersDatabase = require("../repository/projectMembersDatabase");
 
 async function createTag(tag_name) {
   const result = await tagsDatabase.createTag(tag_name);
@@ -11,7 +12,7 @@ async function getAllTags() {
   return { success: true, value: result };
 }
 
-async function addTagToTask(task_id, tag_id) {
+async function addTagToTask(task_id, tag_id, user_id) {
   const task = await tasksDatabase.getOneTask(task_id);
   if (!task) {
     return { success: false, error: "Task Not Exist" };
@@ -20,20 +21,42 @@ async function addTagToTask(task_id, tag_id) {
   if (!tag) {
     return { success: false, error: "Tag Not Exist" };
   }
+  const membership = await projectMembersDatabase.getMembership(
+    task.project_id,
+    user_id,
+  );
+  if (!membership) {
+    return {
+      success: false,
+      error: "Forbidden Member Not Assign To Project's Task",
+    };
+  }
+
   const result = await tagsDatabase.addTagToTask(task_id, tag_id);
   return { success: true, value: result };
 }
 
-async function getTaskTags(task_id) {
+async function getTaskTags(task_id, user_id) {
   const task = await tasksDatabase.getOneTask(task_id);
   if (!task) {
     return { success: false, error: "Task Not Exist" };
   }
+  const membership = await projectMembersDatabase.getMembership(
+    task.project_id,
+    user_id,
+  );
+  if (!membership) {
+    return {
+      success: false,
+      error: "Forbidden Member Not Assign To Project's Task",
+    };
+  }
+
   const result = await tagsDatabase.getTaskTags(task_id);
   return { success: true, value: result };
 }
 
-async function removeTagFromTask(task_id, tag_id) {
+async function removeTagFromTask(task_id, tag_id, user_id) {
   const task = await tasksDatabase.getOneTask(task_id);
   if (!task) {
     return { success: false, error: "Task Not Exist" };
@@ -42,6 +65,17 @@ async function removeTagFromTask(task_id, tag_id) {
   if (!tag) {
     return { success: false, error: "Tag Not Exist" };
   }
+  const membership = await projectMembersDatabase.getMembership(
+    task.project_id,
+    user_id,
+  );
+  if (!membership) {
+    return {
+      success: false,
+      error: "Forbidden Member Not Assign To Project's Task",
+    };
+  }
+
   const result = await tagsDatabase.removeTagFromTask(task_id, tag_id);
   return { success: true, value: result };
 }
