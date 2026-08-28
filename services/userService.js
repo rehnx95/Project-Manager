@@ -1,6 +1,7 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const usersDatabase = require("../repository/usersDatabase");
+const { success } = require("zod");
 
 async function signup(email, password) {
   const existing = await usersDatabase.findByEmail(email);
@@ -99,6 +100,15 @@ async function updateProfile(user_id, new_name, new_bio) {
     new_bio,
   );
   return { success: true, value: updated_profile };
+}
+
+async function getProfile(user_id) {
+  const user = await usersDatabase.getUser(user_id);
+  if (!user) {
+    return { success: false, error: "User Not Exist" };
+  }
+  const profile = await usersDatabase.getProfile(user_id);
+  return { success: true, value: profile };
 }
 
 module.exports = {

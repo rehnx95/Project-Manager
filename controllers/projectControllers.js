@@ -2,6 +2,7 @@ const projectService = require("../services/projectService");
 const { z } = require("zod");
 
 const id_schema = z.coerce.number().int().positive();
+const uuid_schema = z.uuid();
 
 function parseIdParam(req, res, param_name) {
   const result = id_schema.safeParse(req.params[param_name]);
@@ -12,10 +13,17 @@ function parseIdParam(req, res, param_name) {
   return result.data;
 }
 
+function parseUUIDParam(req, res, param_name) {
+  const result = uuid_schema.safeParse(req.params[param_name]);
+  if (!result.success) {
+    res.status(400).json({ success: false, error: `Invalid ${param_name}` });
+    return null;
+  }
+  return result.data;
+}
+
 const project_schema = z.object({
-  name: z
-    .string()
-    .min(3, "Project name must be at least 3 characters"),
+  name: z.string().min(3, "Project name must be at least 3 characters"),
   description: z.string(),
   status: z.enum(["active", "archived", "completed"], {
     message: "Status must be active, archived, or completed",
@@ -60,7 +68,7 @@ async function createProject(req, res) {
 }
 
 async function getOneProject(req, res) {
-  const project_id = parseIdParam(req, res, "project_id");
+  const project_id = parseUUIDParam(req, res, "project_id");
   if (project_id === null) return;
   const outcome = await projectService.getOneProject(req.user.id, project_id);
   if (outcome.success === false) {
@@ -84,7 +92,7 @@ async function getProject(req, res) {
 }
 
 async function getTaskByProject(req, res) {
-  const project_id = parseIdParam(req, res, "project_id");
+  const project_id = parseUUIDParam(req, res, "project_id");
   if (project_id === null) return;
 
   const outcome = await projectService.getTaskByProject(
@@ -101,7 +109,7 @@ async function getTaskByProject(req, res) {
 }
 
 async function updateProject(req, res) {
-  const project_id = parseIdParam(req, res, "project_id");
+  const project_id = parseUUIDParam(req, res, "project_id");
   if (project_id === null) return;
 
   const result = project_schema.safeParse(req.body);
@@ -128,7 +136,7 @@ async function updateProject(req, res) {
 }
 
 async function deleteProject(req, res) {
-  const project_id = parseIdParam(req, res, "project_id");
+  const project_id = parseUUIDParam(req, res, "project_id");
   if (project_id === null) return;
 
   const outcome = await projectService.deleteProject(project_id, req.user.id);

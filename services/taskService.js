@@ -53,7 +53,7 @@ async function getTaskByUser(user_id, page = 1, limit = 10) {
   const memberships =
     await projectMembersDatabase.getAllProjectsOfUser(user_id);
   const taskLists = await Promise.all(
-    memberships.map((m) => tasksDatabase.getTaskByProject(m.project_id)),
+    memberships.map((m) => projectsDatabase.getTaskByProject(m.project_id)),
   );
   const all_task = taskLists.flat();
 

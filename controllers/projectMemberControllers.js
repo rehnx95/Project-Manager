@@ -8,9 +8,19 @@ const role_schema = z.object({
 });
 
 const id_schema = z.coerce.number().int().positive();
+const uuid_schema = z.uuid();
 
 function parseIdParam(req, res, param_name) {
   const result = id_schema.safeParse(req.params[param_name]);
+  if (!result.success) {
+    res.status(400).json({ success: false, error: `Invalid ${param_name}` });
+    return null;
+  }
+  return result.data;
+}
+
+function parseUUIDParam(req, res, param_name) {
+  const result = uuid_schema.safeParse(req.params[param_name]);
   if (!result.success) {
     res.status(400).json({ success: false, error: `Invalid ${param_name}` });
     return null;
@@ -30,7 +40,7 @@ function handleServiceError(res, error) {
 }
 
 async function getMembership(req, res) {
-  const project_id = parseIdParam(req, res, "project_id");
+  const project_id = parseUUIDParam(req, res, "project_id");
   if (project_id === null) return;
 
   const outcome = await projectMemberService.getMembership(
@@ -55,14 +65,18 @@ async function addMemberToProject(req, res) {
     });
   }
 
-  const project_id = parseIdParam(req, res, "project_id");
+  const project_id = parseUUIDParam(req, res, "project_id");
   if (project_id === null) return;
+  const target_user_id = parseUUIDParam(req, res, "target_user_id");
+  if (target_user_id === null) return;
 
+  const requesting_user_id = req.user.id;
   const { role } = result.data;
   const outcome = await projectMemberService.addMemberToProject(
     project_id,
-    req.user.id,
+    target_user_id,
     role,
+    requesting_user_id,
   );
 
   if (outcome.success === false) {
@@ -75,7 +89,7 @@ async function addMemberToProject(req, res) {
 }
 
 async function getAllMembersOfProject(req, res) {
-  const project_id = parseIdParam(req, res, "project_id");
+  const project_id = parseUUIDParam(req, res, "project_id");
   if (project_id === null) return;
 
   const outcome = await projectMemberService.getAllMembersOfProject(
@@ -104,10 +118,10 @@ async function getAllProjectsOfUser(req, res) {
 }
 
 async function removeMemberFromProject(req, res) {
-  const project_id = parseIdParam(req, res, "project_id");
+  const project_id = parseUUIDParam(req, res, "project_id");
   if (project_id === null) return;
 
-  const target_user_id = parseIdParam(req, res, "user_id");
+  const target_user_id = parseUUIDParam(req, res, "target_user_id");
   if (target_user_id === null) return;
 
   const requesting_user_id = req.user.id;
@@ -133,10 +147,10 @@ async function changeMemberRole(req, res) {
     });
   }
 
-  const project_id = parseIdParam(req, res, "project_id");
+  const project_id = parseUUIDParam(req, res, "project_id");
   if (project_id === null) return;
 
-  const target_user_id = parseIdParam(req, res, "user_id");
+  const target_user_id = parseUUIDParam(req, res, "target_user_id");
   if (target_user_id === null) return;
 
   const requesting_user_id = req.user.id;

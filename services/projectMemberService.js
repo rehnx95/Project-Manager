@@ -17,24 +17,29 @@ async function getMembership(project_id, user_id) {
   return { success: true, value: membership };
 }
 
-async function addMemberToProject(project_id, user_id, new_role) {
+async function addMemberToProject(
+  project_id,
+  target_user_id,
+  new_role,
+  requesting_user_id,
+) {
   const project = await projectsDatabase.getOneProject(project_id);
   if (!project) {
     return { success: false, error: "Project Not Exist" };
   }
-  const membership = await projectMembersDatabase.getMembership(
+  const requester_membership = await projectMembersDatabase.getMembership(
     project_id,
-    user_id,
+    requesting_user_id,
   );
-  if (!membership || membership.role !== "owner") {
+  if (!requester_membership || requester_membership.role !== "owner") {
     return {
       success: false,
-      error: "Forbidden Only Owner Can Add Member To Project",
+      error: "Forbidden Only Owner Can Add Member To That Project",
     };
   }
   const result = await projectMembersDatabase.addMemberToProject(
     project_id,
-    user_id,
+    target_user_id,
     new_role,
   );
   return { success: true, value: result };

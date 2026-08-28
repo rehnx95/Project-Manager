@@ -10,11 +10,20 @@ const task_schema = z.object({
   due_date: z.iso.datetime("Please provide a valid date"),
 });
 
-
 const id_schema = z.coerce.number().int().positive();
+const uuid_schema = z.uuid();
 
 function parseIdParam(req, res, param_name) {
   const result = id_schema.safeParse(req.params[param_name]);
+  if (!result.success) {
+    res.status(400).json({ success: false, error: `Invalid ${param_name}` });
+    return null;
+  }
+  return result.data;
+}
+
+function parseUUIDParam(req, res, param_name) {
+  const result = uuid_schema.safeParse(req.params[param_name]);
   if (!result.success) {
     res.status(400).json({ success: false, error: `Invalid ${param_name}` });
     return null;
@@ -37,7 +46,7 @@ function handleServiceError(res, error) {
 }
 
 async function createTask(req, res) {
-  const project_id = parseIdParam(req, res, "project_id");
+  const project_id = parseUUIDParam(req, res, "project_id");
   if (project_id === null) return;
 
   const result = task_schema.safeParse(req.body);
@@ -97,7 +106,7 @@ async function updateTask(req, res) {
   const task_id = parseIdParam(req, res, "task_id");
   if (task_id === null) return;
 
-  const result =task_schema.safeParse(req.body);
+  const result = task_schema.safeParse(req.body);
   if (!result.success) {
     const errors = result.error.issues.map((issue) => issue.message);
     return res.status(400).json({ success: false, error: errors });

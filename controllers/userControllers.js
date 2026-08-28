@@ -1,10 +1,11 @@
 const { z } = require("zod");
 const UserService = require("../services/userService");
 
-const idSchema = z.coerce.number().int().positive();
+const id_schema = z.coerce.number().int().positive();
+const uuid_schema = z.uuid();
 
 function parseIdParam(req, res, param_name) {
-  const result = idSchema.safeParse(req.params[param_name]);
+  const result = id_schema.safeParse(req.params[param_name]);
   if (!result.success) {
     res.status(400).json({ success: false, error: `Invalid ${param_name}` });
     return null;
@@ -12,6 +13,14 @@ function parseIdParam(req, res, param_name) {
   return result.data;
 }
 
+function parseUUIDParam(req, res, param_name) {
+  const result = uuid_schema.safeParse(req.params[param_name]);
+  if (!result.success) {
+    res.status(400).json({ success: false, error: `Invalid ${param_name}` });
+    return null;
+  }
+  return result.data;
+}
 const signup_schema = z.object({
   email: z.email("Please enter a valid email address").toLowerCase(),
   password: z.string().min(6, "Password must be at least 6 characters"),
@@ -82,7 +91,7 @@ async function login(req, res) {
 }
 
 async function updateUser(req, res) {
-  const requested_id = parseIdParam(req, res, "requested_id");
+  const requested_id = parseUUIDParam(req, res, "requested_id");
   if (requested_id === null) return;
   if (requested_id !== req.user.id) {
     return res.status(403).json({
@@ -105,7 +114,7 @@ async function updateUser(req, res) {
 }
 
 async function getUser(req, res) {
-  const requested_id = parseIdParam(req, res, "requested_id");
+  const requested_id = parseUUIDParam(req, res, "requested_id");
   if (requested_id === null) return;
 
   // Intentionally no ownership check here: this route is admin-only
@@ -169,6 +178,14 @@ async function updateProfile(req, res) {
   res.status(200).json({ success: true, value: outcome.value });
 }
 
+async function getProfile(req, res) {
+  const outcome = await UserService.getProfile(req.user.id);
+  if (outcome.success === false) {
+    return handleServiceError(res, outcome.error);
+  }
+  res.status(200).json({ success: true, value: outcome.value });
+}
+
 module.exports = {
   signup,
   login,
@@ -178,4 +195,5 @@ module.exports = {
   updateUser,
   createProfile,
   updateProfile,
+  getProfile,
 };

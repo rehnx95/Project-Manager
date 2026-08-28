@@ -53,7 +53,7 @@ async function createTag(req, res) {
 
 async function getAllTags(req, res) {
   const outcome = await tagService.getAllTags();
-  return { success: true, value: outcome.value };
+  res.status(200).json({ success: true, value: outcome.value });
 }
 
 async function addTagToTask(req, res) {

@@ -70,6 +70,12 @@ async function updateProfile(user_id, updated_name, updated_bio) {
   return result.rows[0];
 }
 
+async function getProfile(user_id) {
+  const result = await pool.query("SELECT * FROM profile WHERE user_id=$1", [
+    user_id,
+  ]);
+}
+
 module.exports = {
   createUsers,
   findByEmail,
@@ -79,5 +85,6 @@ module.exports = {
   updateUser,
   createProfile,
   updateProfile,
+  getProfile,
   safeForLog,
 };
