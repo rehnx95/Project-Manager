@@ -49,8 +49,13 @@ async function getProject(user_id) {
     return { success: false, error: "User Not Exist" };
   }
 
-  const project = await projectsDatabase.getProject(user_id);
-  return { success: true, value: project };
+  const memberships =
+    await projectMembersDatabase.getAllProjectsOfUser(user_id);
+  const projects = await Promise.all(
+    memberships.map((m) => projectsDatabase.getOneProject(m.project_id)),
+  );
+
+  return { success: true, value: projects };
 }
 
 async function getTaskByProject(user_id, project_id) {

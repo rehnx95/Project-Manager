@@ -44,6 +44,7 @@ function handleServiceError(res, error) {
 
 async function createComment(req, res) {
   const task_id = parseIdParam(req, res, "task_id");
+  if (task_id === null) return;
   const result = body_schema.safeParse(req.body);
   if (!result.success) {
     return res.status(400).json({
@@ -68,6 +69,7 @@ async function createComment(req, res) {
 
 async function getCommentByTask(req, res) {
   const task_id = parseIdParam(req, res, "task_id");
+  if (task_id === null) return;
   const outcome = await commentService.getCommentByTask(task_id, req.user.id);
 
   if (outcome.success === false) {
@@ -93,6 +95,7 @@ async function getCommentByUser(req, res) {
 
 async function deleteCommentById(req, res) {
   const comment_id = parseIdParam(req, res, "comment_id");
+  if (comment_id === null) return;
   const outcome = await commentService.deleteCommentById(
     comment_id,
     req.user.id,
@@ -113,7 +116,7 @@ async function deleteAllCommentFromTask(req, res) {
   if (outcome.success === false) {
     return handleServiceError(res, outcome.error);
   }
-  res.status(204).send;
+  res.status(204).send();
 }
 
 module.exports = {

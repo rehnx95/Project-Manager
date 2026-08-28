@@ -51,6 +51,11 @@ async function createTag(req, res) {
   });
 }
 
+async function getAllTags(req, res) {
+  const outcome = await tagService.getAllTags();
+  return { success: true, value: outcome.value };
+}
+
 async function addTagToTask(req, res) {
   const task_id = parseIdParam(req, res, "task_id");
   const tag_id = parseIdParam(req, res, "tag_id");
@@ -86,3 +91,11 @@ async function removeTagFromTask(req, res) {
   }
   res.status(204).send();
 }
+
+module.exports = {
+  createTag,
+  getAllTags,
+  addTagToTask,
+  getTaskTags,
+  removeTagFromTask,
+};
