@@ -1,12 +1,12 @@
-const projectMemberDatabase = require("../repository/projectMemberDatabase");
-const projectDatabase = require("../repository/projectDatabase");
+const projectMembersDatabase = require("../repository/projectMembersDatabase");
+const projectsDatabase = require("../repository/projectsDatabase");
 
 async function getMembership(project_id, user_id) {
-  const project = await projectDatabase.getOneProject(project_id);
+  const project = await projectsDatabase.getOneProject(project_id);
   if (!project) {
     return { success: false, error: "Project Not Exist" };
   }
-  const result = await projectMemberDatabase.getMembership(
+  const result = await projectMembersDatabase.getMembership(
     project_id,
     user_id,
   );
@@ -17,18 +17,18 @@ async function getMembership(project_id, user_id) {
 }
 
 async function addMemberToProject(project_id, user_id, new_role) {
-  const project = await projectDatabase.getOneProject(project_id);
+  const project = await projectsDatabase.getOneProject(project_id);
   if (!project) {
     return { success: false, error: "Project Not Exist" };
   }
-  const membership = await projectMemberDatabase.getMembership(
+  const membership = await projectMembersDatabase.getMembership(
     project_id,
     user_id,
   );
   if (!membership || membership.role !== "owner") {
     return { success: false, error: "Forbidden" };
   }
-  const result = await projectMemberDatabase.addMemberToProject(
+  const result = await projectMembersDatabase.addMemberToProject(
     project_id,
     user_id,
     new_role,
@@ -37,24 +37,24 @@ async function addMemberToProject(project_id, user_id, new_role) {
 }
 
 async function getAllMembersOfProject(project_id) {
-  const project = await projectDatabase.getOneProject(project_id);
+  const project = await projectsDatabase.getOneProject(project_id);
   if (!project) {
     return { success: false, error: "Project Not Exist" };
   }
   const result =
-    await projectMemberDatabase.getAllMembersOfProject(project_id);
+    await projectMembersDatabase.getAllMembersOfProject(project_id);
   return { success: true, value: result };
 }
 
 async function countOwner(project_id) {
   const member_list =
-    await projectMemberDatabase.getAllMembersOfProject(project_id);
+    await projectMembersDatabase.getAllMembersOfProject(project_id);
   const count = member_list.filter((x) => x.role === "owner").length;
   return count;
 }
 
 async function getAllProjectsOfUser(user_id) {
-  const result = await projectMemberDatabase.getAllProjectsOfUser(user_id);
+  const result = await projectMembersDatabase.getAllProjectsOfUser(user_id);
   return { success: true, value: result };
 }
 
@@ -63,19 +63,19 @@ async function removeMemberFromProject(
   requesting_user_id,
   target_user_id,
 ) {
-  const project = await projectDatabase.getOneProject(project_id);
+  const project = await projectsDatabase.getOneProject(project_id);
   if (!project) {
     return { success: false, error: "Project Not Exist" };
   }
 
-  const requester_membership = await projectMemberDatabase.getMembership(
+  const requester_membership = await projectMembersDatabase.getMembership(
     project_id,
     requesting_user_id,
   );
   if (!requester_membership || requester_membership.role !== "owner") {
     return { success: false, error: "Forbidden" };
   }
-  const target_membership = await projectMemberDatabase.getMembership(
+  const target_membership = await projectMembersDatabase.getMembership(
     project_id,
     target_user_id,
   );
@@ -86,7 +86,7 @@ async function removeMemberFromProject(
     }
   }
 
- const result = await projectMemberDatabase.removeMemberFromProject(
+ const result = await projectMembersDatabase.removeMemberFromProject(
     project_id,
     target_user_id,
   );
@@ -99,12 +99,12 @@ async function changeMemberRole(
   target_user_id,
   new_role,
 ) {
-  const project = await projectDatabase.getOneProject(project_id);
+  const project = await projectsDatabase.getOneProject(project_id);
   if (!project) {
     return { success: false, error: "Project Not Exist" };
   }
 
-  const requester_membership = await projectMemberDatabase.getMembership(
+  const requester_membership = await projectMembersDatabase.getMembership(
     project_id,
     requesting_user_id,
   );
@@ -112,7 +112,7 @@ async function changeMemberRole(
     return { success: false, error: "Forbidden" };
   }
 
-  const target_membership = await projectMemberDatabase.getMembership(
+  const target_membership = await projectMembersDatabase.getMembership(
     project_id,
     target_user_id,
   );
@@ -123,7 +123,7 @@ async function changeMemberRole(
       return { success: false, error: "Cannot remove the last owner" };
     }
   }
-  const result = await projectMemberDatabase.changeMemberRole(
+  const result = await projectMembersDatabase.changeMemberRole(
     project_id,
     target_user_id,
     new_role,

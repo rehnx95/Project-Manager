@@ -1,6 +1,5 @@
 const { z } = require("zod");
-const UserService = require("../services/userService2");
-const { updateProfile } = require("../repository/usersDatabase");
+const UserService = require("../services/userService");
 
 const idParamSchema = z.coerce.number().int().positive();
 

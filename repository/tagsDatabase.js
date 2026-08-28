@@ -13,7 +13,7 @@ async function getAllTags() {
   return result.rows;
 }
 
-async function getoneTag(tag_id) {
+async function getOneTag(tag_id) {
   const result = await pool.query("SELECT * FROM tags WHERE id=$1", [tag_id]);
   return result.rows[0];
 }
@@ -54,5 +54,5 @@ module.exports = {
   addTagToTask,
   getTaskTags,
   removeTagFromTask,
-  getoneTag
+  getOneTag
 };

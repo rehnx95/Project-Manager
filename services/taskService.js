@@ -1,14 +1,14 @@
 const tasksDatabase = require("../repository/tasksDatabase");
-const projectDatabase = require("../repository/projectDatabase");
-const projectMemberDatabase = require("../repository/projectMemberDatabase");
+const projectsDatabase = require("../repository/projectsDatabase");
+const projectMembersDatabase = require("../repository/projectMembersDatabase");
 
 async function completeTask(user_id, id) {
   const task = await tasksDatabase.getOneTask(id);
   if (!task) return { success: false, error: "Task Not Found" };
 
-  const membership = await projectMemberDatabase.getMembership(
+  const membership = await projectMembersDatabase.getMembership(
     task.project_id,
-    user_id
+    user_id,
   );
   if (!membership) {
     return { success: false, error: "Forbidden" };
@@ -24,9 +24,9 @@ async function createTask(
   new_priority,
   new_due_date,
 ) {
-  const project = await projectDatabase.getOneProject(project_id);
+  const project = await projectsDatabase.getOneProject(project_id);
 
-  const membership = await projectMemberDatabase.getMembership(
+  const membership = await projectMembersDatabase.getMembership(
     project_id,
     user_id,
   );
@@ -63,7 +63,7 @@ async function getTaskByUser(user_id, page = 1, limit = 10) {
     value: paginated_tasks,
     total,
     page,
-    totalPages: total_pages,
+    total_pages,
   };
 }
 
@@ -71,9 +71,9 @@ async function getOneTask(user_id, id) {
   const task = await tasksDatabase.getOneTask(id);
   if (!task) return { success: false, error: "Task Not Found" };
 
-  const membership = await projectMemberDatabase.getMembership(
+  const membership = await projectMembersDatabase.getMembership(
     task.project_id,
-    user_id
+    user_id,
   );
   if (!membership) {
     return { success: false, error: "Forbidden" };
@@ -83,11 +83,10 @@ async function getOneTask(user_id, id) {
 }
 
 async function updateTask(user_id, id, new_title, new_priority, new_due_date) {
-
   const task = await tasksDatabase.getOneTask(id);
   if (!task) return { success: false, error: "Task Not Found" };
 
-  const membership = await projectMemberDatabase.getMembership(
+  const membership = await projectMembersDatabase.getMembership(
     task.project_id,
     user_id,
   );
@@ -107,7 +106,7 @@ async function updateTask(user_id, id, new_title, new_priority, new_due_date) {
 async function deleteTask(user_id, id) {
   const task = await tasksDatabase.getOneTask(id);
   if (!task) return { success: false, error: "Task Not Found" };
-  const membership = await projectMemberDatabase.getMembership(
+  const membership = await projectMembersDatabase.getMembership(
     task.project_id,
     user_id,
   );
