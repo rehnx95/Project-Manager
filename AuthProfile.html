@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>API Console</title>
+<style>
+  :root{
+    --bg:#0d1117;
+    --panel:#11161d;
+    --panel-2:#161c25;
+    --border:#232b36;
+    --border-soft:#1a212b;
+    --text:#e6edf3;
+    --text-dim:#8b949e;
+    --text-faint:#5b6572;
+    --accent:#4fd1c5;
+    --accent-dim:#2c7a72;
+    --get:#4fd1c5;
+    --post:#5fa8f5;
+    --patch:#e3b341;
+    --delete:#f47174;
+    --ok:#4fd1c5;
+    --err:#f47174;
+    --mono: "SF Mono", "JetBrains Mono", ui-monospace, "Cascadia Code", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    font-size:14px;
+    display:flex;
+    flex-direction:column;
+  }
+
+  /* ---------- top bar ---------- */
+  .topbar{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:10px 16px;
+    background:var(--panel);
+    border-bottom:1px solid var(--border);
+    flex-wrap:wrap;
+  }
+  .topbar .brand{
+    font-family:var(--mono);
+    font-weight:600;
+    font-size:13px;
+    letter-spacing:0.02em;
+    color:var(--accent);
+    white-space:nowrap;
+  }
+  .topbar .brand span{color:var(--text-faint);}
+  .field{
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+  }
+  .field label{
+    font-size:10px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--text-faint);
+  }
+  .field input{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:6px 8px;
+    border-radius:5px;
+    font-family:var(--mono);
+    font-size:12.5px;
+    min-width:220px;
+  }
+  .field input:focus{outline:none;border-color:var(--accent-dim);}
+  .topbar .token-field input{min-width:340px;}
+  .pill-btn{
+    background:transparent;
+    border:1px solid var(--border);
+    color:var(--text-dim);
+    padding:6px 12px;
+    border-radius:5px;
+    font-size:12px;
+    cursor:pointer;
+    font-family:var(--sans);
+    align-self:flex-end;
+    white-space:nowrap;
+  }
+  .pill-btn:hover{border-color:var(--accent-dim);color:var(--accent);}
+  .status-dot{
+    width:8px;height:8px;border-radius:50%;
+    background:var(--text-faint);
+    align-self:flex-end;
+    margin-bottom:8px;
+    flex-shrink:0;
+  }
+  .status-dot.on{background:var(--ok);box-shadow:0 0 6px var(--ok);}
+
+  /* ---------- layout ---------- */
+  .layout{
+    flex:1;
+    display:grid;
+    grid-template-columns:280px 1fr 1fr;
+    min-height:0;
+  }
+  @media (max-width:980px){
+    .layout{grid-template-columns:1fr;}
+  }
+
+  /* ---------- sidebar ---------- */
+  .sidebar{
+    border-right:1px solid var(--border);
+    overflow-y:auto;
+    background:var(--panel);
+  }
+  .group-title{
+    padding:12px 14px 6px;
+    font-size:10.5px;
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+    color:var(--text-faint);
+    border-top:1px solid var(--border-soft);
+  }
+  .group-title:first-child{border-top:none;}
+  .endpoint{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:7px 14px;
+    cursor:pointer;
+    border-left:2px solid transparent;
+  }
+  .endpoint:hover{background:var(--panel-2);}
+  .endpoint.active{
+    background:var(--panel-2);
+    border-left-color:var(--accent);
+  }
+  .method-tag{
+    font-family:var(--mono);
+    font-size:10px;
+    font-weight:700;
+    padding:2px 5px;
+    border-radius:3px;
+    width:42px;
+    text-align:center;
+    flex-shrink:0;
+  }
+  .m-GET{color:var(--get);background:rgba(79,209,197,0.12);}
+  .m-POST{color:var(--post);background:rgba(95,168,245,0.12);}
+  .m-PATCH{color:var(--patch);background:rgba(227,179,65,0.12);}
+  .m-DELETE{color:var(--delete);background:rgba(244,113,116,0.12);}
+  .endpoint-name{
+    font-size:12.5px;
+    color:var(--text-dim);
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .endpoint.active .endpoint-name{color:var(--text);}
+
+  /* ---------- request panel ---------- */
+  .request-panel{
+    border-right:1px solid var(--border);
+    overflow-y:auto;
+    padding:20px;
+  }
+  .req-head{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:4px;
+  }
+  .req-head .method-tag{width:auto;padding:3px 8px;font-size:11px;}
+  .req-path{
+    font-family:var(--mono);
+    font-size:13.5px;
+    color:var(--text);
+  }
+  .req-desc{
+    color:var(--text-faint);
+    font-size:12px;
+    margin:0 0 18px;
+    line-height:1.5;
+  }
+  .req-desc code{
+    font-family:var(--mono);
+    background:var(--panel-2);
+    padding:1px 4px;
+    border-radius:3px;
+    color:var(--text-dim);
+  }
+  .section-label{
+    font-size:10.5px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--text-faint);
+    margin:16px 0 8px;
+  }
+  .section-label:first-of-type{margin-top:0;}
+  .param-row{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom:8px;
+  }
+  .param-row .param-name{
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--text-dim);
+    width:120px;
+    flex-shrink:0;
+  }
+  .param-row input, .param-row select{
+    flex:1;
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:7px 9px;
+    border-radius:5px;
+    font-family:var(--mono);
+    font-size:12.5px;
+  }
+  .param-row input:focus, .param-row select:focus, textarea:focus{outline:none;border-color:var(--accent-dim);}
+  textarea.body-editor{
+    width:100%;
+    min-height:140px;
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:10px;
+    border-radius:6px;
+    font-family:var(--mono);
+    font-size:12.5px;
+    line-height:1.5;
+    resize:vertical;
+  }
+  .empty-note{
+    color:var(--text-faint);
+    font-size:12px;
+    font-style:italic;
+  }
+  .send-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-top:20px;
+  }
+  .send-btn{
+    background:var(--accent);
+    color:#04201d;
+    border:none;
+    padding:9px 20px;
+    border-radius:6px;
+    font-weight:600;
+    font-size:13px;
+    cursor:pointer;
+  }
+  .send-btn:hover{filter:brightness(1.08);}
+  .send-btn:active{transform:translateY(1px);}
+  .send-btn:disabled{opacity:0.5;cursor:default;}
+  .auth-note{
+    font-size:11.5px;
+    color:var(--text-faint);
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .lock-icon{font-size:12px;}
+
+  /* ---------- response panel ---------- */
+  .response-panel{
+    overflow-y:auto;
+    padding:20px;
+    display:flex;
+    flex-direction:column;
+  }
+  .response-panel .section-label{margin-top:0;}
+  .resp-meta{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:12px;
+    flex-wrap:wrap;
+  }
+  .status-badge{
+    font-family:var(--mono);
+    font-weight:700;
+    font-size:13px;
+    padding:3px 9px;
+    border-radius:5px;
+  }
+  .status-2xx{color:var(--ok);background:rgba(79,209,197,0.12);}
+  .status-4xx{color:var(--patch);background:rgba(227,179,65,0.12);}
+  .status-5xx, .status-err{color:var(--err);background:rgba(244,113,116,0.12);}
+  .status-pending{color:var(--text-faint);background:var(--panel-2);}
+  .timing{
+    font-family:var(--mono);
+    font-size:11.5px;
+    color:var(--text-faint);
+  }
+  pre.resp-body{
+    flex:1;
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:14px;
+    margin:0;
+    font-family:var(--mono);
+    font-size:12px;
+    line-height:1.6;
+    overflow:auto;
+    white-space:pre-wrap;
+    word-break:break-word;
+    color:var(--text-dim);
+  }
+  .resp-placeholder{
+    color:var(--text-faint);
+    font-size:12.5px;
+    font-style:italic;
+  }
+  .json-key{color:#7ee787;}
+  .json-str{color:#a5d6ff;}
+  .json-num{color:#e3b341;}
+  .json-bool{color:#f47174;}
+  .json-null{color:var(--text-faint);}
+
+  /* ---------- history ---------- */
+  .history{
+    margin-top:16px;
+    border-top:1px solid var(--border-soft);
+    padding-top:12px;
+  }
+  .history-item{
+    display:flex;
+    gap:8px;
+    align-items:center;
+    padding:5px 0;
+    font-family:var(--mono);
+    font-size:11px;
+    color:var(--text-faint);
+    cursor:pointer;
+  }
+  .history-item:hover{color:var(--text-dim);}
+  .history-item .hist-status{
+    width:28px;
+    flex-shrink:0;
+  }
+  .history-item .hist-status.ok{color:var(--ok);}
+  .history-item .hist-status.bad{color:var(--err);}
+
+  ::-webkit-scrollbar{width:9px;height:9px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:5px;}
+  ::-webkit-scrollbar-thumb:hover{background:var(--text-faint);}
+
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none !important;}
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">API<span>·</span>CONSOLE</div>
+  <div class="field">
+    <label for="baseUrl">Base URL</label>
+    <input id="baseUrl" value="http://localhost:7000" spellcheck="false">
+  </div>
+  <div class="field token-field">
+    <label for="tokenInput">Bearer token</label>
+    <input id="tokenInput" placeholder="paste token after login…" spellcheck="false">
+  </div>
+  <div class="status-dot" id="tokenDot" title="No token set"></div>
+  <button class="pill-btn" id="clearTokenBtn">Clear token</button>
+</div>
+
+<div class="layout">
+  <div class="sidebar" id="sidebar"></div>
+  <div class="request-panel" id="requestPanel">
+    <div class="empty-note">Pick an endpoint on the left to build a request.</div>
+  </div>
+  <div class="response-panel" id="responsePanel">
+    <div class="section-label">Response</div>
+    <div class="resp-placeholder">Nothing sent yet.</div>
+    <div class="history" id="historyWrap" style="display:none;">
+      <div class="section-label">History (this session)</div>
+      <div id="historyList"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---------------------------------------------------------------------
+// Endpoint catalog — mirrors the reviewed routes exactly (param names,
+// types, and auth requirements as confirmed in the backend review).
+// ---------------------------------------------------------------------
+const ENDPOINTS = [
+  { group: "Users", name: "Signup", method: "POST", path: "/users/signup", auth: false,
+    body: { email: "test@example.com", password: "secret123" } },
+  { group: "Users", name: "Login", method: "POST", path: "/users/login", auth: false,
+    body: { email: "test@example.com", password: "secret123" } },
+  { group: "Users", name: "Update email", method: "PATCH", path: "/users/:requested_id", auth: true,
+    params: [{ name: "requested_id", type: "uuid", placeholder: "your own user id" }],
+    body: { email: "new@example.com" } },
+  { group: "Users", name: "Get all users (admin)", method: "GET", path: "/users", auth: true },
+  { group: "Users", name: "Get user by id (admin)", method: "GET", path: "/users/:requested_id", auth: true,
+    params: [{ name: "requested_id", type: "uuid" }] },
+  { group: "Users", name: "Delete my account", method: "DELETE", path: "/users", auth: true },
+  { group: "Users", name: "Create profile", method: "POST", path: "/users/profile", auth: true,
+    body: { name: "Rehan", bio: "Backend dev" } },
+  { group: "Users", name: "Update profile", method: "PATCH", path: "/users/profile", auth: true,
+    body: { name: "Rehan", bio: "Updated bio" } },
+  { group: "Users", name: "Get my profile", method: "GET", path: "/users/profile", auth: true },
+  { group: "Users", name: "Get my projects", method: "GET", path: "/users/projects", auth: true },
+
+  { group: "Projects", name: "Create project", method: "POST", path: "/projects", auth: true,
+    body: { name: "New Project", description: "A test project", status: "active" } },
+  { group: "Projects", name: "Get one project", method: "GET", path: "/projects/:project_id", auth: true,
+    params: [{ name: "project_id", type: "uuid" }] },
+  { group: "Projects", name: "Get my project list", method: "GET", path: "/projects", auth: true },
+  { group: "Projects", name: "Get tasks by project", method: "GET", path: "/projects/:project_id/tasks", auth: true,
+    params: [{ name: "project_id", type: "uuid" }] },
+  { group: "Projects", name: "Update project", method: "PATCH", path: "/projects/:project_id", auth: true,
+    params: [{ name: "project_id", type: "uuid" }],
+    body: { name: "Renamed Project", description: "Updated desc", status: "active" } },
+  { group: "Projects", name: "Delete project", method: "DELETE", path: "/projects/:project_id", auth: true,
+    params: [{ name: "project_id", type: "uuid" }] },
+
+  { group: "Project Members", name: "Get my membership", method: "GET", path: "/projects/:project_id/membership", auth: true,
+    params: [{ name: "project_id", type: "uuid" }] },
+  { group: "Project Members", name: "Add member", method: "POST", path: "/projects/:project_id/users/:target_user_id", auth: true,
+    params: [{ name: "project_id", type: "uuid" }, { name: "target_user_id", type: "uuid" }],
+    body: { role: "member" } },
+  { group: "Project Members", name: "Get all members", method: "GET", path: "/projects/:project_id/members", auth: true,
+    params: [{ name: "project_id", type: "uuid" }] },
+  { group: "Project Members", name: "Remove member", method: "DELETE", path: "/projects/:project_id/users/:target_user_id", auth: true,
+    params: [{ name: "project_id", type: "uuid" }, { name: "target_user_id", type: "uuid" }] },
+  { group: "Project Members", name: "Change member role", method: "PATCH", path: "/projects/:project_id/users/:target_user_id", auth: true,
+    params: [{ name: "project_id", type: "uuid" }, { name: "target_user_id", type: "uuid" }],
+    body: { role: "owner" } },
+
+  { group: "Tasks", name: "Create task", method: "POST", path: "/projects/:project_id/tasks", auth: true,
+    params: [{ name: "project_id", type: "uuid" }],
+    body: { title: "New task", priority: "medium", due_date: "2026-09-15T00:00:00.000Z" } },
+  { group: "Tasks", name: "Get my tasks (paginated)", method: "GET", path: "/tasks", auth: true,
+    query: [{ name: "page", value: "1" }, { name: "limit", value: "10" }] },
+  { group: "Tasks", name: "Get one task", method: "GET", path: "/tasks/:task_id", auth: true,
+    params: [{ name: "task_id", type: "number" }] },
+  { group: "Tasks", name: "Update task", method: "PATCH", path: "/tasks/:task_id", auth: true,
+    params: [{ name: "task_id", type: "number" }],
+    body: { title: "Updated task", priority: "high", due_date: "2026-09-20T00:00:00.000Z" } },
+  { group: "Tasks", name: "Toggle complete", method: "PATCH", path: "/tasks/:task_id/complete", auth: true,
+    params: [{ name: "task_id", type: "number" }] },
+  { group: "Tasks", name: "Delete task (owner only)", method: "DELETE", path: "/tasks/:task_id", auth: true,
+    params: [{ name: "task_id", type: "number" }] },
+
+  { group: "Tags", name: "Create tag", method: "POST", path: "/tags", auth: true,
+    body: { tag_name: "urgent" } },
+  { group: "Tags", name: "Get all tags", method: "GET", path: "/tags", auth: true },
+  { group: "Tags", name: "Add tag to task", method: "POST", path: "/tasks/:task_id/tags/:tag_id", auth: true,
+    params: [{ name: "task_id", type: "number" }, { name: "tag_id", type: "number" }] },
+  { group: "Tags", name: "Get tags on task", method: "GET", path: "/tasks/:task_id/tags", auth: true,
+    params: [{ name: "task_id", type: "number" }] },
+  { group: "Tags", name: "Remove tag from task", method: "DELETE", path: "/tasks/:task_id/tags/:tag_id", auth: true,
+    params: [{ name: "task_id", type: "number" }, { name: "tag_id", type: "number" }] },
+
+  { group: "Comments", name: "Create comment", method: "POST", path: "/tasks/:task_id/comments", auth: true,
+    params: [{ name: "task_id", type: "number" }],
+    body: { new_body: "This is a comment" } },
+  { group: "Comments", name: "Get comments on task", method: "GET", path: "/tasks/:task_id/comments", auth: true,
+    params: [{ name: "task_id", type: "number" }] },
+  { group: "Comments", name: "Get my comments", method: "GET", path: "/users/comments", auth: true },
+  { group: "Comments", name: "Delete my comment", method: "DELETE", path: "/users/comments/:comment_id", auth: true,
+    params: [{ name: "comment_id", type: "number" }] },
+  { group: "Comments", name: "Delete all comments on task (owner only)", method: "DELETE", path: "/tasks/:task_id/comments", auth: true,
+    params: [{ name: "task_id", type: "number" }] },
+];
+
+// Note: tagController routes for add/get/remove tag were reviewed with
+// generic :task_id/:tag_id params — adjust the two paths above if your
+// actual app.js wires them differently (they weren't in the app.js you sent).
+
+let activeIndex = null;
+let historyLog = [];
+
+const sidebar = document.getElementById('sidebar');
+const requestPanel = document.getElementById('requestPanel');
+const responsePanel = document.getElementById('responsePanel');
+const baseUrlInput = document.getElementById('baseUrl');
+const tokenInput = document.getElementById('tokenInput');
+const tokenDot = document.getElementById('tokenDot');
+
+function buildSidebar(){
+  const groups = {};
+  ENDPOINTS.forEach((ep, i) => {
+    groups[ep.group] = groups[ep.group] || [];
+    groups[ep.group].push(i);
+  });
+  sidebar.innerHTML = '';
+  Object.keys(groups).forEach(groupName => {
+    const title = document.createElement('div');
+    title.className = 'group-title';
+    title.textContent = groupName;
+    sidebar.appendChild(title);
+    groups[groupName].forEach(i => {
+      const ep = ENDPOINTS[i];
+      const row = document.createElement('div');
+      row.className = 'endpoint';
+      row.dataset.index = i;
+      row.innerHTML = `<span class="method-tag m-${ep.method}">${ep.method}</span><span class="endpoint-name">${ep.name}</span>`;
+      row.addEventListener('click', () => selectEndpoint(i));
+      sidebar.appendChild(row);
+    });
+  });
+}
+
+function selectEndpoint(i){
+  activeIndex = i;
+  document.querySelectorAll('.endpoint').forEach(el => {
+    el.classList.toggle('active', Number(el.dataset.index) === i);
+  });
+  renderRequestPanel(ENDPOINTS[i]);
+}
+
+function renderRequestPanel(ep){
+  let html = `
+    <div class="req-head">
+      <span class="method-tag m-${ep.method}">${ep.method}</span>
+      <span class="req-path">${ep.path}</span>
+    </div>
+    <p class="req-desc">${ep.auth ? 'Requires <code>Authorization: Bearer &lt;token&gt;</code>.' : 'No auth required.'}</p>
+  `;
+
+  if (ep.params && ep.params.length){
+    html += `<div class="section-label">Path params</div>`;
+    ep.params.forEach(p => {
+      html += `
+        <div class="param-row">
+          <span class="param-name">${p.name}</span>
+          <input data-param="${p.name}" placeholder="${p.placeholder || (p.type === 'uuid' ? 'uuid…' : 'numeric id…')}" spellcheck="false">
+        </div>`;
+    });
+  }
+
+  if (ep.query && ep.query.length){
+    html += `<div class="section-label">Query params</div>`;
+    ep.query.forEach(q => {
+      html += `
+        <div class="param-row">
+          <span class="param-name">${q.name}</span>
+          <input data-query="${q.name}" value="${q.value || ''}" spellcheck="false">
+        </div>`;
+    });
+  }
+
+  html += `<div class="section-label">Body${ep.body ? '' : ' (none)'}</div>`;
+  if (ep.body){
+    html += `<textarea class="body-editor" id="bodyEditor" spellcheck="false">${JSON.stringify(ep.body, null, 2)}</textarea>`;
+  } else {
+    html += `<div class="empty-note">This request has no body.</div>`;
+  }
+
+  html += `
+    <div class="send-row">
+      <button class="send-btn" id="sendBtn">Send request</button>
+      ${ep.auth ? '<span class="auth-note"><span class="lock-icon">🔒</span> uses token above</span>' : ''}
+    </div>
+  `;
+
+  requestPanel.innerHTML = html;
+  document.getElementById('sendBtn').addEventListener('click', () => sendRequest(ep));
+}
+
+function highlightJson(obj){
+  const json = JSON.stringify(obj, null, 2);
+  return json
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)/g,
+      (match) => {
+        let cls = 'json-num';
+        if (/^"/.test(match)){
+          cls = /:$/.test(match) ? 'json-key' : 'json-str';
+        } else if (/true|false/.test(match)){
+          cls = 'json-bool';
+        } else if (/null/.test(match)){
+          cls = 'json-null';
+        }
+        return `<span class="${cls}">${match}</span>`;
+      });
+}
+
+async function sendRequest(ep){
+  const base = baseUrlInput.value.replace(/\/$/, '');
+  let path = ep.path;
+
+  if (ep.params){
+    for (const p of ep.params){
+      const val = document.querySelector(`[data-param="${p.name}"]`).value.trim();
+      path = path.replace(`:${p.name}`, encodeURIComponent(val || `:${p.name}`));
+    }
+  }
+
+  let query = '';
+  if (ep.query){
+    const parts = [];
+    ep.query.forEach(q => {
+      const val = document.querySelector(`[data-query="${q.name}"]`).value.trim();
+      if (val) parts.push(`${encodeURIComponent(q.name)}=${encodeURIComponent(val)}`);
+    });
+    if (parts.length) query = '?' + parts.join('&');
+  }
+
+  const url = base + path + query;
+  const headers = { 'Content-Type': 'application/json' };
+  const token = tokenInput.value.trim();
+  if (ep.auth && token){
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  let bodyStr = undefined;
+  if (ep.body){
+    const editor = document.getElementById('bodyEditor');
+    try {
+      const parsed = JSON.parse(editor.value);
+      bodyStr = JSON.stringify(parsed);
+    } catch (e) {
+      renderResponse({ error: true, status: null, statusText: 'Invalid JSON in request body', body: e.message, ms: 0 });
+      return;
+    }
+  }
+
+  const sendBtn = document.getElementById('sendBtn');
+  sendBtn.disabled = true;
+  sendBtn.textContent = 'Sending…';
+  renderPending();
+
+  const started = performance.now();
+  try {
+    const res = await fetch(url, {
+      method: ep.method,
+      headers,
+      body: (ep.method !== 'GET' && bodyStr !== undefined) ? bodyStr : undefined,
+    });
+    const ms = Math.round(performance.now() - started);
+    const text = await res.text();
+    let parsedBody = text;
+    let contentType = res.headers.get('content-type') || '';
+    if (contentType.includes('application/json') && text){
+      try { parsedBody = JSON.parse(text); } catch(e) { /* leave as text */ }
+    }
+    const result = { error: false, status: res.status, statusText: res.statusText, body: parsedBody, ms, method: ep.method, path };
+    renderResponse(result);
+    logHistory(result);
+  } catch (err) {
+    const ms = Math.round(performance.now() - started);
+    const result = { error: true, status: null, statusText: 'Network error', body: err.message, ms, method: ep.method, path };
+    renderResponse(result);
+    logHistory(result);
+  } finally {
+    sendBtn.disabled = false;
+    sendBtn.textContent = 'Send request';
+  }
+}
+
+function statusClass(status, isError){
+  if (isError || status === null) return 'status-err';
+  if (status >= 200 && status < 300) return 'status-2xx';
+  if (status >= 400 && status < 500) return 'status-4xx';
+  return 'status-5xx';
+}
+
+function renderPending(){
+  responsePanel.innerHTML = `
+    <div class="section-label">Response</div>
+    <div class="resp-meta">
+      <span class="status-badge status-pending">…</span>
+    </div>
+    <pre class="resp-body">waiting…</pre>
+  `;
+}
+
+function renderResponse(result){
+  const cls = statusClass(result.status, result.error);
+  const label = result.error ? (result.status || 'ERR') : result.status;
+  let bodyHtml;
+  if (typeof result.body === 'object' && result.body !== null){
+    bodyHtml = highlightJson(result.body);
+  } else {
+    bodyHtml = String(result.body ?? '(empty response)')
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  responsePanel.innerHTML = `
+    <div class="section-label">Response</div>
+    <div class="resp-meta">
+      <span class="status-badge ${cls}">${label} ${result.statusText || ''}</span>
+      <span class="timing">${result.ms}ms</span>
+    </div>
+    <pre class="resp-body">${bodyHtml}</pre>
+    <div class="history" id="historyWrap" style="${historyLog.length ? '' : 'display:none;'}">
+      <div class="section-label">History (this session)</div>
+      <div id="historyList"></div>
+    </div>
+  `;
+  renderHistoryList();
+}
+
+function logHistory(result){
+  historyLog.unshift(result);
+  if (historyLog.length > 25) historyLog.pop();
+}
+
+function renderHistoryList(){
+  const wrap = document.getElementById('historyWrap');
+  const list = document.getElementById('historyList');
+  if (!wrap || !list) return;
+  if (!historyLog.length){ wrap.style.display = 'none'; return; }
+  wrap.style.display = '';
+  list.innerHTML = historyLog.map(h => {
+    const ok = !h.error && h.status >= 200 && h.status < 400;
+    return `<div class="history-item">
+      <span class="hist-status ${ok ? 'ok' : 'bad'}">${h.error ? 'ERR' : h.status}</span>
+      <span>${h.method}</span>
+      <span>${h.path}</span>
+      <span style="margin-left:auto;">${h.ms}ms</span>
+    </div>`;
+  }).join('');
+}
+
+// token indicator
+tokenInput.addEventListener('input', () => {
+  tokenDot.classList.toggle('on', tokenInput.value.trim().length > 0);
+});
+document.getElementById('clearTokenBtn').addEventListener('click', () => {
+  tokenInput.value = '';
+  tokenDot.classList.remove('on');
+});
+
+// auto-fill token from a login response
+function tryAutoFillToken(body){
+  if (body && typeof body === 'object' && typeof body.token === 'string'){
+    tokenInput.value = body.token;
+    tokenDot.classList.add('on');
+  }
+}
+const originalRenderResponse = renderResponse;
+renderResponse = function(result){
+  originalRenderResponse(result);
+  tryAutoFillToken(result.body);
+};
+
+buildSidebar();
+selectEndpoint(0);
+</script>
+
+</body>
+</html>

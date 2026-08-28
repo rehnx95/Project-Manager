@@ -1,4 +1,4 @@
-const tagService = require("../services/tagservice");
+const tagService = require("../services/tagService");
 const { z } = require("zod");
 
 const id_schema = z.coerce.number().int().positive();

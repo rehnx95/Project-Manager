@@ -1,3 +1,4 @@
+
 CREATE TYPE user_role AS ENUM ('user', 'admin');
 CREATE TYPE project_status AS ENUM ('active', 'archived', 'completed');
 CREATE TYPE task_priority AS ENUM ('low', 'medium', 'high');
@@ -30,7 +31,6 @@ CREATE TABLE projects (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-
 
 CREATE TABLE project_members (
     project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
@@ -69,7 +69,6 @@ CREATE TABLE comments (
     body TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-
 
 CREATE INDEX idx_profiles_user_id ON profiles(user_id);
 CREATE INDEX idx_projects_user_id ON projects(user_id);
