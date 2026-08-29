@@ -55,6 +55,10 @@ async function getProject(user_id) {
     memberships.map((m) => projectsDatabase.getOneProject(m.project_id)),
   );
 
+  if (!projects || projects.length === 0) {
+    return { success: false, error: "Project Not Exist" };
+  }
+
   return { success: true, value: projects };
 }
 

@@ -44,7 +44,7 @@ function handleServiceError(res, error) {
   if (error === "Unauthorize") {
     return res.status(403).json({ success: false, error });
   }
-  if (error === "User Not Exist") {
+  if (error === "User Not Exist" || error === "Profile Not Exist") {
     return res.status(404).json({ success: false, error });
   }
 

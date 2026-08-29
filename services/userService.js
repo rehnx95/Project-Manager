@@ -99,6 +99,8 @@ async function updateProfile(user_id, new_name, new_bio) {
     new_name,
     new_bio,
   );
+  if (!updated_profile) return { success: false, error: "Profile Not Exist" };
+
   return { success: true, value: updated_profile };
 }
 
@@ -108,6 +110,7 @@ async function getProfile(user_id) {
     return { success: false, error: "User Not Exist" };
   }
   const profile = await usersDatabase.getProfile(user_id);
+  if (!profile) return { success: false, error: "Profile Not Exist" };
   return { success: true, value: profile };
 }
 
@@ -120,5 +123,5 @@ module.exports = {
   updateUser,
   updateProfile,
   createProfile,
-  getProfile
+  getProfile,
 };
