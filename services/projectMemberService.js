@@ -3,6 +3,7 @@ const projectMembersDatabase = require("../repository/projectMembersDatabase");
 const projectsDatabase = require("../repository/projectsDatabase");
 
 async function getMembership(project_id, user_id) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[projectMemberService] getMembership");
   const project = await projectsDatabase.getOneProject(project_id);
   if (!project) {
     return { success: false, error: "Project Not Exist" };
@@ -23,6 +24,7 @@ async function addMemberToProject(
   new_role,
   requesting_user_id,
 ) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[projectMemberService] addMemberToProject");
   const project = await projectsDatabase.getOneProject(project_id);
   if (!project) {
     return { success: false, error: "Project Not Exist" };
@@ -46,6 +48,7 @@ async function addMemberToProject(
 }
 
 async function getAllMembersOfProject(user_id, project_id) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[projectMemberService] getAllMembersOfProject");
   const project = await projectsDatabase.getOneProject(project_id);
   if (!project) {
     return { success: false, error: "Project Not Exist" };
@@ -63,6 +66,7 @@ async function getAllMembersOfProject(user_id, project_id) {
 }
 
 async function countOwner(project_id) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[projectMemberService] countOwner");
   const member_list =
     await projectMembersDatabase.getAllMembersOfProject(project_id);
   const count = member_list.filter((x) => x.role === "owner").length;
@@ -70,6 +74,7 @@ async function countOwner(project_id) {
 }
 
 async function getAllProjectsOfUser(user_id) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[projectMemberService] getAllProjectsOfUser");
   const result = await projectMembersDatabase.getAllProjectsOfUser(user_id);
   if (!result) {
     return { success: false, error: "Project Not Exist" };
@@ -82,6 +87,7 @@ async function removeMemberFromProject(
   requesting_user_id,
   target_user_id,
 ) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[projectMemberService] removeMemberFromProject");
   const project = await projectsDatabase.getOneProject(project_id);
   if (!project) {
     return { success: false, error: "Project Not Exist" };
@@ -126,6 +132,7 @@ async function changeMemberRole(
   target_user_id,
   new_role,
 ) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[projectMemberService] changeMemberRole");
   const project = await projectsDatabase.getOneProject(project_id);
   if (!project) {
     return { success: false, error: "Project Not Exist" };

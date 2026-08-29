@@ -11,6 +11,7 @@ const id_schema = z.coerce.number().int().positive();
 const uuid_schema = z.uuid();
 
 function parseIdParam(req, res, param_name) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[projectMemberControllers] parseIdParam");
   const result = id_schema.safeParse(req.params[param_name]);
   if (!result.success) {
     res.status(400).json({ success: false, error: `Invalid ${param_name}` });
@@ -20,6 +21,7 @@ function parseIdParam(req, res, param_name) {
 }
 
 function parseUUIDParam(req, res, param_name) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[projectMemberControllers] parseUUIDParam");
   const result = uuid_schema.safeParse(req.params[param_name]);
   if (!result.success) {
     res.status(400).json({ success: false, error: `Invalid ${param_name}` });
@@ -29,6 +31,7 @@ function parseUUIDParam(req, res, param_name) {
 }
 
 function handleServiceError(res, error) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[projectMemberControllers] handleServiceError");
   if (error.startsWith("Forbidden")) {
     return res.status(403).json({ success: false, error });
   }
@@ -40,6 +43,7 @@ function handleServiceError(res, error) {
 }
 
 async function getMembership(req, res) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[projectMemberControllers] getMembership");
   const project_id = parseUUIDParam(req, res, "project_id");
   if (project_id === null) return;
 
@@ -57,6 +61,7 @@ async function getMembership(req, res) {
 }
 
 async function addMemberToProject(req, res) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[projectMemberControllers] addMemberToProject");
   const result = role_schema.safeParse(req.body);
   if (!result.success) {
     return res.status(400).json({
@@ -89,6 +94,7 @@ async function addMemberToProject(req, res) {
 }
 
 async function getAllMembersOfProject(req, res) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[projectMemberControllers] getAllMembersOfProject");
   const project_id = parseUUIDParam(req, res, "project_id");
   if (project_id === null) return;
 
@@ -107,6 +113,7 @@ async function getAllMembersOfProject(req, res) {
 }
 
 async function getAllProjectsOfUser(req, res) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[projectMemberControllers] getAllProjectsOfUser");
   const outcome = await projectMemberService.getAllProjectsOfUser(req.user.id);
   if (outcome.success === false) {
     return handleServiceError(res, outcome.error);
@@ -118,6 +125,7 @@ async function getAllProjectsOfUser(req, res) {
 }
 
 async function removeMemberFromProject(req, res) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[projectMemberControllers] removeMemberFromProject");
   const project_id = parseUUIDParam(req, res, "project_id");
   if (project_id === null) return;
 
@@ -139,6 +147,7 @@ async function removeMemberFromProject(req, res) {
 }
 
 async function changeMemberRole(req, res) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[projectMemberControllers] changeMemberRole");
   const result = role_schema.safeParse(req.body);
   if (!result.success) {
     return res.status(400).json({

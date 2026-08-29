@@ -3,6 +3,7 @@ const tasksDatabase = require("../repository/tasksDatabase");
 const projectMembersDatabase = require("../repository/projectMembersDatabase");
 
 async function createComment(task_id, user_id, new_body) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[commentService] createComment");
   const task = await tasksDatabase.getOneTask(task_id);
   if (!task) {
     return { success: false, error: "Task Not Exist" };
@@ -27,6 +28,7 @@ async function createComment(task_id, user_id, new_body) {
 }
 
 async function getCommentByTask(task_id, user_id) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[commentService] getCommentByTask");
   const task = await tasksDatabase.getOneTask(task_id);
   if (!task) {
     return { success: false, error: "Task Not Exist" };
@@ -49,6 +51,7 @@ async function getCommentByTask(task_id, user_id) {
 }
 
 async function getCommentByUser(user_id) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[commentService] getCommentByUser");
   const result = await commentsDatabase.getCommentByUser(user_id);
   if (!result || result.length === 0) {
     return { success: false, error: "No Comment By User" };
@@ -57,6 +60,7 @@ async function getCommentByUser(user_id) {
 }
 
 async function deleteCommentById(comment_id, user_id) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[commentService] deleteCommentById");
   const result = await commentsDatabase.deleteCommentByUserAndId(
     comment_id,
     user_id,
@@ -68,6 +72,7 @@ async function deleteCommentById(comment_id, user_id) {
 }
 
 async function deleteAllCommentFromTask(task_id, user_id) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[commentService] deleteAllCommentFromTask");
   const task = await tasksDatabase.getOneTask(task_id);
   if (!task) {
     return { success: false, error: "Task Not Exist" };

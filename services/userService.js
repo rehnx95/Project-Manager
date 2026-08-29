@@ -4,6 +4,7 @@ const usersDatabase = require("../repository/usersDatabase");
 const { success } = require("zod");
 
 async function signup(email, password) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[userService] signup");
   const existing = await usersDatabase.findByEmail(email);
   if (existing) {
     return { success: false, error: "Email Already Exist" };
@@ -18,6 +19,7 @@ async function signup(email, password) {
 }
 
 async function login(email, password) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[userService] login");
   const user = await usersDatabase.findByEmail(email);
   const hash_to_compare = user
     ? user.password
@@ -36,6 +38,7 @@ async function login(email, password) {
 }
 
 async function updateUser(id, new_email) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[userService] updateUser");
   const user = await usersDatabase.getUser(id);
   if (!user) {
     return { success: false, error: "User Not Exist" };
@@ -54,6 +57,7 @@ async function updateUser(id, new_email) {
 }
 
 async function getUser(id) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[userService] getUser");
   const user = await usersDatabase.getUser(id);
   if (!user) {
     return { success: false, error: "User Not Exist" };
@@ -62,11 +66,13 @@ async function getUser(id) {
 }
 
 async function getAllUser() {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[userService] getAllUser");
   const result = await usersDatabase.getall();
   return { success: true, value: result };
 }
 
 async function deleteUser(email) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[userService] deleteUser");
   const result = await usersDatabase.deleteUser(email);
   if (!result) {
     return { success: false, error: "User Not Exist" };
@@ -75,6 +81,7 @@ async function deleteUser(email) {
 }
 
 async function createProfile(user_id, new_name, new_bio) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[userService] createProfile");
   const user = await usersDatabase.getUser(user_id);
   if (!user) {
     return { success: false, error: "User Not Exist" };
@@ -90,6 +97,7 @@ async function createProfile(user_id, new_name, new_bio) {
 }
 
 async function updateProfile(user_id, new_name, new_bio) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[userService] updateProfile");
   const user = await usersDatabase.getUser(user_id);
   if (!user) {
     return { success: false, error: "User Not Exist" };
@@ -105,6 +113,7 @@ async function updateProfile(user_id, new_name, new_bio) {
 }
 
 async function getProfile(user_id) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[userService] getProfile");
   const user = await usersDatabase.getUser(user_id);
   if (!user) {
     return { success: false, error: "User Not Exist" };

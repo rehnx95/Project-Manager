@@ -1,6 +1,7 @@
 const pool = require("../db");
 
 async function createComment(task_id, user_id, new_body) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[commentsDatabase] createComment");
   const result = await pool.query(
     "INSERT INTO comments (task_id, user_id, body) VALUES ($1, $2, $3) RETURNING *",
     [task_id, user_id, new_body],
@@ -9,6 +10,7 @@ async function createComment(task_id, user_id, new_body) {
 }
 
 async function getCommentByTask(task_id) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[commentsDatabase] getCommentByTask");
   const result = await pool.query("SELECT * FROM comments WHERE task_id = $1", [
     task_id,
   ]);
@@ -16,14 +18,15 @@ async function getCommentByTask(task_id) {
 }
 
 async function getCommentByUser(user_id) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[commentsDatabase] getCommentByUser");
   const result = await pool.query("SELECT * FROM comments WHERE user_id = $1", [
     user_id,
   ]);
   return result.rows;
 }
 
-
 async function deleteCommentByUserAndId(comment_id, user_id) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[commentsDatabase] deleteCommentByUserAndId");
   const result = await pool.query(
     "DELETE FROM comments WHERE id = $1 AND user_id = $2 RETURNING *",
     [comment_id, user_id],
@@ -32,6 +35,7 @@ async function deleteCommentByUserAndId(comment_id, user_id) {
 }
 
 async function deleteAllCommentFromTask(task_id) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[commentsDatabase] deleteAllCommentFromTask");
   const result = await pool.query(
     "DELETE FROM comments WHERE task_id = $1 RETURNING *",
     [task_id],

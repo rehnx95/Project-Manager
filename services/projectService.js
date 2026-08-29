@@ -8,6 +8,7 @@ async function createProject(
   new_description,
   new_status,
 ) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[projectService] createProject");
   const user = await usersDatabase.getUser(user_id);
   if (!user) {
     return { success: false, error: "User Not Exist" };
@@ -26,6 +27,7 @@ async function createProject(
 
 // logged in user can see all their by searching with project id
 async function getOneProject(user_id, project_id) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[projectService] getOneProject");
   const project = await projectsDatabase.getOneProject(project_id);
 
   if (!project) {
@@ -44,6 +46,7 @@ async function getOneProject(user_id, project_id) {
 // only admins or logged in user (with their own user_id) can do
 // middleware use to check non - member or member/owner
 async function getProject(user_id) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[projectService] getProject");
   const user = await usersDatabase.getUser(user_id);
   if (!user) {
     return { success: false, error: "User Not Exist" };
@@ -63,6 +66,7 @@ async function getProject(user_id) {
 }
 
 async function getTaskByProject(user_id, project_id) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[projectService] getTaskByProject");
   const project = await projectsDatabase.getOneProject(project_id);
   if (!project) {
     return { success: false, error: "Project Not Exist" };
@@ -87,6 +91,7 @@ async function updateProject(
   new_description,
   new_status,
 ) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[projectService] updateProject");
   const project = await projectsDatabase.getOneProject(project_id);
   if (!project) {
     return { success: false, error: "Project Not Exist" };
@@ -108,6 +113,7 @@ async function updateProject(
 }
 
 async function deleteProject(project_id, user_id) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[projectService] deleteProject");
   const project = await projectsDatabase.getOneProject(project_id);
   if (!project) {
     return { success: false, error: "Project Not Exist" };

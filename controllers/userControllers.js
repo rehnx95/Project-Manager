@@ -5,6 +5,7 @@ const id_schema = z.coerce.number().int().positive();
 const uuid_schema = z.uuid();
 
 function parseIdParam(req, res, param_name) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[userControllers] parseIdParam");
   const result = id_schema.safeParse(req.params[param_name]);
   if (!result.success) {
     res.status(400).json({ success: false, error: `Invalid ${param_name}` });
@@ -14,6 +15,7 @@ function parseIdParam(req, res, param_name) {
 }
 
 function parseUUIDParam(req, res, param_name) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[userControllers] parseUUIDParam");
   const result = uuid_schema.safeParse(req.params[param_name]);
   if (!result.success) {
     res.status(400).json({ success: false, error: `Invalid ${param_name}` });
@@ -41,6 +43,7 @@ const profile_schema = z.object({
 });
 
 function handleServiceError(res, error) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[userControllers] handleServiceError");
   if (error === "Unauthorize") {
     return res.status(403).json({ success: false, error });
   }
@@ -56,6 +59,7 @@ function handleServiceError(res, error) {
 }
 
 async function signup(req, res) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[userControllers] signup");
   const result = signup_schema.safeParse(req.body);
   if (!result.success) {
     const errors = result.error.issues.map((issue) => issue.message);
@@ -73,6 +77,7 @@ async function signup(req, res) {
 }
 
 async function login(req, res) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[userControllers] login");
   const result = login_schema.safeParse(req.body);
   if (!result.success) {
     const errors = result.error.issues.map((issue) => issue.message);
@@ -91,6 +96,7 @@ async function login(req, res) {
 }
 
 async function updateUser(req, res) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[userControllers] updateUser");
   const requested_id = parseUUIDParam(req, res, "requested_id");
   if (requested_id === null) return;
   if (requested_id !== req.user.id) {
@@ -114,6 +120,7 @@ async function updateUser(req, res) {
 }
 
 async function getUser(req, res) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[userControllers] getUser");
   const requested_id = parseUUIDParam(req, res, "requested_id");
   if (requested_id === null) return;
 
@@ -128,6 +135,7 @@ async function getUser(req, res) {
 }
 
 async function getAllUser(req, res) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[userControllers] getAllUser");
   const outcome = await UserService.getAllUser();
   res.status(200).json({
     success: true,
@@ -136,6 +144,7 @@ async function getAllUser(req, res) {
 }
 
 async function deleteUser(req, res) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[userControllers] deleteUser");
   const email = req.user.email;
   const outcome = await UserService.deleteUser(email);
   if (outcome.success === false) {
@@ -145,6 +154,7 @@ async function deleteUser(req, res) {
 }
 
 async function createProfile(req, res) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[userControllers] createProfile");
   const result = profile_schema.safeParse(req.body);
   if (!result.success) {
     const errors = result.error.issues.map((issue) => issue.message);
@@ -162,6 +172,7 @@ async function createProfile(req, res) {
 }
 
 async function updateProfile(req, res) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[userControllers] updateProfile");
   const result = profile_schema.safeParse(req.body);
   if (!result.success) {
     const errors = result.error.issues.map((issue) => issue.message);
@@ -179,6 +190,7 @@ async function updateProfile(req, res) {
 }
 
 async function getProfile(req, res) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[userControllers] getProfile");
   const outcome = await UserService.getProfile(req.user.id);
   if (outcome.success === false) {
     return handleServiceError(res, outcome.error);

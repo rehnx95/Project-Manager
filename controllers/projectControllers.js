@@ -5,6 +5,7 @@ const id_schema = z.coerce.number().int().positive();
 const uuid_schema = z.uuid();
 
 function parseIdParam(req, res, param_name) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[projectControllers] parseIdParam");
   const result = id_schema.safeParse(req.params[param_name]);
   if (!result.success) {
     res.status(400).json({ success: false, error: `Invalid ${param_name}` });
@@ -14,6 +15,7 @@ function parseIdParam(req, res, param_name) {
 }
 
 function parseUUIDParam(req, res, param_name) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[projectControllers] parseUUIDParam");
   const result = uuid_schema.safeParse(req.params[param_name]);
   if (!result.success) {
     res.status(400).json({ success: false, error: `Invalid ${param_name}` });
@@ -31,6 +33,7 @@ const project_schema = z.object({
 });
 
 function handleServiceError(res, error) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[projectControllers] handleServiceError");
   if (error === "User Not Exist" || error === "Project Not Exist") {
     return res.status(404).json({ success: false, error });
   }
@@ -46,6 +49,7 @@ function handleServiceError(res, error) {
 }
 
 async function createProject(req, res) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[projectControllers] createProject");
   const result = project_schema.safeParse(req.body);
   if (!result.success) {
     const errors = result.error.issues.map((issue) => issue.message);
@@ -68,6 +72,7 @@ async function createProject(req, res) {
 }
 
 async function getOneProject(req, res) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[projectControllers] getOneProject");
   const project_id = parseUUIDParam(req, res, "project_id");
   if (project_id === null) return;
   const outcome = await projectService.getOneProject(req.user.id, project_id);
@@ -81,6 +86,7 @@ async function getOneProject(req, res) {
 }
 
 async function getProject(req, res) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[projectControllers] getProject");
   const outcome = await projectService.getProject(req.user.id);
   if (outcome.success === false) {
     return handleServiceError(res, outcome.error);
@@ -92,6 +98,7 @@ async function getProject(req, res) {
 }
 
 async function getTaskByProject(req, res) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[projectControllers] getTaskByProject");
   const project_id = parseUUIDParam(req, res, "project_id");
   if (project_id === null) return;
 
@@ -109,6 +116,7 @@ async function getTaskByProject(req, res) {
 }
 
 async function updateProject(req, res) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[projectControllers] updateProject");
   const project_id = parseUUIDParam(req, res, "project_id");
   if (project_id === null) return;
 
@@ -136,6 +144,7 @@ async function updateProject(req, res) {
 }
 
 async function deleteProject(req, res) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[projectControllers] deleteProject");
   const project_id = parseUUIDParam(req, res, "project_id");
   if (project_id === null) return;
 

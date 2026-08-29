@@ -2,6 +2,7 @@ const pool = require("../db");
 const crypto = require("crypto");
 
 async function createProject(new_project) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[projectsDatabase] createProject");
   const id = crypto.randomUUID();
   const result = await pool.query(
     "INSERT INTO projects (id,user_id,project_name,description,status) VALUES ($1,$2,$3,$4,$5) RETURNING *",
@@ -17,6 +18,7 @@ async function createProject(new_project) {
 }
 
 async function getOneProject(project_id) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[projectsDatabase] getOneProject");
   const result = await pool.query("SELECT * FROM projects WHERE id=$1", [
     project_id,
   ]);
@@ -24,6 +26,7 @@ async function getOneProject(project_id) {
 }
 
 async function getProject(user_id) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[projectsDatabase] getProject");
   const result = await pool.query("SELECT * FROM projects WHERE user_id =$1", [
     user_id,
   ]);
@@ -31,6 +34,7 @@ async function getProject(user_id) {
 }
 
 async function getTaskByProject(project_id) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[projectsDatabase] getTaskByProject");
   const result = await pool.query("SELECT * FROM tasks WHERE project_id=$1", [
     project_id,
   ]);
@@ -38,6 +42,7 @@ async function getTaskByProject(project_id) {
 }
 
 async function updateProject(id, new_project_name, new_description, new_status) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[projectsDatabase] updateProject");
   const result = await pool.query(
     "UPDATE projects SET project_name=COALESCE($2,project_name),description=COALESCE($3,description),status=COALESCE($4,status) WHERE id=$1 RETURNING *",
     [id, new_project_name, new_description, new_status],
@@ -46,6 +51,7 @@ async function updateProject(id, new_project_name, new_description, new_status) 
 }
 
 async function deleteProject(id) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[projectsDatabase] deleteProject");
   const result = await pool.query(
     "DELETE FROM projects WHERE id=$1 RETURNING * ",
     [id],

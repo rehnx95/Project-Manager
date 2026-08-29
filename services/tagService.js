@@ -3,16 +3,19 @@ const tasksDatabase = require("../repository/tasksDatabase");
 const projectMembersDatabase = require("../repository/projectMembersDatabase");
 
 async function createTag(tag_name) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[tagService] createTag");
   const result = await tagsDatabase.createTag(tag_name);
   return { success: true, value: result };
 }
 
 async function getAllTags() {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[tagService] getAllTags");
   const result = await tagsDatabase.getAllTags();
   return { success: true, value: result };
 }
 
 async function addTagToTask(task_id, tag_id, user_id) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[tagService] addTagToTask");
   const task = await tasksDatabase.getOneTask(task_id);
   if (!task) {
     return { success: false, error: "Task Not Exist" };
@@ -37,6 +40,7 @@ async function addTagToTask(task_id, tag_id, user_id) {
 }
 
 async function getTaskTags(task_id, user_id) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[tagService] getTaskTags");
   const task = await tasksDatabase.getOneTask(task_id);
   if (!task) {
     return { success: false, error: "Task Not Exist" };
@@ -57,6 +61,7 @@ async function getTaskTags(task_id, user_id) {
 }
 
 async function removeTagFromTask(task_id, tag_id, user_id) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[tagService] removeTagFromTask");
   const task = await tasksDatabase.getOneTask(task_id);
   if (!task) {
     return { success: false, error: "Task Not Exist" };

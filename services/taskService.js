@@ -3,6 +3,7 @@ const projectsDatabase = require("../repository/projectsDatabase");
 const projectMembersDatabase = require("../repository/projectMembersDatabase");
 
 async function completeTask(user_id, id) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[taskService] completeTask");
   const task = await tasksDatabase.getOneTask(id);
   if (!task) return { success: false, error: "Task Not Exist" };
 
@@ -24,6 +25,7 @@ async function createTask(
   new_priority,
   new_due_date,
 ) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[taskService] createTask");
   const project = await projectsDatabase.getOneProject(project_id);
 
   const membership = await projectMembersDatabase.getMembership(
@@ -50,6 +52,7 @@ async function createTask(
 }
 
 async function getTaskByUser(user_id, page = 1, limit = 10) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[taskService] getTaskByUser");
   const memberships =
     await projectMembersDatabase.getAllProjectsOfUser(user_id);
   const taskLists = await Promise.all(
@@ -67,6 +70,7 @@ async function getTaskByUser(user_id, page = 1, limit = 10) {
 }
 
 async function getOneTask(user_id, id) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[taskService] getOneTask");
   const task = await tasksDatabase.getOneTask(id);
   if (!task) return { success: false, error: "Task Not Exist" };
 
@@ -82,6 +86,7 @@ async function getOneTask(user_id, id) {
 }
 
 async function updateTask(user_id, id, new_title, new_priority, new_due_date) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[taskService] updateTask");
   const task = await tasksDatabase.getOneTask(id);
   if (!task) return { success: false, error: "Task Not Exist" };
 
@@ -103,6 +108,7 @@ async function updateTask(user_id, id, new_title, new_priority, new_due_date) {
 }
 
 async function deleteTask(user_id, id) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[taskService] deleteTask");
   const task = await tasksDatabase.getOneTask(id);
   if (!task) return { success: false, error: "Task Not Exist" };
   const membership = await projectMembersDatabase.getMembership(

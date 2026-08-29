@@ -8,6 +8,7 @@ const body_schema = z.object({
 const id_schema = z.coerce.number().int().positive();
 
 function parseIdParam(req, res, param_name) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[commentControllers] parseIdParam");
   const result = id_schema.safeParse(req.params[param_name]);
   if (!result.success) {
     res.status(400).json({ success: false, error: `Invalid ${param_name}` });
@@ -17,6 +18,7 @@ function parseIdParam(req, res, param_name) {
 }
 
 function handleServiceError(res, error) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[commentControllers] handleServiceError");
   if (
     error === "Task Not Exist" ||
     error === "No Comment On Task" ||
@@ -44,6 +46,7 @@ function handleServiceError(res, error) {
 }
 
 async function createComment(req, res) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[commentControllers] createComment");
   const task_id = parseIdParam(req, res, "task_id");
   if (task_id === null) return;
   const result = body_schema.safeParse(req.body);
@@ -69,6 +72,7 @@ async function createComment(req, res) {
 }
 
 async function getCommentByTask(req, res) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[commentControllers] getCommentByTask");
   const task_id = parseIdParam(req, res, "task_id");
   if (task_id === null) return;
   const outcome = await commentService.getCommentByTask(task_id, req.user.id);
@@ -84,6 +88,7 @@ async function getCommentByTask(req, res) {
 }
 
 async function getCommentByUser(req, res) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[commentControllers] getCommentByUser");
   const outcome = await commentService.getCommentByUser(req.user.id);
   if (outcome.success === false) {
     return handleServiceError(res, outcome.error);
@@ -95,6 +100,7 @@ async function getCommentByUser(req, res) {
 }
 
 async function deleteCommentById(req, res) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[commentControllers] deleteCommentById");
   const comment_id = parseIdParam(req, res, "comment_id");
   if (comment_id === null) return;
   const outcome = await commentService.deleteCommentById(
@@ -108,6 +114,7 @@ async function deleteCommentById(req, res) {
 }
 
 async function deleteAllCommentFromTask(req, res) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[commentControllers] deleteAllCommentFromTask");
   const task_id = parseIdParam(req, res, "task_id");
   if (task_id === null) return;
   const outcome = await commentService.deleteAllCommentFromTask(

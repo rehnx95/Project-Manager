@@ -2,6 +2,7 @@ const jwt = require("jsonwebtoken");
 require("dotenv").config();
 const userRepository = require("../repository/usersDatabase");
 async function authenticateToken(req, res, next) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[authenticateToken] authenticateToken");
   const authHeader = req.headers.authorization;
   if (!authHeader) {
     return res.status(401).json({ success: false, error: "No token provided" });

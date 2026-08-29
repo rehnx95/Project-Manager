@@ -1,6 +1,7 @@
 const pool = require("../db");
 
 async function createTask(new_task) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[tasksDatabase] createTask");
   const result = await pool.query(
     "INSERT INTO tasks (user_id,project_id,title,priority,due_date) VALUES ($1,$2,$3,$4,$5) RETURNING *",
     [new_task.user_id, new_task.project_id, new_task.new_title, new_task.new_priority, new_task.new_due_date],
@@ -9,11 +10,13 @@ async function createTask(new_task) {
 }
 
 async function getOneTask(id) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[tasksDatabase] getOneTask");
   const result = await pool.query("SELECT * FROM tasks WHERE id=$1", [id]);
   return result.rows[0];
 }
 
 async function getTaskByUser(user_id) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[tasksDatabase] getTaskByUser");
   const result = await pool.query("SELECT * FROM tasks WHERE user_id=$1", [
     user_id,
   ]);
@@ -21,6 +24,7 @@ async function getTaskByUser(user_id) {
 }
 
 async function updateTask(id, new_title, new_priority, new_due_date) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[tasksDatabase] updateTask");
   const result = await pool.query(
     "UPDATE tasks SET title=COALESCE($2,title),priority=COALESCE($3,priority),due_date=COALESCE($4,due_date) WHERE id=$1 RETURNING *",
     [id, new_title, new_priority, new_due_date],
@@ -29,6 +33,7 @@ async function updateTask(id, new_title, new_priority, new_due_date) {
 }
 
 async function completeTask(id, completed_value) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[tasksDatabase] completeTask");
   const result = await pool.query(
     "UPDATE tasks SET completed=$2 WHERE id=$1 RETURNING *",
     [id, completed_value],
@@ -37,6 +42,7 @@ async function completeTask(id, completed_value) {
 }
 
 async function deleteTask(id) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[tasksDatabase] deleteTask");
   const result = await pool.query("DELETE FROM tasks WHERE id=$1 returning *", [
     id,
   ]);
