@@ -120,4 +120,5 @@ module.exports = {
   updateUser,
   updateProfile,
   createProfile,
+  getProfile
 };

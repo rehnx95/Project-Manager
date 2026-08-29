@@ -58,8 +58,9 @@ async function getAllTags(req, res) {
 
 async function addTagToTask(req, res) {
   const task_id = parseIdParam(req, res, "task_id");
+  if (task_id === null) return;
   const tag_id = parseIdParam(req, res, "tag_id");
-  if (task_id === null || tag_id === null) return;
+  if (tag_id === null) return;
   const outcome = await tagService.addTagToTask(task_id, tag_id, req.user.id);
   if (outcome.success === false) {
     return handleServiceError(res, outcome.error);

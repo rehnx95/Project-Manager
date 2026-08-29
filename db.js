@@ -12,13 +12,4 @@ const pool = new Pool({
   port: parseInt(process.env.DB_PORT) || 5432,
   database: process.env.DB_NAME,
 });
-
-pool.on("connect", () => {
-  console.log(new Date().toLocaleTimeString("en-GB"), "[db] new client connected to pool");
-});
-
-pool.on("error", (err) => {
-  console.log(new Date().toLocaleTimeString("en-GB"), "[db] unexpected pool error:", err.message);
-});
-
 module.exports = pool;

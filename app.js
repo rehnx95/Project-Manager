@@ -22,31 +22,12 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "AuthProfile.html"));
 });
 
-// users
+// users — static/literal sub-paths must come before /users/:requested_id,
+// otherwise Express matches "profile"/"projects"/"comments" as the
+// :requested_id param and these routes never get reached.
 app.post("/users/signup", asyncHandler(userControllers.signup));
 app.post("/users/login", asyncHandler(userControllers.login));
-app.patch(
-  "/users/:requested_id",
-  authenticateToken,
-  asyncHandler(userControllers.updateUser),
-);
-app.get(
-  "/users",
-  authenticateToken,
-  authenticateRole("admin"),
-  asyncHandler(userControllers.getAllUser),
-);
-app.get(
-  "/users/:requested_id",
-  authenticateToken,
-  authenticateRole("admin"),
-  asyncHandler(userControllers.getUser),
-);
-app.delete(
-  "/users",
-  authenticateToken,
-  asyncHandler(userControllers.deleteUser),
-);
+
 app.post(
   "/users/profile",
   authenticateToken,
@@ -67,6 +48,41 @@ app.get(
   "/users/projects",
   authenticateToken,
   asyncHandler(projectMemberControllers.getAllProjectsOfUser),
+);
+
+app.get(
+  "/users/comments",
+  authenticateToken,
+  asyncHandler(commentControllers.getCommentByUser),
+);
+app.delete(
+  "/users/comments/:comment_id",
+  authenticateToken,
+  asyncHandler(commentControllers.deleteCommentById),
+);
+
+app.delete(
+  "/users",
+  authenticateToken,
+  asyncHandler(userControllers.deleteUser),
+);
+
+app.patch(
+  "/users/:requested_id",
+  authenticateToken,
+  asyncHandler(userControllers.updateUser),
+);
+app.get(
+  "/users",
+  authenticateToken,
+  authenticateRole("admin"),
+  asyncHandler(userControllers.getAllUser),
+);
+app.get(
+  "/users/:requested_id",
+  authenticateToken,
+  authenticateRole("admin"),
+  asyncHandler(userControllers.getUser),
 );
 
 // projects
@@ -171,7 +187,6 @@ app.post("/tags", authenticateToken, asyncHandler(tagControllers.createTag));
 app.get("/tags", authenticateToken, asyncHandler(tagControllers.getAllTags));
 
 // comments
-
 app.post(
   "/tasks/:task_id/comments",
   authenticateToken,
@@ -182,18 +197,6 @@ app.get(
   "/tasks/:task_id/comments",
   authenticateToken,
   asyncHandler(commentControllers.getCommentByTask),
-);
-
-app.get(
-  "/users/comments",
-  authenticateToken,
-  asyncHandler(commentControllers.getCommentByUser),
-);
-
-app.delete(
-  "/users/comments/:comment_id",
-  authenticateToken,
-  asyncHandler(commentControllers.deleteCommentById),
 );
 
 app.delete(

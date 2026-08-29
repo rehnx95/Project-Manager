@@ -79,7 +79,7 @@ async function getTaskByUser(req, res) {
   const page = Number(req.query.page) || 1;
   const limit = Number(req.query.limit) || 10;
 
-  const outcome = await taskService.getTask(req.user.id, page, limit);
+  const outcome = await taskService.getTaskByUser(req.user.id, page, limit);
 
   res.status(200).json({
     success: true,

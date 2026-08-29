@@ -101,16 +101,18 @@ async function removeMemberFromProject(
     project_id,
     target_user_id,
   );
-  if (target_membership && target_membership.role === "owner") {
+  if (!target_membership) {
+    return { success: false, error: "Forbidden Not Member Of That Project" };
+  }
+  if (target_membership.role === "owner") {
     const owner_count = await countOwner(project_id);
     if (owner_count <= 1) {
       return {
         success: false,
-        error: "Forbidden Cannot Remove The Last Owner",
+        error: "Forbidden Cannot Change The Role Of The Last Owner",
       };
     }
   }
-
   const result = await projectMembersDatabase.removeMemberFromProject(
     project_id,
     target_user_id,
@@ -144,8 +146,10 @@ async function changeMemberRole(
     project_id,
     target_user_id,
   );
-
-  if (target_membership && target_membership.role === "owner") {
+  if (!target_membership) {
+    return { success: false, error: "Forbidden Not Member Of That Project" };
+  }
+  if (target_membership.role === "owner") {
     const owner_count = await countOwner(project_id);
     if (owner_count <= 1) {
       return {

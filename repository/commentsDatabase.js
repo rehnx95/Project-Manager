@@ -36,7 +36,7 @@ async function deleteAllCommentFromTask(task_id) {
     "DELETE FROM comments WHERE task_id = $1 RETURNING *",
     [task_id],
   );
-  return result.rows[0];
+  return result.rows;
 }
 
 module.exports = {

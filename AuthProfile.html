@@ -140,6 +140,8 @@
     background:var(--panel-2);
     border-left-color:var(--accent);
   }
+  .endpoint.disabled{opacity:0.45;cursor:not-allowed;}
+  .endpoint.disabled:hover{background:transparent;}
   .method-tag{
     font-family:var(--mono);
     font-size:10px;
@@ -162,6 +164,16 @@
     white-space:nowrap;
   }
   .endpoint.active .endpoint-name{color:var(--text);}
+  .not-wired-badge{
+    font-size:9px;
+    color:var(--text-faint);
+    border:1px solid var(--border);
+    padding:1px 4px;
+    border-radius:3px;
+    margin-left:auto;
+    flex-shrink:0;
+    white-space:nowrap;
+  }
 
   /* ---------- request panel ---------- */
   .request-panel{
@@ -193,6 +205,16 @@
     padding:1px 4px;
     border-radius:3px;
     color:var(--text-dim);
+  }
+  .warn-banner{
+    background:rgba(227,179,65,0.1);
+    border:1px solid rgba(227,179,65,0.35);
+    color:var(--patch);
+    font-size:12px;
+    line-height:1.5;
+    padding:10px 12px;
+    border-radius:6px;
+    margin:0 0 18px;
   }
   .section-label{
     font-size:10.5px;
@@ -396,27 +418,36 @@
 
 <script>
 // ---------------------------------------------------------------------
-// Endpoint catalog — mirrors the reviewed routes exactly (param names,
-// types, and auth requirements as confirmed in the backend review).
+// Endpoint catalog — mirrors app.js exactly, including its final route
+// order (literal /users/profile, /users/projects, /users/comments
+// registered before the dynamic /users/:requested_id routes).
+//
+// notWired: true means the controller/service/repo code exists but no
+// app.js route currently points to it — sending these will 404 against
+// the real server. Kept in the list (dimmed, disabled) as a reminder of
+// what's implemented but not yet exposed, rather than silently dropped.
 // ---------------------------------------------------------------------
 const ENDPOINTS = [
   { group: "Users", name: "Signup", method: "POST", path: "/users/signup", auth: false,
     body: { email: "test@example.com", password: "secret123" } },
   { group: "Users", name: "Login", method: "POST", path: "/users/login", auth: false,
     body: { email: "test@example.com", password: "secret123" } },
-  { group: "Users", name: "Update email", method: "PATCH", path: "/users/:requested_id", auth: true,
-    params: [{ name: "requested_id", type: "uuid", placeholder: "your own user id" }],
-    body: { email: "new@example.com" } },
-  { group: "Users", name: "Get all users (admin)", method: "GET", path: "/users", auth: true },
-  { group: "Users", name: "Get user by id (admin)", method: "GET", path: "/users/:requested_id", auth: true,
-    params: [{ name: "requested_id", type: "uuid" }] },
-  { group: "Users", name: "Delete my account", method: "DELETE", path: "/users", auth: true },
   { group: "Users", name: "Create profile", method: "POST", path: "/users/profile", auth: true,
     body: { name: "Rehan", bio: "Backend dev" } },
   { group: "Users", name: "Update profile", method: "PATCH", path: "/users/profile", auth: true,
     body: { name: "Rehan", bio: "Updated bio" } },
   { group: "Users", name: "Get my profile", method: "GET", path: "/users/profile", auth: true },
   { group: "Users", name: "Get my projects", method: "GET", path: "/users/projects", auth: true },
+  { group: "Users", name: "Get my comments", method: "GET", path: "/users/comments", auth: true },
+  { group: "Users", name: "Delete my comment", method: "DELETE", path: "/users/comments/:comment_id", auth: true,
+    params: [{ name: "comment_id", type: "number" }] },
+  { group: "Users", name: "Delete my account", method: "DELETE", path: "/users", auth: true },
+  { group: "Users", name: "Update email", method: "PATCH", path: "/users/:requested_id", auth: true,
+    params: [{ name: "requested_id", type: "uuid", placeholder: "your own user id" }],
+    body: { email: "new@example.com" } },
+  { group: "Users", name: "Get all users (admin)", method: "GET", path: "/users", auth: true },
+  { group: "Users", name: "Get user by id (admin)", method: "GET", path: "/users/:requested_id", auth: true,
+    params: [{ name: "requested_id", type: "uuid" }] },
 
   { group: "Projects", name: "Create project", method: "POST", path: "/projects", auth: true,
     body: { name: "New Project", description: "A test project", status: "active" } },
@@ -463,27 +494,23 @@ const ENDPOINTS = [
     body: { tag_name: "urgent" } },
   { group: "Tags", name: "Get all tags", method: "GET", path: "/tags", auth: true },
   { group: "Tags", name: "Add tag to task", method: "POST", path: "/tasks/:task_id/tags/:tag_id", auth: true,
-    params: [{ name: "task_id", type: "number" }, { name: "tag_id", type: "number" }] },
+    params: [{ name: "task_id", type: "number" }, { name: "tag_id", type: "number" }],
+    notWired: true },
   { group: "Tags", name: "Get tags on task", method: "GET", path: "/tasks/:task_id/tags", auth: true,
-    params: [{ name: "task_id", type: "number" }] },
+    params: [{ name: "task_id", type: "number" }],
+    notWired: true },
   { group: "Tags", name: "Remove tag from task", method: "DELETE", path: "/tasks/:task_id/tags/:tag_id", auth: true,
-    params: [{ name: "task_id", type: "number" }, { name: "tag_id", type: "number" }] },
+    params: [{ name: "task_id", type: "number" }, { name: "tag_id", type: "number" }],
+    notWired: true },
 
   { group: "Comments", name: "Create comment", method: "POST", path: "/tasks/:task_id/comments", auth: true,
     params: [{ name: "task_id", type: "number" }],
     body: { new_body: "This is a comment" } },
   { group: "Comments", name: "Get comments on task", method: "GET", path: "/tasks/:task_id/comments", auth: true,
     params: [{ name: "task_id", type: "number" }] },
-  { group: "Comments", name: "Get my comments", method: "GET", path: "/users/comments", auth: true },
-  { group: "Comments", name: "Delete my comment", method: "DELETE", path: "/users/comments/:comment_id", auth: true,
-    params: [{ name: "comment_id", type: "number" }] },
   { group: "Comments", name: "Delete all comments on task (owner only)", method: "DELETE", path: "/tasks/:task_id/comments", auth: true,
     params: [{ name: "task_id", type: "number" }] },
 ];
-
-// Note: tagController routes for add/get/remove tag were reviewed with
-// generic :task_id/:tag_id params — adjust the two paths above if your
-// actual app.js wires them differently (they weren't in the app.js you sent).
 
 let activeIndex = null;
 let historyLog = [];
@@ -510,9 +537,9 @@ function buildSidebar(){
     groups[groupName].forEach(i => {
       const ep = ENDPOINTS[i];
       const row = document.createElement('div');
-      row.className = 'endpoint';
+      row.className = 'endpoint' + (ep.notWired ? ' disabled' : '');
       row.dataset.index = i;
-      row.innerHTML = `<span class="method-tag m-${ep.method}">${ep.method}</span><span class="endpoint-name">${ep.name}</span>`;
+      row.innerHTML = `<span class="method-tag m-${ep.method}">${ep.method}</span><span class="endpoint-name">${ep.name}</span>${ep.notWired ? '<span class="not-wired-badge">no route</span>' : ''}`;
       row.addEventListener('click', () => selectEndpoint(i));
       sidebar.appendChild(row);
     });
@@ -535,6 +562,10 @@ function renderRequestPanel(ep){
     </div>
     <p class="req-desc">${ep.auth ? 'Requires <code>Authorization: Bearer &lt;token&gt;</code>.' : 'No auth required.'}</p>
   `;
+
+  if (ep.notWired){
+    html += `<div class="warn-banner">⚠ This controller/service exists in code, but no route is registered for it in <code>app.js</code> yet. Sending this will return <code>404 Route not found</code> against the real server. Add the route first if you want this to work.</div>`;
+  }
 
   if (ep.params && ep.params.length){
     html += `<div class="section-label">Path params</div>`;
