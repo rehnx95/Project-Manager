@@ -3,1232 +3,1460 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>API Console</title>
+    <title>Depot — Project Dispatch</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
     <style>
       :root {
-        --bg: #0d1117;
-        --panel: #11161d;
-        --panel-2: #161c25;
-        --border: #232b36;
-        --border-soft: #1a212b;
-        --text: #e6edf3;
-        --text-dim: #8b949e;
-        --text-faint: #5b6572;
-        --accent: #4fd1c5;
-        --accent-dim: #2c7a72;
-        --get: #4fd1c5;
-        --post: #5fa8f5;
-        --patch: #e3b341;
-        --delete: #f47174;
-        --ok: #4fd1c5;
-        --err: #f47174;
-        --mono:
-          "SF Mono", "JetBrains Mono", ui-monospace, "Cascadia Code", Menlo,
-          Consolas, monospace;
-        --sans:
-          -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif;
+        --ink: #12161d;
+        --panel: #1a2029;
+        --panel-raised: #212938;
+        --line: #2a3140;
+        --paper: #efe7d6;
+        --paper-ink: #2b2a25;
+        --amber: #e3a23b;
+        --amber-dim: #8a6423;
+        --urgent: #d6584a;
+        --standard: #5c8fd6;
+        --routine: #4fa98c;
+        --text: #e7e9ee;
+        --muted: #8993a6;
+        --radius: 10px;
+        --display: "Oswald", sans-serif;
+        --body: "IBM Plex Sans", sans-serif;
+        --mono: "IBM Plex Mono", monospace;
       }
       * {
         box-sizing: border-box;
+        margin: 0;
+        padding: 0;
       }
       html,
       body {
         height: 100%;
       }
       body {
-        margin: 0;
-        background: var(--bg);
+        background: var(--ink);
         color: var(--text);
-        font-family: var(--sans);
-        font-size: 14px;
-        display: flex;
-        flex-direction: column;
-      }
-
-      /* ---------- top bar ---------- */
-      .topbar {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 10px 16px;
-        background: var(--panel);
-        border-bottom: 1px solid var(--border);
-        flex-wrap: wrap;
-      }
-      .topbar .brand {
-        font-family: var(--mono);
-        font-weight: 600;
-        font-size: 13px;
-        letter-spacing: 0.02em;
-        color: var(--accent);
-        white-space: nowrap;
-      }
-      .topbar .brand span {
-        color: var(--text-faint);
-      }
-      .field {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-      }
-      .field label {
-        font-size: 10px;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-        color: var(--text-faint);
-      }
-      .field input {
-        background: var(--panel-2);
-        border: 1px solid var(--border);
-        color: var(--text);
-        padding: 6px 8px;
-        border-radius: 5px;
-        font-family: var(--mono);
-        font-size: 12.5px;
-        min-width: 220px;
-      }
-      .field input:focus {
-        outline: none;
-        border-color: var(--accent-dim);
-      }
-      .topbar .token-field input {
-        min-width: 340px;
-      }
-      .pill-btn {
-        background: transparent;
-        border: 1px solid var(--border);
-        color: var(--text-dim);
-        padding: 6px 12px;
-        border-radius: 5px;
-        font-size: 12px;
-        cursor: pointer;
-        font-family: var(--sans);
-        align-self: flex-end;
-        white-space: nowrap;
-      }
-      .pill-btn:hover {
-        border-color: var(--accent-dim);
-        color: var(--accent);
-      }
-      .status-dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: var(--text-faint);
-        align-self: flex-end;
-        margin-bottom: 8px;
-        flex-shrink: 0;
-      }
-      .status-dot.on {
-        background: var(--ok);
-        box-shadow: 0 0 6px var(--ok);
-      }
-
-      /* ---------- layout ---------- */
-      .layout {
-        flex: 1;
-        display: grid;
-        grid-template-columns: 280px 1fr 1fr;
-        min-height: 0;
-      }
-      @media (max-width: 980px) {
-        .layout {
-          grid-template-columns: 1fr;
-        }
-      }
-
-      /* ---------- sidebar ---------- */
-      .sidebar {
-        border-right: 1px solid var(--border);
-        overflow-y: auto;
-        background: var(--panel);
-        min-height: 0;
-      }
-      .group-title {
-        padding: 12px 14px 6px;
-        font-size: 10.5px;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: var(--text-faint);
-        border-top: 1px solid var(--border-soft);
-      }
-      .group-title:first-child {
-        border-top: none;
-      }
-      .endpoint {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 7px 14px;
-        cursor: pointer;
-        border-left: 2px solid transparent;
-      }
-      .endpoint:hover {
-        background: var(--panel-2);
-      }
-      .endpoint.active {
-        background: var(--panel-2);
-        border-left-color: var(--accent);
-      }
-      .endpoint.disabled {
-        opacity: 0.45;
-        cursor: not-allowed;
-      }
-      .endpoint.disabled:hover {
-        background: transparent;
-      }
-      .method-tag {
-        font-family: var(--mono);
-        font-size: 10px;
-        font-weight: 700;
-        padding: 2px 5px;
-        border-radius: 3px;
-        width: 42px;
-        text-align: center;
-        flex-shrink: 0;
-      }
-      .m-GET {
-        color: var(--get);
-        background: rgba(79, 209, 197, 0.12);
-      }
-      .m-POST {
-        color: var(--post);
-        background: rgba(95, 168, 245, 0.12);
-      }
-      .m-PATCH {
-        color: var(--patch);
-        background: rgba(227, 179, 65, 0.12);
-      }
-      .m-DELETE {
-        color: var(--delete);
-        background: rgba(244, 113, 116, 0.12);
-      }
-      .endpoint-name {
-        font-size: 12.5px;
-        color: var(--text-dim);
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-      .endpoint.active .endpoint-name {
-        color: var(--text);
-      }
-      .not-wired-badge {
-        font-size: 9px;
-        color: var(--text-faint);
-        border: 1px solid var(--border);
-        padding: 1px 4px;
-        border-radius: 3px;
-        margin-left: auto;
-        flex-shrink: 0;
-        white-space: nowrap;
-      }
-
-      /* ---------- request panel ---------- */
-      .request-panel {
-        border-right: 1px solid var(--border);
-        overflow-y: auto;
-        padding: 20px;
-        min-height: 0;
-      }
-      .req-head {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin-bottom: 4px;
-      }
-      .req-head .method-tag {
-        width: auto;
-        padding: 3px 8px;
-        font-size: 11px;
-      }
-      .req-path {
-        font-family: var(--mono);
-        font-size: 13.5px;
-        color: var(--text);
-      }
-      .req-desc {
-        color: var(--text-faint);
-        font-size: 12px;
-        margin: 0 0 18px;
+        font-family: var(--body);
+        font-size: 15px;
         line-height: 1.5;
+        min-height: 100%;
       }
-      .req-desc code {
+      h1,
+      h2,
+      h3,
+      .wordmark,
+      .stamp,
+      .eyebrow {
+        font-family: var(--display);
+      }
+      .mono {
         font-family: var(--mono);
-        background: var(--panel-2);
-        padding: 1px 4px;
-        border-radius: 3px;
-        color: var(--text-dim);
       }
-      .warn-banner {
-        background: rgba(227, 179, 65, 0.1);
-        border: 1px solid rgba(227, 179, 65, 0.35);
-        color: var(--patch);
-        font-size: 12px;
-        line-height: 1.5;
-        padding: 10px 12px;
-        border-radius: 6px;
-        margin: 0 0 18px;
+      button,
+      input,
+      select,
+      textarea {
+        font-family: inherit;
+        font-size: inherit;
+        color: inherit;
       }
-      .section-label {
-        font-size: 10.5px;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-        color: var(--text-faint);
-        margin: 16px 0 8px;
-      }
-      .section-label:first-of-type {
-        margin-top: 0;
-      }
-      .param-row {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-bottom: 8px;
-      }
-      .param-row .param-name {
-        font-family: var(--mono);
-        font-size: 12px;
-        color: var(--text-dim);
-        width: 120px;
-        flex-shrink: 0;
-      }
-      .param-row input,
-      .param-row select {
-        flex: 1;
-        background: var(--panel-2);
-        border: 1px solid var(--border);
-        color: var(--text);
-        padding: 7px 9px;
-        border-radius: 5px;
-        font-family: var(--mono);
-        font-size: 12.5px;
-      }
-      .param-row input:focus,
-      .param-row select:focus,
-      textarea:focus {
-        outline: none;
-        border-color: var(--accent-dim);
-      }
-      textarea.body-editor {
-        width: 100%;
-        min-height: 140px;
-        background: var(--panel-2);
-        border: 1px solid var(--border);
-        color: var(--text);
-        padding: 10px;
-        border-radius: 6px;
-        font-family: var(--mono);
-        font-size: 12.5px;
-        line-height: 1.5;
-        resize: vertical;
-      }
-      .empty-note {
-        color: var(--text-faint);
-        font-size: 12px;
-        font-style: italic;
-      }
-      .send-row {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin-top: 20px;
-      }
-      .send-btn {
-        background: var(--accent);
-        color: #04201d;
-        border: none;
-        padding: 9px 20px;
-        border-radius: 6px;
-        font-weight: 600;
-        font-size: 13px;
+      button {
         cursor: pointer;
       }
-      .send-btn:hover {
-        filter: brightness(1.08);
+      :focus-visible {
+        outline: 2px solid var(--amber);
+        outline-offset: 2px;
       }
-      .send-btn:active {
-        transform: translateY(1px);
-      }
-      .send-btn:disabled {
-        opacity: 0.5;
-        cursor: default;
-      }
-      .auth-note {
-        font-size: 11.5px;
-        color: var(--text-faint);
-        display: flex;
-        align-items: center;
-        gap: 6px;
-      }
-      .lock-icon {
-        font-size: 12px;
-      }
-
-      /* ---------- response panel ---------- */
-      .response-panel {
-        overflow-y: hidden;
-        padding: 20px;
-        display: flex;
-        flex-direction: column;
-        min-height: 0;
-      }
-      .response-panel .section-label {
-        margin-top: 0;
-      }
-      .resp-meta {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin-bottom: 12px;
-        flex-wrap: wrap;
-      }
-      .status-badge {
-        font-family: var(--mono);
-        font-weight: 700;
-        font-size: 13px;
-        padding: 3px 9px;
-        border-radius: 5px;
-      }
-      .status-2xx {
-        color: var(--ok);
-        background: rgba(79, 209, 197, 0.12);
-      }
-      .status-4xx {
-        color: var(--patch);
-        background: rgba(227, 179, 65, 0.12);
-      }
-      .status-5xx,
-      .status-err {
-        color: var(--err);
-        background: rgba(244, 113, 116, 0.12);
-      }
-      .status-pending {
-        color: var(--text-faint);
-        background: var(--panel-2);
-      }
-      .timing {
-        font-family: var(--mono);
-        font-size: 11.5px;
-        color: var(--text-faint);
-      }
-      pre.resp-body {
-        flex: 1 1 auto;
-        min-height: 140px;
-        background: var(--panel-2);
-        border: 1px solid var(--border);
-        border-radius: 6px;
-        padding: 14px;
-        margin: 0;
-        font-family: var(--mono);
-        font-size: 12px;
-        line-height: 1.6;
-        overflow: auto;
-        white-space: pre-wrap;
-        word-break: break-word;
-        color: var(--text-dim);
-      }
-      .resp-placeholder {
-        color: var(--text-faint);
-        font-size: 12.5px;
-        font-style: italic;
-      }
-      .json-key {
-        color: #7ee787;
-      }
-      .json-str {
-        color: #a5d6ff;
-      }
-      .json-num {
-        color: #e3b341;
-      }
-      .json-bool {
-        color: #f47174;
-      }
-      .json-null {
-        color: var(--text-faint);
-      }
-
-      /* ---------- history ---------- */
-      .history {
-        flex: 0 0 auto;
-        margin-top: 16px;
-        border-top: 1px solid var(--border-soft);
-        padding-top: 12px;
-        max-height: 180px;
-        overflow-y: auto;
-      }
-      .history-item {
-        display: flex;
-        gap: 8px;
-        align-items: center;
-        padding: 5px 0;
-        font-family: var(--mono);
-        font-size: 11px;
-        color: var(--text-faint);
-        cursor: pointer;
-      }
-      .history-item:hover {
-        color: var(--text-dim);
-      }
-      .history-item .hist-status {
-        width: 28px;
-        flex-shrink: 0;
-      }
-      .history-item .hist-status.ok {
-        color: var(--ok);
-      }
-      .history-item .hist-status.bad {
-        color: var(--err);
-      }
-
-      ::-webkit-scrollbar {
-        width: 9px;
-        height: 9px;
-      }
-      ::-webkit-scrollbar-track {
-        background: transparent;
-      }
-      ::-webkit-scrollbar-thumb {
-        background: var(--border);
-        border-radius: 5px;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: var(--text-faint);
+      a {
+        color: inherit;
       }
 
       @media (prefers-reduced-motion: reduce) {
         * {
+          animation: none !important;
           transition: none !important;
+        }
+      }
+
+      /* ---------- shared bits ---------- */
+      .eyebrow {
+        font-size: 0.72rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--amber);
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
+        padding: 0.6rem 1.1rem;
+        border-radius: 6px;
+        border: 1px solid var(--line);
+        background: var(--panel-raised);
+        color: var(--text);
+        font-weight: 500;
+        transition:
+          transform 0.12s ease,
+          border-color 0.12s ease,
+          background 0.12s ease;
+      }
+      .btn:hover {
+        border-color: var(--amber-dim);
+        transform: translateY(-1px);
+      }
+      .btn:active {
+        transform: translateY(0);
+      }
+      .btn:disabled {
+        opacity: 0.55;
+        cursor: default;
+        transform: none;
+      }
+      .btn-primary {
+        background: var(--amber);
+        border-color: var(--amber);
+        color: #1a1204;
+        font-weight: 600;
+      }
+      .btn-primary:hover {
+        border-color: #f0b158;
+        background: #f0b158;
+      }
+      .btn-ghost {
+        background: transparent;
+      }
+      .btn-danger {
+        border-color: #5c2a24;
+        color: #f2a89e;
+        background: transparent;
+      }
+      .btn-danger:hover {
+        border-color: var(--urgent);
+      }
+      .btn-sm {
+        padding: 0.35rem 0.7rem;
+        font-size: 0.82rem;
+        border-radius: 5px;
+      }
+
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        margin-bottom: 1rem;
+      }
+      .field label {
+        font-size: 0.78rem;
+        color: var(--muted);
+        letter-spacing: 0.02em;
+      }
+      .field input,
+      .field select,
+      .field textarea {
+        background: #0f131a;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 0.6rem 0.7rem;
+        color: var(--text);
+      }
+      .field input:focus,
+      .field select:focus,
+      .field textarea:focus {
+        border-color: var(--amber-dim);
+      }
+      .field textarea {
+        resize: vertical;
+        min-height: 70px;
+      }
+      .field-row {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+      }
+      .field-row .field {
+        flex: 1;
+        min-width: 150px;
+      }
+      .error-text {
+        color: #f2a89e;
+        font-size: 0.82rem;
+        min-height: 1.1em;
+      }
+
+      .stamp {
+        display: inline-block;
+        font-size: 0.68rem;
+        letter-spacing: 0.09em;
+        font-weight: 600;
+        text-transform: uppercase;
+        padding: 0.22rem 0.55rem;
+        border: 1.5px dashed currentColor;
+        border-radius: 4px;
+        transform: rotate(-3deg);
+        white-space: nowrap;
+      }
+      .stamp--low,
+      .stamp--active {
+        color: var(--routine);
+      }
+      .stamp--medium {
+        color: var(--standard);
+      }
+      .stamp--high {
+        color: var(--urgent);
+      }
+      .stamp--archived {
+        color: var(--muted);
+      }
+      .stamp--completed {
+        color: var(--amber);
+      }
+
+      /* ---------- toast ---------- */
+      #toast {
+        position: fixed;
+        top: 1rem;
+        right: 1rem;
+        z-index: 999;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        max-width: 320px;
+      }
+      .toast-msg {
+        background: var(--panel-raised);
+        border: 1px solid var(--line);
+        border-left: 3px solid var(--amber);
+        padding: 0.7rem 0.9rem;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+        animation: toast-in 0.18s ease;
+      }
+      .toast-msg.is-error {
+        border-left-color: var(--urgent);
+      }
+      @keyframes toast-in {
+        from {
+          opacity: 0;
+          transform: translateY(-6px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* ---------- auth screen ---------- */
+      #authScreen {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem 1.25rem;
+        background:
+          radial-gradient(ellipse at top left, #1c2431 0%, transparent 55%),
+          radial-gradient(ellipse at bottom right, #1a2129 0%, transparent 55%),
+          var(--ink);
+      }
+      .ticket {
+        position: relative;
+        width: 100%;
+        max-width: 400px;
+        background: var(--paper);
+        color: var(--paper-ink);
+        border-radius: 6px;
+        padding: 2.4rem 2.1rem 2rem;
+        box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.55);
+        animation: rise 0.35s ease;
+      }
+      @keyframes rise {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .ticket::before,
+      .ticket::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 26px;
+        height: 26px;
+        background: var(--ink);
+        border-radius: 50%;
+      }
+      .ticket::before {
+        left: -13px;
+      }
+      .ticket::after {
+        right: -13px;
+      }
+      .ticket h1 {
+        font-size: 1.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        margin: 0.3rem 0 0.15rem;
+      }
+      .ticket .sub {
+        font-size: 0.85rem;
+        color: #5c5a4f;
+        margin-bottom: 1.4rem;
+      }
+      .ticket-divider {
+        border: none;
+        border-top: 2px dashed #cfc6ad;
+        margin: 1.4rem 0;
+      }
+      .tabs {
+        display: flex;
+        gap: 0;
+        margin-bottom: 1.5rem;
+        border-bottom: 2px dashed #cfc6ad;
+      }
+      .tab {
+        flex: 1;
+        text-align: center;
+        padding: 0.55rem 0;
+        font-size: 0.8rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        font-weight: 600;
+        color: #8a8674;
+        background: none;
+        border: none;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -2px;
+      }
+      .tab.is-active {
+        color: var(--paper-ink);
+        border-bottom-color: var(--paper-ink);
+      }
+      .auth-form {
+        display: none;
+      }
+      .auth-form.is-active {
+        display: block;
+      }
+      .ticket .field input {
+        background: #fbf8f0;
+        border: 1px solid #cfc6ad;
+        color: var(--paper-ink);
+      }
+      .ticket .field label {
+        color: #7a7767;
+      }
+      .ticket .btn-primary {
+        width: 100%;
+        margin-top: 0.3rem;
+      }
+
+      /* ---------- app shell ---------- */
+      #appShell {
+        display: flex;
+        min-height: 100vh;
+      }
+      .sidebar {
+        width: 220px;
+        flex-shrink: 0;
+        background: var(--panel);
+        border-right: 1px solid var(--line);
+        display: flex;
+        flex-direction: column;
+        padding: 1.4rem 1.1rem;
+      }
+      .wordmark {
+        font-size: 1.3rem;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        display: flex;
+        align-items: baseline;
+        gap: 0.4rem;
+        margin-bottom: 0.15rem;
+      }
+      .wordmark .dot {
+        color: var(--amber);
+      }
+      .tagline {
+        font-size: 0.68rem;
+        color: var(--muted);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        margin-bottom: 2rem;
+      }
+      .nav {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+        flex: 1;
+      }
+      .navbtn {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        background: none;
+        border: none;
+        text-align: left;
+        padding: 0.6rem 0.7rem;
+        border-radius: 6px;
+        color: var(--muted);
+        font-size: 0.92rem;
+        font-weight: 500;
+      }
+      .navbtn:hover {
+        background: var(--panel-raised);
+        color: var(--text);
+      }
+      .navbtn.is-active {
+        background: var(--panel-raised);
+        color: var(--amber);
+      }
+      .navbtn .ico {
+        width: 1.1em;
+        text-align: center;
+      }
+      .sidebar-foot {
+        border-top: 1px solid var(--line);
+        padding-top: 1rem;
+        margin-top: 1rem;
+      }
+      .who {
+        font-size: 0.8rem;
+        color: var(--muted);
+        word-break: break-all;
+        margin-bottom: 0.7rem;
+      }
+      .clock {
+        font-size: 0.7rem;
+        color: #4d5566;
+        letter-spacing: 0.05em;
+        margin-top: 0.8rem;
+      }
+
+      .main {
+        flex: 1;
+        padding: 2.2rem 2.6rem;
+        max-width: 1080px;
+      }
+      .view {
+        display: none;
+        animation: fade 0.2s ease;
+      }
+      .view.is-active {
+        display: block;
+      }
+      @keyframes fade {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      .view-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 1.6rem;
+        flex-wrap: wrap;
+      }
+      .view-head h2 {
+        font-size: 1.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+      }
+      .view-head .sub {
+        color: var(--muted);
+        font-size: 0.85rem;
+        margin-top: 0.2rem;
+      }
+
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 1.4rem;
+        margin-bottom: 1.4rem;
+      }
+      .panel h3 {
+        font-size: 1rem;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        margin-bottom: 1rem;
+        color: var(--amber);
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 1rem;
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-left: 3px solid var(--amber-dim);
+        border-radius: 8px;
+        padding: 1.1rem 1.15rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.6rem;
+        transition: border-color 0.15s ease;
+      }
+      .card:hover {
+        border-left-color: var(--amber);
+      }
+      .card h4 {
+        font-size: 1.05rem;
+        font-family: var(--display);
+        text-transform: uppercase;
+        letter-spacing: 0.01em;
+      }
+      .card p {
+        font-size: 0.85rem;
+        color: var(--muted);
+        flex: 1;
+      }
+      .card-foot {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+      }
+      .card-actions {
+        display: flex;
+        gap: 0.4rem;
+      }
+
+      .empty {
+        border: 1px dashed var(--line);
+        border-radius: var(--radius);
+        padding: 2.2rem 1.5rem;
+        text-align: center;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .task-row {
+        display: flex;
+        align-items: center;
+        gap: 0.9rem;
+        padding: 0.8rem 0.9rem;
+        border: 1px solid var(--line);
+        border-left: 3px solid var(--standard);
+        border-radius: 7px;
+        background: var(--panel);
+        margin-bottom: 0.55rem;
+      }
+      .task-row.priority-high {
+        border-left-color: var(--urgent);
+      }
+      .task-row.priority-low {
+        border-left-color: var(--routine);
+      }
+      .task-row.is-done {
+        opacity: 0.55;
+      }
+      .task-row.is-done .task-title {
+        text-decoration: line-through;
+      }
+      .task-check {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        border: 2px solid var(--line);
+        background: none;
+        flex-shrink: 0;
+      }
+      .task-row.is-done .task-check {
+        background: var(--amber);
+        border-color: var(--amber);
+      }
+      .task-title {
+        flex: 1;
+        min-width: 120px;
+        font-weight: 500;
+      }
+      .task-meta {
+        font-size: 0.75rem;
+        color: var(--muted);
+      }
+
+      .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        color: var(--muted);
+        font-size: 0.82rem;
+        margin-bottom: 1rem;
+        background: none;
+        border: none;
+      }
+      .back-link:hover {
+        color: var(--amber);
+      }
+
+      .id-badge {
+        color: var(--muted);
+        font-size: 0.72rem;
+      }
+
+      /* ---------- responsive ---------- */
+      @media (max-width: 800px) {
+        #appShell {
+          flex-direction: column;
+        }
+        .sidebar {
+          width: 100%;
+          flex-direction: row;
+          align-items: center;
+          padding: 0.8rem 1rem;
+          border-right: none;
+          border-bottom: 1px solid var(--line);
+          gap: 1rem;
+        }
+        .wordmark,
+        .tagline,
+        .sidebar-foot .who,
+        .clock {
+          display: none;
+        }
+        .nav {
+          flex-direction: row;
+          flex: 1;
+        }
+        .navbtn {
+          flex: 1;
+          justify-content: center;
+        }
+        .sidebar-foot {
+          border: none;
+          padding: 0;
+          margin: 0;
+        }
+        .main {
+          padding: 1.4rem 1.1rem;
+        }
+        .field-row {
+          flex-direction: column;
         }
       }
     </style>
   </head>
   <body>
-    <div class="topbar">
-      <div class="brand">API<span>·</span>CONSOLE</div>
-      <div class="field">
-        <label for="baseUrl">Base URL</label>
-        <input id="baseUrl" value="http://localhost:8000" spellcheck="false" />
+    <div id="toast"></div>
+
+    <!-- ================= AUTH ================= -->
+    <div id="authScreen">
+      <div class="ticket">
+        <div class="eyebrow">Depot &middot; Access Terminal</div>
+        <h1 id="authHeading">Sign in</h1>
+        <p class="sub">Track projects and tasks in one dispatch board.</p>
+
+        <div class="tabs">
+          <button class="tab is-active" data-tab="login">Sign in</button>
+          <button class="tab" data-tab="register">Register</button>
+        </div>
+
+        <form id="loginForm" class="auth-form is-active">
+          <div class="field">
+            <label for="loginEmail">Email</label>
+            <input id="loginEmail" type="email" required autocomplete="email" />
+          </div>
+          <div class="field">
+            <label for="loginPassword">Password</label>
+            <input
+              id="loginPassword"
+              type="password"
+              required
+              autocomplete="current-password"
+            />
+          </div>
+          <div class="error-text" id="loginError"></div>
+          <button type="submit" class="btn btn-primary">Sign in</button>
+        </form>
+
+        <form id="registerForm" class="auth-form">
+          <div class="field">
+            <label for="registerEmail">Email</label>
+            <input
+              id="registerEmail"
+              type="email"
+              required
+              autocomplete="email"
+            />
+          </div>
+          <div class="field">
+            <label for="registerPassword">Password</label>
+            <input
+              id="registerPassword"
+              type="password"
+              required
+              minlength="6"
+              autocomplete="new-password"
+            />
+          </div>
+          <div class="error-text" id="registerError"></div>
+          <button type="submit" class="btn btn-primary">Create account</button>
+        </form>
       </div>
-      <div class="field token-field">
-        <label for="tokenInput">Bearer token</label>
-        <input
-          id="tokenInput"
-          placeholder="paste token after login…"
-          spellcheck="false"
-        />
-      </div>
-      <div class="status-dot" id="tokenDot" title="No token set"></div>
-      <button class="pill-btn" id="clearTokenBtn">Clear token</button>
     </div>
 
-    <div class="layout">
-      <div class="sidebar" id="sidebar"></div>
-      <div class="request-panel" id="requestPanel">
-        <div class="empty-note">
-          Pick an endpoint on the left to build a request.
+    <!-- ================= APP ================= -->
+    <div id="appShell" hidden>
+      <aside class="sidebar">
+        <div>
+          <div class="wordmark">Depot<span class="dot">.</span></div>
+          <div class="tagline">Project dispatch</div>
         </div>
-      </div>
-      <div class="response-panel" id="responsePanel">
-        <div class="section-label">Response</div>
-        <div class="resp-placeholder">Nothing sent yet.</div>
-        <div class="history" id="historyWrap" style="display: none">
-          <div class="section-label">History (this session)</div>
-          <div id="historyList"></div>
+        <nav class="nav">
+          <button class="navbtn is-active" data-view="projects">
+            <span class="ico">&#9635;</span> Projects
+          </button>
+          <button class="navbtn" data-view="profile">
+            <span class="ico">&#9673;</span> Profile
+          </button>
+        </nav>
+        <div class="sidebar-foot">
+          <div class="who mono" id="whoLabel"></div>
+          <button
+            class="btn btn-ghost btn-sm"
+            id="logoutBtn"
+            style="width: 100%"
+          >
+            Sign out
+          </button>
+          <div class="clock mono" id="clock"></div>
         </div>
-      </div>
+      </aside>
+
+      <main class="main">
+        <!-- Projects -->
+        <section class="view is-active" id="view-projects">
+          <div class="view-head">
+            <div>
+              <h2>Projects</h2>
+              <div class="sub">Everything you're a member of.</div>
+            </div>
+            <button class="btn btn-primary btn-sm" id="newProjectBtn">
+              + New project
+            </button>
+          </div>
+
+          <form class="panel" id="newProjectForm" hidden>
+            <h3>New project</h3>
+            <div class="field">
+              <label for="npName">Name</label>
+              <input id="npName" required minlength="3" />
+            </div>
+            <div class="field">
+              <label for="npDescription">Description</label>
+              <textarea id="npDescription" required></textarea>
+            </div>
+            <div class="field">
+              <label for="npStatus">Status</label>
+              <select id="npStatus">
+                <option value="active">Active</option>
+                <option value="archived">Archived</option>
+                <option value="completed">Completed</option>
+              </select>
+            </div>
+            <div class="error-text" id="newProjectError"></div>
+            <div style="display: flex; gap: 0.6rem">
+              <button type="submit" class="btn btn-primary btn-sm">
+                Save project
+              </button>
+              <button
+                type="button"
+                class="btn btn-ghost btn-sm"
+                id="cancelNewProject"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+
+          <div id="projectsGrid"></div>
+        </section>
+
+        <!-- Project detail -->
+        <section class="view" id="view-projectDetail">
+          <button class="back-link" id="backToProjects">
+            &larr; All projects
+          </button>
+
+          <div class="panel" id="projectEditPanel" hidden>
+            <h3>Edit project</h3>
+            <div class="field">
+              <label for="epName">Name</label>
+              <input id="epName" required minlength="3" />
+            </div>
+            <div class="field">
+              <label for="epDescription">Description</label>
+              <textarea id="epDescription" required></textarea>
+            </div>
+            <div class="field">
+              <label for="epStatus">Status</label>
+              <select id="epStatus">
+                <option value="active">Active</option>
+                <option value="archived">Archived</option>
+                <option value="completed">Completed</option>
+              </select>
+            </div>
+            <div class="error-text" id="editProjectError"></div>
+            <div style="display: flex; gap: 0.6rem">
+              <button
+                type="button"
+                class="btn btn-primary btn-sm"
+                id="saveProjectEdit"
+              >
+                Save changes
+              </button>
+              <button
+                type="button"
+                class="btn btn-ghost btn-sm"
+                id="cancelProjectEdit"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+
+          <div class="view-head">
+            <div>
+              <h2 id="pdName">&nbsp;</h2>
+              <div class="sub" id="pdDescription"></div>
+            </div>
+            <div style="display: flex; gap: 0.5rem; align-items: center">
+              <span class="stamp" id="pdStatusStamp"></span>
+              <button class="btn btn-ghost btn-sm" id="editProjectBtn">
+                Edit
+              </button>
+              <button class="btn btn-danger btn-sm" id="deleteProjectBtn">
+                Delete
+              </button>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div
+              style="
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-bottom: 1rem;
+              "
+            >
+              <h3 style="margin: 0">Tasks</h3>
+              <button class="btn btn-sm" id="newTaskBtn">+ Add task</button>
+            </div>
+
+            <form id="newTaskForm" hidden style="margin-bottom: 1.2rem">
+              <div class="field">
+                <label for="ntTitle">Title</label>
+                <input id="ntTitle" required />
+              </div>
+              <div class="field-row">
+                <div class="field">
+                  <label for="ntPriority">Priority</label>
+                  <select id="ntPriority">
+                    <option value="low">Low</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="high">High</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="ntDueDate">Due date</label>
+                  <input id="ntDueDate" type="datetime-local" required />
+                </div>
+              </div>
+              <div class="error-text" id="newTaskError"></div>
+              <div style="display: flex; gap: 0.6rem">
+                <button type="submit" class="btn btn-primary btn-sm">
+                  Save task
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-ghost btn-sm"
+                  id="cancelNewTask"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+
+            <div id="taskList"></div>
+          </div>
+        </section>
+
+        <!-- Profile -->
+        <section class="view" id="view-profile">
+          <div class="view-head">
+            <div>
+              <h2>Profile</h2>
+              <div class="sub">
+                Your name and bio, visible to your project members.
+              </div>
+            </div>
+          </div>
+
+          <div class="panel" style="max-width: 440px">
+            <div id="profileDisplay" hidden>
+              <h3 id="profileName" style="color: var(--text)"></h3>
+              <p
+                class="sub"
+                id="profileBio"
+                style="margin: 0.4rem 0 1.2rem"
+              ></p>
+              <button class="btn btn-sm" id="editProfileBtn">
+                Edit profile
+              </button>
+            </div>
+
+            <form id="profileForm">
+              <div class="field">
+                <label for="pfName">Name</label>
+                <input id="pfName" required />
+              </div>
+              <div class="field">
+                <label for="pfBio">Bio</label>
+                <textarea id="pfBio" required></textarea>
+              </div>
+              <div class="error-text" id="profileError"></div>
+              <button
+                type="submit"
+                class="btn btn-primary btn-sm"
+                id="profileSubmitBtn"
+              >
+                Save profile
+              </button>
+            </form>
+          </div>
+        </section>
+      </main>
     </div>
 
     <script>
-      // ---------------------------------------------------------------------
-      // Endpoint catalog — mirrors app.js exactly, including its final route
-      // order (literal /users/profile, /users/projects, /users/comments
-      // registered before the dynamic /users/:requested_id routes).
-      //
-      // notWired: true means the controller/service/repo code exists but no
-      // app.js route currently points to it — sending these will 404 against
-      // the real server. Kept in the list (dimmed, disabled) as a reminder of
-      // what's implemented but not yet exposed, rather than silently dropped.
-      // ---------------------------------------------------------------------
-      const ENDPOINTS = [
-        {
-          group: "Users",
-          name: "Signup",
-          method: "POST",
-          path: "/users/signup",
-          auth: false,
-          body: { email: "test@example.com", password: "secret123" },
-        },
-        {
-          group: "Users",
-          name: "Login",
-          method: "POST",
-          path: "/users/login",
-          auth: false,
-          body: { email: "test@example.com", password: "secret123" },
-        },
-        {
-          group: "Users",
-          name: "Create profile",
-          method: "POST",
-          path: "/users/profile",
-          auth: true,
-          body: { name: "Rehan", bio: "Backend dev" },
-        },
-        {
-          group: "Users",
-          name: "Update profile",
-          method: "PATCH",
-          path: "/users/profile",
-          auth: true,
-          body: { name: "Rehan", bio: "Updated bio" },
-        },
-        {
-          group: "Users",
-          name: "Get my profile",
-          method: "GET",
-          path: "/users/profile",
-          auth: true,
-        },
-        {
-          group: "Users",
-          name: "Get my projects",
-          method: "GET",
-          path: "/users/projects",
-          auth: true,
-        },
-        {
-          group: "Users",
-          name: "Get my comments",
-          method: "GET",
-          path: "/users/comments",
-          auth: true,
-        },
-        {
-          group: "Users",
-          name: "Delete my comment",
-          method: "DELETE",
-          path: "/users/comments/:comment_id",
-          auth: true,
-          params: [{ name: "comment_id", type: "number" }],
-        },
-        {
-          group: "Users",
-          name: "Delete my account",
-          method: "DELETE",
-          path: "/users",
-          auth: true,
-        },
-        {
-          group: "Users",
-          name: "Update email",
-          method: "PATCH",
-          path: "/users/:requested_id",
-          auth: true,
-          params: [
-            {
-              name: "requested_id",
-              type: "uuid",
-              placeholder: "your own user id",
-            },
-          ],
-          body: { email: "new@example.com" },
-        },
-        {
-          group: "Users",
-          name: "Get all users (admin)",
-          method: "GET",
-          path: "/users",
-          auth: true,
-        },
-        {
-          group: "Users",
-          name: "Get user by id (admin)",
-          method: "GET",
-          path: "/users/:requested_id",
-          auth: true,
-          params: [{ name: "requested_id", type: "uuid" }],
-        },
+      // ---------------------------------------------------------------
+      // Point this at wherever your Express server is running.
+      // Your .env has PORT=8000, so that's the default here.
+      // ---------------------------------------------------------------
+      const API_BASE = "http://localhost:8000";
 
-        {
-          group: "Projects",
-          name: "Create project",
-          method: "POST",
-          path: "/projects",
-          auth: true,
-          body: {
-            name: "New Project",
-            description: "A test project",
-            status: "active",
-          },
-        },
-        {
-          group: "Projects",
-          name: "Get one project",
-          method: "GET",
-          path: "/projects/:project_id",
-          auth: true,
-          params: [{ name: "project_id", type: "uuid" }],
-        },
-        {
-          group: "Projects",
-          name: "Get my project list",
-          method: "GET",
-          path: "/projects",
-          auth: true,
-        },
-        {
-          group: "Projects",
-          name: "Get tasks by project",
-          method: "GET",
-          path: "/projects/:project_id/tasks",
-          auth: true,
-          params: [{ name: "project_id", type: "uuid" }],
-        },
-        {
-          group: "Projects",
-          name: "Update project",
-          method: "PATCH",
-          path: "/projects/:project_id",
-          auth: true,
-          params: [{ name: "project_id", type: "uuid" }],
-          body: {
-            name: "Renamed Project",
-            description: "Updated desc",
-            status: "active",
-          },
-        },
-        {
-          group: "Projects",
-          name: "Delete project",
-          method: "DELETE",
-          path: "/projects/:project_id",
-          auth: true,
-          params: [{ name: "project_id", type: "uuid" }],
-        },
+      const state = {
+        token: null,
+        email: null,
+        currentProjectId: null,
+        currentProject: null,
+        hasProfile: false,
+      };
 
-        {
-          group: "Project Members",
-          name: "Get my membership",
-          method: "GET",
-          path: "/projects/:project_id/membership",
-          auth: true,
-          params: [{ name: "project_id", type: "uuid" }],
-        },
-        {
-          group: "Project Members",
-          name: "Add member",
-          method: "POST",
-          path: "/projects/:project_id/users/:target_user_id",
-          auth: true,
-          params: [
-            { name: "project_id", type: "uuid" },
-            { name: "target_user_id", type: "uuid" },
-          ],
-          body: { role: "member" },
-        },
-        {
-          group: "Project Members",
-          name: "Get all members",
-          method: "GET",
-          path: "/projects/:project_id/members",
-          auth: true,
-          params: [{ name: "project_id", type: "uuid" }],
-        },
-        {
-          group: "Project Members",
-          name: "Remove member",
-          method: "DELETE",
-          path: "/projects/:project_id/users/:target_user_id",
-          auth: true,
-          params: [
-            { name: "project_id", type: "uuid" },
-            { name: "target_user_id", type: "uuid" },
-          ],
-        },
-        {
-          group: "Project Members",
-          name: "Change member role",
-          method: "PATCH",
-          path: "/projects/:project_id/users/:target_user_id",
-          auth: true,
-          params: [
-            { name: "project_id", type: "uuid" },
-            { name: "target_user_id", type: "uuid" },
-          ],
-          body: { role: "owner" },
-        },
+      // ---------- helpers ----------
+      function esc(str) {
+        const d = document.createElement("div");
+        d.textContent = str == null ? "" : String(str);
+        return d.innerHTML;
+      }
 
-        {
-          group: "Tasks",
-          name: "Create task",
-          method: "POST",
-          path: "/projects/:project_id/tasks",
-          auth: true,
-          params: [{ name: "project_id", type: "uuid" }],
-          body: {
-            title: "New task",
-            priority: "medium",
-            due_date: "2026-09-15T00:00:00.000Z",
-          },
-        },
-        {
-          group: "Tasks",
-          name: "Get my tasks (paginated)",
-          method: "GET",
-          path: "/tasks",
-          auth: true,
-          query: [
-            { name: "page", value: "1" },
-            { name: "limit", value: "10" },
-          ],
-        },
-        {
-          group: "Tasks",
-          name: "Get one task",
-          method: "GET",
-          path: "/tasks/:task_id",
-          auth: true,
-          params: [{ name: "task_id", type: "number" }],
-        },
-        {
-          group: "Tasks",
-          name: "Update task",
-          method: "PATCH",
-          path: "/tasks/:task_id",
-          auth: true,
-          params: [{ name: "task_id", type: "number" }],
-          body: {
-            title: "Updated task",
-            priority: "high",
-            due_date: "2026-09-20T00:00:00.000Z",
-          },
-        },
-        {
-          group: "Tasks",
-          name: "Toggle complete",
-          method: "PATCH",
-          path: "/tasks/:task_id/complete",
-          auth: true,
-          params: [{ name: "task_id", type: "number" }],
-        },
-        {
-          group: "Tasks",
-          name: "Delete task (owner only)",
-          method: "DELETE",
-          path: "/tasks/:task_id",
-          auth: true,
-          params: [{ name: "task_id", type: "number" }],
-        },
+      function toast(message, isError) {
+        const el = document.createElement("div");
+        el.className = "toast-msg" + (isError ? " is-error" : "");
+        el.textContent = message;
+        document.getElementById("toast").appendChild(el);
+        setTimeout(() => el.remove(), 3800);
+      }
 
-        {
-          group: "Tags",
-          name: "Create tag",
-          method: "POST",
-          path: "/tags",
-          auth: true,
-          body: { tag_name: "urgent" },
-        },
-        {
-          group: "Tags",
-          name: "Get all tags",
-          method: "GET",
-          path: "/tags",
-          auth: true,
-        },
-        {
-          group: "Tags",
-          name: "Add tag to task",
-          method: "POST",
-          path: "/tasks/:task_id/tags/:tag_id",
-          auth: true,
-          params: [
-            { name: "task_id", type: "number" },
-            { name: "tag_id", type: "number" },
-          ],
-          notWired: true,
-        },
-        {
-          group: "Tags",
-          name: "Get tags on task",
-          method: "GET",
-          path: "/tasks/:task_id/tags",
-          auth: true,
-          params: [{ name: "task_id", type: "number" }],
-          notWired: true,
-        },
-        {
-          group: "Tags",
-          name: "Remove tag from task",
-          method: "DELETE",
-          path: "/tasks/:task_id/tags/:tag_id",
-          auth: true,
-          params: [
-            { name: "task_id", type: "number" },
-            { name: "tag_id", type: "number" },
-          ],
-          notWired: true,
-        },
+      async function api(path, opts = {}) {
+        const headers = {
+          "Content-Type": "application/json",
+          ...(opts.headers || {}),
+        };
+        if (state.token) headers["Authorization"] = "Bearer " + state.token;
+        let res;
+        try {
+          res = await fetch(API_BASE + path, { ...opts, headers });
+        } catch (networkErr) {
+          throw new Error(
+            "Could not reach the server. Is the backend running on " +
+              API_BASE +
+              "?",
+          );
+        }
+        let data = null;
+        try {
+          data = await res.json();
+        } catch (e) {
+          /* e.g. 204 No Content */
+        }
+        if (!res.ok) {
+          const raw = data && data.error;
+          const msg = Array.isArray(raw)
+            ? raw.join(", ")
+            : raw || "Request failed (" + res.status + ")";
+          throw new Error(msg);
+        }
+        return data;
+      }
 
-        {
-          group: "Comments",
-          name: "Create comment",
-          method: "POST",
-          path: "/tasks/:task_id/comments",
-          auth: true,
-          params: [{ name: "task_id", type: "number" }],
-          body: { new_body: "This is a comment" },
-        },
-        {
-          group: "Comments",
-          name: "Get comments on task",
-          method: "GET",
-          path: "/tasks/:task_id/comments",
-          auth: true,
-          params: [{ name: "task_id", type: "number" }],
-        },
-        {
-          group: "Comments",
-          name: "Delete all comments on task (owner only)",
-          method: "DELETE",
-          path: "/tasks/:task_id/comments",
-          auth: true,
-          params: [{ name: "task_id", type: "number" }],
-        },
-      ];
-
-      let activeIndex = null;
-      let historyLog = [];
-
-      const sidebar = document.getElementById("sidebar");
-      const requestPanel = document.getElementById("requestPanel");
-      const responsePanel = document.getElementById("responsePanel");
-      const baseUrlInput = document.getElementById("baseUrl");
-      const tokenInput = document.getElementById("tokenInput");
-      const tokenDot = document.getElementById("tokenDot");
-
-      function buildSidebar() {
-        const groups = {};
-        ENDPOINTS.forEach((ep, i) => {
-          groups[ep.group] = groups[ep.group] || [];
-          groups[ep.group].push(i);
-        });
-        sidebar.innerHTML = "";
-        Object.keys(groups).forEach((groupName) => {
-          const title = document.createElement("div");
-          title.className = "group-title";
-          title.textContent = groupName;
-          sidebar.appendChild(title);
-          groups[groupName].forEach((i) => {
-            const ep = ENDPOINTS[i];
-            const row = document.createElement("div");
-            row.className = "endpoint" + (ep.notWired ? " disabled" : "");
-            row.dataset.index = i;
-            row.innerHTML = `<span class="method-tag m-${ep.method}">${ep.method}</span><span class="endpoint-name">${ep.name}</span>${ep.notWired ? '<span class="not-wired-badge">no route</span>' : ""}`;
-            row.addEventListener("click", () => selectEndpoint(i));
-            sidebar.appendChild(row);
-          });
+      function toISODateTime(localValue) {
+        return new Date(localValue).toISOString();
+      }
+      function formatDate(iso) {
+        if (!iso) return "—";
+        const d = new Date(iso.replace(" ", "T"));
+        if (isNaN(d)) return iso;
+        return d.toLocaleDateString(undefined, {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
         });
       }
 
-      function selectEndpoint(i) {
-        activeIndex = i;
-        document.querySelectorAll(".endpoint").forEach((el) => {
-          el.classList.toggle("active", Number(el.dataset.index) === i);
-        });
-        renderRequestPanel(ENDPOINTS[i]);
-      }
-
-      function renderRequestPanel(ep) {
-        let html = `
-    <div class="req-head">
-      <span class="method-tag m-${ep.method}">${ep.method}</span>
-      <span class="req-path">${ep.path}</span>
-    </div>
-    <p class="req-desc">${ep.auth ? "Requires <code>Authorization: Bearer &lt;token&gt;</code>." : "No auth required."}</p>
-  `;
-
-        if (ep.notWired) {
-          html += `<div class="warn-banner">⚠ This controller/service exists in code, but no route is registered for it in <code>app.js</code> yet. Sending this will return <code>404 Route not found</code> against the real server. Add the route first if you want this to work.</div>`;
-        }
-
-        if (ep.params && ep.params.length) {
-          html += `<div class="section-label">Path params</div>`;
-          ep.params.forEach((p) => {
-            html += `
-        <div class="param-row">
-          <span class="param-name">${p.name}</span>
-          <input data-param="${p.name}" placeholder="${p.placeholder || (p.type === "uuid" ? "uuid…" : "numeric id…")}" spellcheck="false">
-        </div>`;
-          });
-        }
-
-        if (ep.query && ep.query.length) {
-          html += `<div class="section-label">Query params</div>`;
-          ep.query.forEach((q) => {
-            html += `
-        <div class="param-row">
-          <span class="param-name">${q.name}</span>
-          <input data-query="${q.name}" value="${q.value || ""}" spellcheck="false">
-        </div>`;
-          });
-        }
-
-        html += `<div class="section-label">Body${ep.body ? "" : " (none)"}</div>`;
-        if (ep.body) {
-          html += `<textarea class="body-editor" id="bodyEditor" spellcheck="false">${JSON.stringify(ep.body, null, 2)}</textarea>`;
-        } else {
-          html += `<div class="empty-note">This request has no body.</div>`;
-        }
-
-        html += `
-    <div class="send-row">
-      <button class="send-btn" id="sendBtn">Send request</button>
-      ${ep.auth ? '<span class="auth-note"><span class="lock-icon">🔒</span> uses token above</span>' : ""}
-    </div>
-  `;
-
-        requestPanel.innerHTML = html;
+      // ---------- view switching ----------
+      function showView(name) {
         document
-          .getElementById("sendBtn")
-          .addEventListener("click", () => sendRequest(ep));
-      }
-
-      function highlightJson(obj) {
-        const json = JSON.stringify(obj, null, 2);
-        return json
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;")
-          .replace(
-            /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)/g,
-            (match) => {
-              let cls = "json-num";
-              if (/^"/.test(match)) {
-                cls = /:$/.test(match) ? "json-key" : "json-str";
-              } else if (/true|false/.test(match)) {
-                cls = "json-bool";
-              } else if (/null/.test(match)) {
-                cls = "json-null";
-              }
-              return `<span class="${cls}">${match}</span>`;
-            },
+          .querySelectorAll(".view")
+          .forEach((v) => v.classList.remove("is-active"));
+        document.getElementById("view-" + name).classList.add("is-active");
+        document
+          .querySelectorAll(".navbtn")
+          .forEach((b) =>
+            b.classList.toggle("is-active", b.dataset.view === name),
           );
       }
 
-      async function sendRequest(ep) {
-        const base = baseUrlInput.value.replace(/\/$/, "");
-        let path = ep.path;
+      document.querySelectorAll(".navbtn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const view = btn.dataset.view;
+          showView(view);
+          if (view === "projects") loadProjects();
+          if (view === "profile") loadProfile();
+        });
+      });
 
-        if (ep.params) {
-          for (const p of ep.params) {
-            const val = document
-              .querySelector(`[data-param="${p.name}"]`)
-              .value.trim();
-            path = path.replace(
-              `:${p.name}`,
-              encodeURIComponent(val || `:${p.name}`),
-            );
-          }
-        }
+      // ---------- auth tabs ----------
+      document.querySelectorAll(".tab").forEach((tab) => {
+        tab.addEventListener("click", () => {
+          document
+            .querySelectorAll(".tab")
+            .forEach((t) => t.classList.remove("is-active"));
+          document
+            .querySelectorAll(".auth-form")
+            .forEach((f) => f.classList.remove("is-active"));
+          tab.classList.add("is-active");
+          document
+            .getElementById(tab.dataset.tab + "Form")
+            .classList.add("is-active");
+          document.getElementById("authHeading").textContent =
+            tab.dataset.tab === "login" ? "Sign in" : "Register";
+        });
+      });
 
-        let query = "";
-        if (ep.query) {
-          const parts = [];
-          ep.query.forEach((q) => {
-            const val = document
-              .querySelector(`[data-query="${q.name}"]`)
-              .value.trim();
-            if (val)
-              parts.push(
-                `${encodeURIComponent(q.name)}=${encodeURIComponent(val)}`,
-              );
-          });
-          if (parts.length) query = "?" + parts.join("&");
-        }
-
-        const url = base + path + query;
-        const headers = { "Content-Type": "application/json" };
-        const token = tokenInput.value.trim();
-        if (ep.auth && token) {
-          headers["Authorization"] = `Bearer ${token}`;
-        }
-
-        let bodyStr = undefined;
-        if (ep.body) {
-          const editor = document.getElementById("bodyEditor");
+      // ---------- signup / login ----------
+      document
+        .getElementById("registerForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const errEl = document.getElementById("registerError");
+          errEl.textContent = "";
+          const email = document.getElementById("registerEmail").value;
+          const password = document.getElementById("registerPassword").value;
           try {
-            const parsed = JSON.parse(editor.value);
-            bodyStr = JSON.stringify(parsed);
-          } catch (e) {
-            renderResponse({
-              error: true,
-              status: null,
-              statusText: "Invalid JSON in request body",
-              body: e.message,
-              ms: 0,
+            await api("/users/signup", {
+              method: "POST",
+              body: JSON.stringify({ email, password }),
             });
-            return;
+            toast("Account created — you can sign in now.");
+            document.querySelector('[data-tab="login"]').click();
+            document.getElementById("loginEmail").value = email;
+          } catch (err) {
+            errEl.textContent = err.message;
           }
-        }
+        });
 
-        const sendBtn = document.getElementById("sendBtn");
-        sendBtn.disabled = true;
-        sendBtn.textContent = "Sending…";
-        renderPending();
+      document
+        .getElementById("loginForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const errEl = document.getElementById("loginError");
+          errEl.textContent = "";
+          const email = document.getElementById("loginEmail").value;
+          const password = document.getElementById("loginPassword").value;
+          try {
+            const data = await api("/users/login", {
+              method: "POST",
+              body: JSON.stringify({ email, password }),
+            });
+            state.token = data.token;
+            state.email = email;
+            enterApp();
+          } catch (err) {
+            errEl.textContent = err.message;
+          }
+        });
 
-        const started = performance.now();
+      document.getElementById("logoutBtn").addEventListener("click", () => {
+        state.token = null;
+        state.email = null;
+        state.currentProjectId = null;
+        document.getElementById("appShell").hidden = true;
+        document.getElementById("authScreen").hidden = false;
+        document.getElementById("loginForm").reset();
+      });
+
+      function enterApp() {
+        document.getElementById("authScreen").hidden = true;
+        document.getElementById("appShell").hidden = false;
+        document.getElementById("whoLabel").textContent = state.email;
+        showView("projects");
+        loadProjects();
+      }
+
+      // ---------- clock (ambient detail) ----------
+      function tickClock() {
+        const el = document.getElementById("clock");
+        const now = new Date();
+        el.textContent = now.toLocaleTimeString(undefined, { hour12: false });
+      }
+      setInterval(tickClock, 1000);
+      tickClock();
+
+      // ---------- projects ----------
+      document.getElementById("newProjectBtn").addEventListener("click", () => {
+        document.getElementById("newProjectForm").hidden = false;
+      });
+      document
+        .getElementById("cancelNewProject")
+        .addEventListener("click", () => {
+          document.getElementById("newProjectForm").hidden = true;
+          document.getElementById("newProjectForm").reset();
+        });
+
+      document
+        .getElementById("newProjectForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const errEl = document.getElementById("newProjectError");
+          errEl.textContent = "";
+          const name = document.getElementById("npName").value;
+          const description = document.getElementById("npDescription").value;
+          const status = document.getElementById("npStatus").value;
+          try {
+            await api("/projects", {
+              method: "POST",
+              body: JSON.stringify({ name, description, status }),
+            });
+            document.getElementById("newProjectForm").reset();
+            document.getElementById("newProjectForm").hidden = true;
+            toast("Project created.");
+            loadProjects();
+          } catch (err) {
+            errEl.textContent = err.message;
+          }
+        });
+
+      async function loadProjects() {
+        const grid = document.getElementById("projectsGrid");
+        grid.innerHTML = '<div class="empty">Loading projects…</div>';
+        let projects = [];
         try {
-          const res = await fetch(url, {
-            method: ep.method,
-            headers,
-            body:
-              ep.method !== "GET" && bodyStr !== undefined
-                ? bodyStr
-                : undefined,
-          });
-          const ms = Math.round(performance.now() - started);
-          const text = await res.text();
-          let parsedBody = text;
-          let contentType = res.headers.get("content-type") || "";
-          if (contentType.includes("application/json") && text) {
-            try {
-              parsedBody = JSON.parse(text);
-            } catch (e) {
-              /* leave as text */
-            }
-          }
-          const result = {
-            error: false,
-            status: res.status,
-            statusText: res.statusText,
-            body: parsedBody,
-            ms,
-            method: ep.method,
-            path,
-          };
-          renderResponse(result);
-          logHistory(result);
+          const data = await api("/projects");
+          projects = data.value || [];
         } catch (err) {
-          const ms = Math.round(performance.now() - started);
-          const result = {
-            error: true,
-            status: null,
-            statusText: "Network error",
-            body: err.message,
-            ms,
-            method: ep.method,
-            path,
-          };
-          renderResponse(result);
-          logHistory(result);
-        } finally {
-          sendBtn.disabled = false;
-          sendBtn.textContent = "Send request";
+          // Backend reports "Project Not Exist" when the user has none yet — treat as empty state.
+          projects = [];
         }
-      }
-
-      function statusClass(status, isError) {
-        if (isError || status === null) return "status-err";
-        if (status >= 200 && status < 300) return "status-2xx";
-        if (status >= 400 && status < 500) return "status-4xx";
-        return "status-5xx";
-      }
-
-      function renderPending() {
-        responsePanel.innerHTML = `
-    <div class="section-label">Response</div>
-    <div class="resp-meta">
-      <span class="status-badge status-pending">…</span>
-    </div>
-    <pre class="resp-body">waiting…</pre>
-  `;
-      }
-
-      function renderResponse(result) {
-        const cls = statusClass(result.status, result.error);
-        const label = result.error ? result.status || "ERR" : result.status;
-        let bodyHtml;
-        if (typeof result.body === "object" && result.body !== null) {
-          bodyHtml = highlightJson(result.body);
-        } else {
-          bodyHtml = String(result.body ?? "(empty response)")
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;");
-        }
-
-        responsePanel.innerHTML = `
-    <div class="section-label">Response</div>
-    <div class="resp-meta">
-      <span class="status-badge ${cls}">${label} ${result.statusText || ""}</span>
-      <span class="timing">${result.ms}ms</span>
-    </div>
-    <pre class="resp-body">${bodyHtml}</pre>
-    <div class="history" id="historyWrap" style="${historyLog.length ? "" : "display:none;"}">
-      <div class="section-label">History (this session)</div>
-      <div id="historyList"></div>
-    </div>
-  `;
-        renderHistoryList();
-      }
-
-      function logHistory(result) {
-        historyLog.unshift(result);
-        if (historyLog.length > 25) historyLog.pop();
-      }
-
-      function renderHistoryList() {
-        const wrap = document.getElementById("historyWrap");
-        const list = document.getElementById("historyList");
-        if (!wrap || !list) return;
-        if (!historyLog.length) {
-          wrap.style.display = "none";
+        if (projects.length === 0) {
+          grid.innerHTML =
+            '<div class="empty">No projects yet — create your first one to get moving.</div>';
           return;
         }
-        wrap.style.display = "";
-        list.innerHTML = historyLog
-          .map((h) => {
-            const ok = !h.error && h.status >= 200 && h.status < 400;
-            return `<div class="history-item">
-      <span class="hist-status ${ok ? "ok" : "bad"}">${h.error ? "ERR" : h.status}</span>
-      <span>${h.method}</span>
-      <span>${h.path}</span>
-      <span style="margin-left:auto;">${h.ms}ms</span>
-    </div>`;
-          })
-          .join("");
+        grid.innerHTML = '<div class="grid"></div>';
+        const gridInner = grid.querySelector(".grid");
+        projects.forEach((p) => {
+          const card = document.createElement("div");
+          card.className = "card";
+          card.innerHTML =
+            '<div class="card-foot"><h4>' +
+            esc(p.project_name) +
+            '</h4><span class="stamp stamp--' +
+            esc(p.status) +
+            '">' +
+            esc(p.status) +
+            "</span></div>" +
+            "<p>" +
+            esc(p.description) +
+            "</p>" +
+            '<div class="card-foot"><span class="id-badge mono">Created ' +
+            formatDate(p.created_at) +
+            "</span>" +
+            '<button class="btn btn-sm" data-open="' +
+            esc(p.id) +
+            '">Open</button></div>';
+          gridInner.appendChild(card);
+        });
+        gridInner.querySelectorAll("[data-open]").forEach((btn) => {
+          btn.addEventListener("click", () => openProject(btn.dataset.open));
+        });
       }
 
-      // token indicator
-      tokenInput.addEventListener("input", () => {
-        tokenDot.classList.toggle("on", tokenInput.value.trim().length > 0);
-      });
-      document.getElementById("clearTokenBtn").addEventListener("click", () => {
-        tokenInput.value = "";
-        tokenDot.classList.remove("on");
-      });
+      document
+        .getElementById("backToProjects")
+        .addEventListener("click", () => {
+          showView("projects");
+          loadProjects();
+        });
 
-      // auto-fill token from a login response
-      function tryAutoFillToken(body) {
-        if (
-          body &&
-          typeof body === "object" &&
-          typeof body.token === "string"
-        ) {
-          tokenInput.value = body.token;
-          tokenDot.classList.add("on");
+      async function openProject(id) {
+        try {
+          const data = await api("/projects/" + id);
+          state.currentProjectId = id;
+          state.currentProject = data.value;
+          renderProjectDetail();
+          showView("projectDetail");
+          loadTasks();
+        } catch (err) {
+          toast(err.message, true);
         }
       }
-      const originalRenderResponse = renderResponse;
-      renderResponse = function (result) {
-        originalRenderResponse(result);
-        tryAutoFillToken(result.body);
-      };
 
-      buildSidebar();
-      selectEndpoint(0);
+      function renderProjectDetail() {
+        const p = state.currentProject;
+        document.getElementById("pdName").textContent = p.project_name;
+        document.getElementById("pdDescription").textContent = p.description;
+        const stamp = document.getElementById("pdStatusStamp");
+        stamp.textContent = p.status;
+        stamp.className = "stamp stamp--" + p.status;
+        document.getElementById("projectEditPanel").hidden = true;
+      }
+
+      document
+        .getElementById("editProjectBtn")
+        .addEventListener("click", () => {
+          const p = state.currentProject;
+          document.getElementById("epName").value = p.project_name;
+          document.getElementById("epDescription").value = p.description;
+          document.getElementById("epStatus").value = p.status;
+          document.getElementById("editProjectError").textContent = "";
+          document.getElementById("projectEditPanel").hidden = false;
+        });
+      document
+        .getElementById("cancelProjectEdit")
+        .addEventListener("click", () => {
+          document.getElementById("projectEditPanel").hidden = true;
+        });
+      document
+        .getElementById("saveProjectEdit")
+        .addEventListener("click", async () => {
+          const errEl = document.getElementById("editProjectError");
+          errEl.textContent = "";
+          const name = document.getElementById("epName").value;
+          const description = document.getElementById("epDescription").value;
+          const status = document.getElementById("epStatus").value;
+          try {
+            const data = await api("/projects/" + state.currentProjectId, {
+              method: "PATCH",
+              body: JSON.stringify({ name, description, status }),
+            });
+            state.currentProject = data.value;
+            renderProjectDetail();
+            toast("Project updated.");
+          } catch (err) {
+            errEl.textContent = err.message;
+          }
+        });
+
+      document
+        .getElementById("deleteProjectBtn")
+        .addEventListener("click", async () => {
+          if (!confirm("Delete this project? This cannot be undone.")) return;
+          try {
+            await api("/projects/" + state.currentProjectId, {
+              method: "DELETE",
+            });
+            toast("Project deleted.");
+            showView("projects");
+            loadProjects();
+          } catch (err) {
+            toast(err.message, true);
+          }
+        });
+
+      // ---------- tasks ----------
+      document.getElementById("newTaskBtn").addEventListener("click", () => {
+        document.getElementById("newTaskForm").hidden = false;
+      });
+      document.getElementById("cancelNewTask").addEventListener("click", () => {
+        document.getElementById("newTaskForm").hidden = true;
+        document.getElementById("newTaskForm").reset();
+      });
+
+      document
+        .getElementById("newTaskForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const errEl = document.getElementById("newTaskError");
+          errEl.textContent = "";
+          const title = document.getElementById("ntTitle").value;
+          const priority = document.getElementById("ntPriority").value;
+          const dueLocal = document.getElementById("ntDueDate").value;
+          try {
+            const due_date = toISODateTime(dueLocal);
+            await api("/projects/" + state.currentProjectId + "/tasks", {
+              method: "POST",
+              body: JSON.stringify({ title, priority, due_date }),
+            });
+            document.getElementById("newTaskForm").reset();
+            document.getElementById("newTaskForm").hidden = true;
+            toast("Task added.");
+            loadTasks();
+          } catch (err) {
+            errEl.textContent = err.message;
+          }
+        });
+
+      async function loadTasks() {
+        const list = document.getElementById("taskList");
+        list.innerHTML = '<div class="empty">Loading tasks…</div>';
+        let tasks = [];
+        try {
+          const data = await api(
+            "/projects/" + state.currentProjectId + "/tasks",
+          );
+          tasks = data.value || [];
+        } catch (err) {
+          toast(err.message, true);
+          tasks = [];
+        }
+        if (tasks.length === 0) {
+          list.innerHTML =
+            '<div class="empty">No tasks in this project yet.</div>';
+          return;
+        }
+        list.innerHTML = "";
+        tasks.forEach((t) => {
+          const row = document.createElement("div");
+          row.className =
+            "task-row priority-" + t.priority + (t.completed ? " is-done" : "");
+          row.innerHTML =
+            '<button class="task-check" data-complete="' +
+            t.id +
+            '" title="Toggle complete"></button>' +
+            '<span class="task-title">' +
+            esc(t.title) +
+            "</span>" +
+            '<span class="stamp stamp--' +
+            t.priority +
+            '">' +
+            t.priority +
+            "</span>" +
+            '<span class="task-meta mono">Due ' +
+            formatDate(t.due_date) +
+            "</span>" +
+            '<button class="btn btn-danger btn-sm" data-delete="' +
+            t.id +
+            '">Delete</button>';
+          list.appendChild(row);
+        });
+        list.querySelectorAll("[data-complete]").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            try {
+              await api("/tasks/" + btn.dataset.complete + "/complete", {
+                method: "PATCH",
+              });
+              loadTasks();
+            } catch (err) {
+              toast(err.message, true);
+            }
+          });
+        });
+        list.querySelectorAll("[data-delete]").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            if (!confirm("Delete this task?")) return;
+            try {
+              await api("/tasks/" + btn.dataset.delete, { method: "DELETE" });
+              toast("Task deleted.");
+              loadTasks();
+            } catch (err) {
+              toast(err.message, true);
+            }
+          });
+        });
+      }
+
+      // ---------- profile ----------
+      async function loadProfile() {
+        const display = document.getElementById("profileDisplay");
+        const form = document.getElementById("profileForm");
+        const errEl = document.getElementById("profileError");
+        errEl.textContent = "";
+        try {
+          const data = await api("/users/profile");
+          state.hasProfile = true;
+          document.getElementById("profileName").textContent = data.value.name;
+          document.getElementById("profileBio").textContent = data.value.bio;
+          document.getElementById("pfName").value = data.value.name;
+          document.getElementById("pfBio").value = data.value.bio;
+          display.hidden = false;
+          form.hidden = true;
+          document.getElementById("profileSubmitBtn").textContent =
+            "Save profile";
+        } catch (err) {
+          // "Profile Not Exist" -> no profile yet, show the create form directly.
+          state.hasProfile = false;
+          display.hidden = true;
+          form.hidden = false;
+          document.getElementById("pfName").value = "";
+          document.getElementById("pfBio").value = "";
+          document.getElementById("profileSubmitBtn").textContent =
+            "Create profile";
+        }
+      }
+
+      document
+        .getElementById("editProfileBtn")
+        .addEventListener("click", () => {
+          document.getElementById("profileDisplay").hidden = true;
+          document.getElementById("profileForm").hidden = false;
+        });
+
+      document
+        .getElementById("profileForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const errEl = document.getElementById("profileError");
+          errEl.textContent = "";
+          const name = document.getElementById("pfName").value;
+          const bio = document.getElementById("pfBio").value;
+          try {
+            if (state.hasProfile) {
+              await api("/users/profile", {
+                method: "PATCH",
+                body: JSON.stringify({ name, bio }),
+              });
+            } else {
+              await api("/users/profile", {
+                method: "POST",
+                body: JSON.stringify({ name, bio }),
+              });
+            }
+            toast("Profile saved.");
+            loadProfile();
+          } catch (err) {
+            errEl.textContent = err.message;
+          }
+        });
     </script>
   </body>
 </html>
