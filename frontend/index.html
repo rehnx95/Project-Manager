@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Depot — Sign in</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="toast"></div>
+
+  <div id="authScreen">
+    <div class="ticket">
+      <div class="eyebrow">Depot &middot; Access Terminal</div>
+      <h1 id="authHeading">Sign in</h1>
+      <p class="sub">Track projects and tasks in one dispatch board.</p>
+
+      <div class="tabs">
+        <button class="tab is-active" data-tab="login">Sign in</button>
+        <button class="tab" data-tab="register">Register</button>
+      </div>
+
+      <form id="loginForm" class="auth-form is-active">
+        <div class="field">
+          <label for="loginEmail">Email</label>
+          <input id="loginEmail" type="email" required autocomplete="email" />
+        </div>
+        <div class="field">
+          <label for="loginPassword">Password</label>
+          <input id="loginPassword" type="password" required autocomplete="current-password" />
+        </div>
+        <div class="error-text" id="loginError"></div>
+        <button type="submit" class="btn btn-primary">Sign in</button>
+      </form>
+
+      <form id="registerForm" class="auth-form">
+        <div class="field">
+          <label for="registerEmail">Email</label>
+          <input id="registerEmail" type="email" required autocomplete="email" />
+        </div>
+        <div class="field">
+          <label for="registerPassword">Password</label>
+          <input id="registerPassword" type="password" required minlength="6" autocomplete="new-password" />
+        </div>
+        <div class="error-text" id="registerError"></div>
+        <button type="submit" class="btn btn-primary">Create account</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+</body>
+</html>

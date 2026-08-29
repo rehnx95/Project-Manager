@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Depot — Project</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="toast"></div>
+  <div class="app-shell">
+    <div id="navHost"></div>
+    <main class="main">
+      <a class="back-link" href="dashboard.html">&larr; All projects</a>
+
+      <div class="panel" id="projectEditPanel" hidden>
+        <h3>Edit project</h3>
+        <div class="field"><label for="epName">Name</label><input id="epName" required minlength="3" /></div>
+        <div class="field"><label for="epDescription">Description</label><textarea id="epDescription" required></textarea></div>
+        <div class="field">
+          <label for="epStatus">Status</label>
+          <select id="epStatus">
+            <option value="active">Active</option>
+            <option value="archived">Archived</option>
+            <option value="completed">Completed</option>
+          </select>
+        </div>
+        <div class="error-text" id="editProjectError"></div>
+        <div style="display:flex; gap:0.6rem">
+          <button type="button" class="btn btn-primary btn-sm" id="saveProjectEdit">Save changes</button>
+          <button type="button" class="btn btn-ghost btn-sm" id="cancelProjectEdit">Cancel</button>
+        </div>
+      </div>
+
+      <div class="view-head">
+        <div>
+          <h2 id="pName">&nbsp;</h2>
+          <div class="sub" id="pDescription"></div>
+        </div>
+        <div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap">
+          <span class="stamp" id="pStatusStamp"></span>
+          <span class="stamp" id="pRoleStamp"></span>
+          <button class="btn btn-ghost btn-sm" id="editProjectBtn" hidden>Edit</button>
+          <button class="btn btn-danger btn-sm" id="deleteProjectBtn" hidden>Delete</button>
+        </div>
+      </div>
+
+      <div class="pagetabs">
+        <button class="pagetab is-active" data-tab="tasks">Tasks</button>
+        <button class="pagetab" data-tab="crew">Crew</button>
+      </div>
+
+      <div class="tabpanel is-active" id="tab-tasks">
+        <div class="panel">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem">
+            <h3 style="margin:0">Tasks</h3>
+            <button class="btn btn-sm" id="newTaskBtn">+ Add task</button>
+          </div>
+          <form id="newTaskForm" hidden style="margin-bottom:1.2rem">
+            <div class="field"><label for="ntTitle">Title</label><input id="ntTitle" required /></div>
+            <div class="field-row">
+              <div class="field">
+                <label for="ntPriority">Priority</label>
+                <select id="ntPriority">
+                  <option value="low">Low</option>
+                  <option value="medium" selected>Medium</option>
+                  <option value="high">High</option>
+                </select>
+              </div>
+              <div class="field"><label for="ntDueDate">Due date</label><input id="ntDueDate" type="datetime-local" required /></div>
+            </div>
+            <div class="error-text" id="newTaskError"></div>
+            <div style="display:flex; gap:0.6rem">
+              <button type="submit" class="btn btn-primary btn-sm">Save task</button>
+              <button type="button" class="btn btn-ghost btn-sm" id="cancelNewTask">Cancel</button>
+            </div>
+          </form>
+          <div id="taskList"></div>
+        </div>
+      </div>
+
+      <div class="tabpanel" id="tab-crew">
+        <div class="panel" id="addMemberPanel" hidden>
+          <h3>Add crew member</h3>
+          <p class="hint-text">Paste the teammate's user ID (they can find it via the API — there's no user search endpoint yet).</p>
+          <div class="field-row">
+            <div class="field"><label for="amUserId">User ID</label><input id="amUserId" placeholder="uuid" required /></div>
+            <div class="field">
+              <label for="amRole">Role</label>
+              <select id="amRole"><option value="member">Member</option><option value="owner">Owner</option></select>
+            </div>
+          </div>
+          <div class="error-text" id="addMemberError"></div>
+          <button class="btn btn-primary btn-sm" id="submitAddMember">Add to project</button>
+        </div>
+        <div class="panel">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem">
+            <h3 style="margin:0">Crew roster</h3>
+            <button class="btn btn-sm" id="showAddMemberBtn" hidden>+ Add member</button>
+          </div>
+          <div id="memberList"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/nav.js"></script>
+  <script src="js/project.js"></script>
+</body>
+</html>

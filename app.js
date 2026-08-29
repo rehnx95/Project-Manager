@@ -17,10 +17,7 @@ const cors = require("cors");
 app.use(cors());
 app.use(express.json());
 const port = process.env.PORT || 7000;
-
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "AuthProfile.html"));
-});
+app.use(express.static(path.join(__dirname, "frontend")));
 
 // users — static/literal sub-paths must come before /users/:requested_id,
 // otherwise Express matches "profile"/"projects"/"comments" as the
@@ -186,6 +183,24 @@ app.delete(
 app.post("/tags", authenticateToken, asyncHandler(tagControllers.createTag));
 app.get("/tags", authenticateToken, asyncHandler(tagControllers.getAllTags));
 
+// task <-> tag (previously missing — controllers/repository already
+// supported this, they just weren't wired to a route)
+app.post(
+  "/tasks/:task_id/tags/:tag_id",
+  authenticateToken,
+  asyncHandler(tagControllers.addTagToTask),
+);
+app.get(
+  "/tasks/:task_id/tags",
+  authenticateToken,
+  asyncHandler(tagControllers.getTaskTags),
+);
+app.delete(
+  "/tasks/:task_id/tags/:tag_id",
+  authenticateToken,
+  asyncHandler(tagControllers.removeTagFromTask),
+);
+
 // comments
 app.post(
   "/tasks/:task_id/comments",
@@ -214,6 +229,6 @@ app.use((err, req, res, next) => {
   res.status(500).json({ success: false, error: "Something went wrong" });
 });
 
-app.listen(port, () => {
+app.listen(port, "0.0.0.0", () => {
   console.log(new Date().toLocaleTimeString("en-GB"), `server running ${port}`);
 });
