@@ -1,0 +1,1303 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>API Console</title>
+<style>
+  :root{
+    --bg:#0d1117;
+    --panel:#11161d;
+    --panel-2:#161c25;
+    --panel-3:#1c232e;
+    --border:#232b36;
+    --border-soft:#1a212b;
+    --text:#e6edf3;
+    --text-dim:#8b949e;
+    --text-faint:#5b6572;
+    --accent:#4fd1c5;
+    --accent-dim:#2c7a72;
+    --get:#4fd1c5;
+    --post:#5fa8f5;
+    --patch:#e3b341;
+    --delete:#f47174;
+    --ok:#4fd1c5;
+    --err:#f47174;
+    --mono: "SF Mono", "JetBrains Mono", ui-monospace, "Cascadia Code", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    font-size:14px;
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+    -webkit-tap-highlight-color:transparent;
+  }
+  button, input{ font:inherit; }
+  button{ -webkit-tap-highlight-color:transparent; }
+
+  /* ---------- top bar ---------- */
+  .topbar{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:calc(8px + var(--safe-top)) 12px 8px;
+    background:var(--panel);
+    border-bottom:1px solid var(--border);
+    flex-wrap:nowrap;
+    flex-shrink:0;
+    z-index:30;
+    position:relative;
+  }
+  .topbar .brand{
+    font-family:var(--mono);
+    font-weight:600;
+    font-size:13px;
+    letter-spacing:0.02em;
+    color:var(--accent);
+    white-space:nowrap;
+    flex-shrink:0;
+  }
+  .topbar .brand span{color:var(--text-faint);}
+  .topbar .origin-note{
+    font-family:var(--mono);
+    font-size:11px;
+    color:var(--text-faint);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .menu-btn{
+    display:none;
+    background:transparent;
+    border:1px solid var(--border);
+    color:var(--text-dim);
+    width:34px;
+    height:34px;
+    border-radius:6px;
+    cursor:pointer;
+    flex-shrink:0;
+    align-items:center;
+    justify-content:center;
+    font-size:16px;
+  }
+  .menu-btn:active{background:var(--panel-2);}
+  .topbar-fields{
+    display:flex;
+    align-items:flex-end;
+    gap:10px;
+    flex:1;
+    min-width:0;
+  }
+  .field{
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+    min-width:0;
+  }
+  .field label{
+    font-size:10px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--text-faint);
+  }
+  .field input{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:6px 8px;
+    border-radius:5px;
+    font-family:var(--mono);
+    font-size:12.5px;
+    width:100%;
+    min-width:0;
+  }
+  .field input:focus{outline:none;border-color:var(--accent-dim);}
+  .token-field{ flex:1 1 260px; min-width:110px; }
+  .pill-btn{
+    background:transparent;
+    border:1px solid var(--border);
+    color:var(--text-dim);
+    padding:6px 10px;
+    border-radius:5px;
+    font-size:11.5px;
+    cursor:pointer;
+    font-family:var(--sans);
+    align-self:flex-end;
+    white-space:nowrap;
+    flex-shrink:0;
+  }
+  .pill-btn:hover{border-color:var(--accent-dim);color:var(--accent);}
+  .pill-btn:active{transform:translateY(1px);}
+  .status-dot{
+    width:8px;height:8px;border-radius:50%;
+    background:var(--text-faint);
+    align-self:flex-end;
+    margin-bottom:8px;
+    flex-shrink:0;
+  }
+  .status-dot.on{background:var(--ok);box-shadow:0 0 6px var(--ok);}
+  .topbar-actions{ display:flex; align-items:flex-end; gap:8px; flex-shrink:0; }
+
+  /* ---------- layout ---------- */
+  .layout{
+    flex:1;
+    display:grid;
+    grid-template-columns:270px 1fr 1fr;
+    min-height:0;
+    position:relative;
+  }
+
+  /* scrim for mobile drawer */
+  .scrim{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.55);
+    z-index:35;
+  }
+  .scrim.show{display:block;}
+
+  /* ---------- sidebar ---------- */
+  .sidebar{
+    border-right:1px solid var(--border);
+    overflow-y:auto;
+    background:var(--panel);
+    min-height:0;
+    display:flex;
+    flex-direction:column;
+  }
+  .sidebar-search{
+    position:sticky;
+    top:0;
+    background:var(--panel);
+    padding:10px 12px;
+    border-bottom:1px solid var(--border-soft);
+    z-index:2;
+  }
+  .sidebar-search input{
+    width:100%;
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:7px 9px;
+    border-radius:6px;
+    font-family:var(--mono);
+    font-size:12.5px;
+  }
+  .sidebar-search input:focus{outline:none;border-color:var(--accent-dim);}
+  .sidebar-list{ flex:1; overflow-y:auto; }
+  .group-title{
+    padding:12px 14px 6px;
+    font-size:10.5px;
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+    color:var(--text-faint);
+    border-top:1px solid var(--border-soft);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+  }
+  .group-title:first-child{border-top:none;}
+  .group-count{ font-family:var(--mono); color:var(--text-faint); font-size:9.5px; }
+  .endpoint{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:9px 14px;
+    cursor:pointer;
+    border-left:2px solid transparent;
+    min-height:40px;
+  }
+  .endpoint:hover{background:var(--panel-2);}
+  .endpoint.active{
+    background:var(--panel-2);
+    border-left-color:var(--accent);
+  }
+  .endpoint.disabled{opacity:0.45;cursor:not-allowed;}
+  .endpoint.disabled:hover{background:transparent;}
+  .method-tag{
+    font-family:var(--mono);
+    font-size:10px;
+    font-weight:700;
+    padding:2px 5px;
+    border-radius:3px;
+    width:42px;
+    text-align:center;
+    flex-shrink:0;
+  }
+  .m-GET{color:var(--get);background:rgba(79,209,197,0.12);}
+  .m-POST{color:var(--post);background:rgba(95,168,245,0.12);}
+  .m-PATCH{color:var(--patch);background:rgba(227,179,65,0.12);}
+  .m-DELETE{color:var(--delete);background:rgba(244,113,116,0.12);}
+  .endpoint-name{
+    font-size:12.5px;
+    color:var(--text-dim);
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    flex:1;
+    min-width:0;
+  }
+  .endpoint.active .endpoint-name{color:var(--text);}
+  .not-wired-badge{
+    font-size:9px;
+    color:var(--text-faint);
+    border:1px solid var(--border);
+    padding:1px 4px;
+    border-radius:3px;
+    flex-shrink:0;
+    white-space:nowrap;
+  }
+  .sidebar-empty{
+    padding:24px 14px;
+    color:var(--text-faint);
+    font-size:12px;
+    font-style:italic;
+    text-align:center;
+  }
+
+  /* ---------- request panel ---------- */
+  .request-panel{
+    border-right:1px solid var(--border);
+    overflow-y:auto;
+    padding:18px;
+    min-height:0;
+    -webkit-overflow-scrolling:touch;
+  }
+  .req-head{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:4px;
+    flex-wrap:wrap;
+  }
+  .req-head .method-tag{width:auto;padding:3px 8px;font-size:11px;}
+  .req-path{
+    font-family:var(--mono);
+    font-size:13px;
+    color:var(--text);
+    word-break:break-all;
+  }
+  .req-desc{
+    color:var(--text-faint);
+    font-size:12px;
+    margin:0 0 16px;
+    line-height:1.5;
+  }
+  .req-desc code{
+    font-family:var(--mono);
+    background:var(--panel-2);
+    padding:1px 4px;
+    border-radius:3px;
+    color:var(--text-dim);
+  }
+  .warn-banner{
+    background:rgba(227,179,65,0.1);
+    border:1px solid rgba(227,179,65,0.35);
+    color:var(--patch);
+    font-size:12px;
+    line-height:1.5;
+    padding:10px 12px;
+    border-radius:6px;
+    margin:0 0 16px;
+  }
+  .section-label{
+    font-size:10.5px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--text-faint);
+    margin:16px 0 8px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+  }
+  .section-label:first-of-type{margin-top:0;}
+  .format-btn{
+    font-size:10px;
+    text-transform:none;
+    letter-spacing:0;
+    background:transparent;
+    border:1px solid var(--border);
+    color:var(--text-faint);
+    padding:2px 7px;
+    border-radius:4px;
+    cursor:pointer;
+  }
+  .format-btn:hover{color:var(--accent);border-color:var(--accent-dim);}
+  .param-row{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom:8px;
+  }
+  .param-row .param-name{
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--text-dim);
+    width:110px;
+    flex-shrink:0;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .param-row input, .param-row select{
+    flex:1;
+    min-width:0;
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:8px 9px;
+    border-radius:5px;
+    font-family:var(--mono);
+    font-size:13px;
+  }
+  .param-row input:focus, .param-row select:focus, textarea:focus{outline:none;border-color:var(--accent-dim);}
+  textarea.body-editor{
+    width:100%;
+    min-height:150px;
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:10px;
+    border-radius:6px;
+    font-family:var(--mono);
+    font-size:12.5px;
+    line-height:1.5;
+    resize:vertical;
+    tab-size:2;
+  }
+  .json-error{
+    color:var(--err);
+    font-size:11.5px;
+    font-family:var(--mono);
+    margin-top:6px;
+  }
+  .empty-note{
+    color:var(--text-faint);
+    font-size:12px;
+    font-style:italic;
+  }
+  .send-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-top:20px;
+    flex-wrap:wrap;
+  }
+  .send-btn{
+    background:var(--accent);
+    color:#04201d;
+    border:none;
+    padding:10px 22px;
+    border-radius:6px;
+    font-weight:600;
+    font-size:13.5px;
+    cursor:pointer;
+    flex-shrink:0;
+  }
+  .send-btn:hover{filter:brightness(1.08);}
+  .send-btn:active{transform:translateY(1px);}
+  .send-btn:disabled{opacity:0.5;cursor:default;}
+  .auth-note{
+    font-size:11.5px;
+    color:var(--text-faint);
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .lock-icon{font-size:12px;}
+  .shortcut-hint{
+    font-size:10.5px;
+    color:var(--text-faint);
+    font-family:var(--mono);
+    margin-left:auto;
+  }
+  @media (max-width:760px){ .shortcut-hint{display:none;} }
+
+  /* ---------- response panel ---------- */
+  .response-panel{
+    overflow-y:hidden;
+    padding:18px;
+    display:flex;
+    flex-direction:column;
+    min-height:0;
+  }
+  .response-panel .section-label{margin-top:0;}
+  .resp-meta{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:12px;
+    flex-wrap:wrap;
+  }
+  .status-badge{
+    font-family:var(--mono);
+    font-weight:700;
+    font-size:13px;
+    padding:3px 9px;
+    border-radius:5px;
+  }
+  .status-2xx{color:var(--ok);background:rgba(79,209,197,0.12);}
+  .status-4xx{color:var(--patch);background:rgba(227,179,65,0.12);}
+  .status-5xx, .status-err{color:var(--err);background:rgba(244,113,116,0.12);}
+  .status-pending{color:var(--text-faint);background:var(--panel-2);}
+  .timing{
+    font-family:var(--mono);
+    font-size:11.5px;
+    color:var(--text-faint);
+  }
+  .copy-btn{
+    margin-left:auto;
+    background:transparent;
+    border:1px solid var(--border);
+    color:var(--text-dim);
+    padding:4px 10px;
+    border-radius:5px;
+    font-size:11px;
+    cursor:pointer;
+  }
+  .copy-btn:hover{border-color:var(--accent-dim);color:var(--accent);}
+  .copy-btn.copied{color:var(--ok);border-color:var(--accent-dim);}
+  pre.resp-body{
+    flex:1 1 auto;
+    min-height:120px;
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:14px;
+    margin:0;
+    font-family:var(--mono);
+    font-size:12px;
+    line-height:1.6;
+    overflow:auto;
+    white-space:pre-wrap;
+    word-break:break-word;
+    color:var(--text-dim);
+    -webkit-overflow-scrolling:touch;
+  }
+  .resp-placeholder{
+    color:var(--text-faint);
+    font-size:12.5px;
+    font-style:italic;
+  }
+  .json-key{color:#7ee787;}
+  .json-str{color:#a5d6ff;}
+  .json-num{color:#e3b341;}
+  .json-bool{color:#f47174;}
+  .json-null{color:var(--text-faint);}
+
+  /* ---------- history ---------- */
+  .history{
+    flex:0 0 auto;
+    margin-top:14px;
+    border-top:1px solid var(--border-soft);
+    padding-top:10px;
+    max-height:180px;
+    overflow-y:auto;
+  }
+  .history-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+  }
+  .history-clear{
+    background:transparent;
+    border:none;
+    color:var(--text-faint);
+    font-size:10.5px;
+    cursor:pointer;
+    text-decoration:underline;
+  }
+  .history-clear:hover{color:var(--err);}
+  .history-item{
+    display:flex;
+    gap:8px;
+    align-items:center;
+    padding:6px 2px;
+    font-family:var(--mono);
+    font-size:11px;
+    color:var(--text-faint);
+    cursor:pointer;
+    border-radius:4px;
+  }
+  .history-item:hover{color:var(--text-dim);background:var(--panel-2);}
+  .history-item .hist-status{
+    width:28px;
+    flex-shrink:0;
+  }
+  .history-item .hist-status.ok{color:var(--ok);}
+  .history-item .hist-status.bad{color:var(--err);}
+  .history-item .hist-path{
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    flex:1;
+    min-width:0;
+  }
+
+  ::-webkit-scrollbar{width:9px;height:9px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:5px;}
+  ::-webkit-scrollbar-thumb:hover{background:var(--text-faint);}
+
+  /* ---------- mobile tabs (shown only under breakpoint) ---------- */
+  .mobile-tabs{
+    display:none;
+    flex-shrink:0;
+    border-bottom:1px solid var(--border);
+    background:var(--panel);
+  }
+  .mobile-tabs button{
+    flex:1;
+    background:transparent;
+    border:none;
+    color:var(--text-faint);
+    padding:10px 0;
+    font-size:12.5px;
+    font-weight:600;
+    cursor:pointer;
+    border-bottom:2px solid transparent;
+  }
+  .mobile-tabs button.active{
+    color:var(--accent);
+    border-bottom-color:var(--accent);
+  }
+
+  /* =========================================================
+     RESPONSIVE BREAKPOINTS
+     ========================================================= */
+
+  @media (max-width:980px){
+    .layout{ grid-template-columns:1fr 1fr; }
+    .menu-btn{ display:flex; }
+    .sidebar{
+      position:fixed;
+      top:0; bottom:0; left:0;
+      width:min(300px, 84vw);
+      transform:translateX(-100%);
+      transition:transform 0.22s ease;
+      z-index:40;
+      padding-top:var(--safe-top);
+      box-shadow:2px 0 24px rgba(0,0,0,0.4);
+    }
+    .sidebar.open{ transform:translateX(0); }
+  }
+
+  @media (max-width:680px){
+    .topbar{ padding:calc(8px + var(--safe-top)) 10px 8px; gap:8px; }
+    .topbar .brand{ display:none; }
+    .topbar .origin-note{ display:none; }
+    .token-field{ flex:1 1 auto; }
+    .pill-btn span.pill-label{ display:none; }
+    .layout{ grid-template-columns:1fr; grid-template-rows:1fr; }
+    .sidebar{ width:min(320px, 88vw); }
+    .request-panel, .response-panel{
+      border-right:none;
+      grid-column:1;
+      grid-row:1;
+    }
+    .request-panel{ display:none; }
+    .response-panel{ display:none; }
+    .request-panel.mobile-active{ display:block; }
+    .response-panel.mobile-active{ display:flex; }
+    .mobile-tabs{ display:flex; }
+    .send-btn{ width:100%; }
+    .send-row{ flex-direction:column; align-items:stretch; }
+    .auth-note{ justify-content:center; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none !important;}
+  }
+
+  a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible{
+    outline:2px solid var(--accent);
+    outline-offset:1px;
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <button class="menu-btn" id="menuBtn" aria-label="Toggle endpoint list">☰</button>
+  <div class="brand">API<span>·</span>CONSOLE</div>
+  <div class="origin-note" id="originNote"></div>
+  <div class="topbar-fields">
+    <div class="field token-field">
+      <label for="tokenInput">Bearer token</label>
+      <input id="tokenInput" placeholder="paste token after login…" spellcheck="false">
+    </div>
+  </div>
+  <div class="topbar-actions">
+    <div class="status-dot" id="tokenDot" title="No token set"></div>
+    <button class="pill-btn" id="clearTokenBtn"><span class="pill-label">Clear </span>token</button>
+  </div>
+</div>
+
+<div class="scrim" id="scrim"></div>
+
+<div class="layout">
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-search">
+      <input id="endpointSearch" type="search" placeholder="Search endpoints… (/)" spellcheck="false" autocomplete="off">
+    </div>
+    <div class="sidebar-list" id="sidebarList"></div>
+  </div>
+
+  <div class="request-panel mobile-active" id="requestPanel">
+    <div class="empty-note">Pick an endpoint on the left to build a request.</div>
+  </div>
+
+  <div class="response-panel" id="responsePanel">
+    <div class="section-label">Response</div>
+    <div class="resp-placeholder">Nothing sent yet.</div>
+    <div class="history" id="historyWrap" style="display:none;">
+      <div class="history-head">
+        <div class="section-label" style="margin:0;">History (this session)</div>
+        <button class="history-clear" id="historyClearBtn">clear</button>
+      </div>
+      <div id="historyList"></div>
+    </div>
+  </div>
+</div>
+
+<div class="mobile-tabs" id="mobileTabs">
+  <button data-tab="request" class="active">Request</button>
+  <button data-tab="response">Response</button>
+</div>
+
+<script>
+// ---------------------------------------------------------------------
+// Endpoint catalog — mirrors app.js exactly, including its route order
+// (literal /users/profile, /users/projects, /users/comments registered
+// before the dynamic /users/:requested_id routes).
+//
+// This console is served BY the same Express app as the rest of
+// frontend/ (app.use(express.static(path.join(__dirname, "frontend")))),
+// so every request below uses a relative path — exactly like auth.js
+// does with fetch("/users/signup"). Whatever origin loaded this page
+// (localhost while developing, the Render URL once deployed) is
+// automatically where requests go. No base URL to configure or get
+// wrong.
+// ---------------------------------------------------------------------
+const ENDPOINTS = [
+  { group: "Users", name: "Signup", method: "POST", path: "/users/signup", auth: false,
+    body: { email: "test@example.com", password: "secret123" } },
+  { group: "Users", name: "Login", method: "POST", path: "/users/login", auth: false,
+    body: { email: "test@example.com", password: "secret123" } },
+  { group: "Users", name: "Create profile", method: "POST", path: "/users/profile", auth: true,
+    body: { name: "Rehan", bio: "Backend dev" } },
+  { group: "Users", name: "Update profile", method: "PATCH", path: "/users/profile", auth: true,
+    body: { name: "Rehan", bio: "Updated bio" } },
+  { group: "Users", name: "Get my profile", method: "GET", path: "/users/profile", auth: true },
+  { group: "Users", name: "Get my projects", method: "GET", path: "/users/projects", auth: true },
+  { group: "Users", name: "Get my comments", method: "GET", path: "/users/comments", auth: true },
+  { group: "Users", name: "Delete my comment", method: "DELETE", path: "/users/comments/:comment_id", auth: true,
+    params: [{ name: "comment_id", type: "number" }] },
+  { group: "Users", name: "Delete my account", method: "DELETE", path: "/users", auth: true },
+  { group: "Users", name: "Update email", method: "PATCH", path: "/users/:requested_id", auth: true,
+    params: [{ name: "requested_id", type: "uuid", placeholder: "your own user id" }],
+    body: { email: "new@example.com" } },
+  { group: "Users", name: "Get all users (admin)", method: "GET", path: "/users", auth: true },
+  { group: "Users", name: "Get user by id (admin)", method: "GET", path: "/users/:requested_id", auth: true,
+    params: [{ name: "requested_id", type: "uuid" }] },
+
+  { group: "Projects", name: "Create project", method: "POST", path: "/projects", auth: true,
+    body: { name: "New Project", description: "A test project", status: "active" } },
+  { group: "Projects", name: "Get one project", method: "GET", path: "/projects/:project_id", auth: true,
+    params: [{ name: "project_id", type: "uuid" }] },
+  { group: "Projects", name: "Get my project list", method: "GET", path: "/projects", auth: true },
+  { group: "Projects", name: "Get tasks by project", method: "GET", path: "/projects/:project_id/tasks", auth: true,
+    params: [{ name: "project_id", type: "uuid" }] },
+  { group: "Projects", name: "Update project", method: "PATCH", path: "/projects/:project_id", auth: true,
+    params: [{ name: "project_id", type: "uuid" }],
+    body: { name: "Renamed Project", description: "Updated desc", status: "active" } },
+  { group: "Projects", name: "Delete project", method: "DELETE", path: "/projects/:project_id", auth: true,
+    params: [{ name: "project_id", type: "uuid" }] },
+
+  { group: "Project Members", name: "Get my membership", method: "GET", path: "/projects/:project_id/membership", auth: true,
+    params: [{ name: "project_id", type: "uuid" }] },
+  { group: "Project Members", name: "Add member", method: "POST", path: "/projects/:project_id/users/:target_user_id", auth: true,
+    params: [{ name: "project_id", type: "uuid" }, { name: "target_user_id", type: "uuid" }],
+    body: { role: "member" } },
+  { group: "Project Members", name: "Get all members", method: "GET", path: "/projects/:project_id/members", auth: true,
+    params: [{ name: "project_id", type: "uuid" }] },
+  { group: "Project Members", name: "Remove member", method: "DELETE", path: "/projects/:project_id/users/:target_user_id", auth: true,
+    params: [{ name: "project_id", type: "uuid" }, { name: "target_user_id", type: "uuid" }] },
+  { group: "Project Members", name: "Change member role", method: "PATCH", path: "/projects/:project_id/users/:target_user_id", auth: true,
+    params: [{ name: "project_id", type: "uuid" }, { name: "target_user_id", type: "uuid" }],
+    body: { role: "owner" } },
+
+  { group: "Tasks", name: "Create task", method: "POST", path: "/projects/:project_id/tasks", auth: true,
+    params: [{ name: "project_id", type: "uuid" }],
+    body: { title: "New task", priority: "medium", due_date: "2026-09-15T00:00:00.000Z" } },
+  { group: "Tasks", name: "Get my tasks (paginated)", method: "GET", path: "/tasks", auth: true,
+    query: [{ name: "page", value: "1" }, { name: "limit", value: "10" }] },
+  { group: "Tasks", name: "Get one task", method: "GET", path: "/tasks/:task_id", auth: true,
+    params: [{ name: "task_id", type: "number" }] },
+  { group: "Tasks", name: "Update task", method: "PATCH", path: "/tasks/:task_id", auth: true,
+    params: [{ name: "task_id", type: "number" }],
+    body: { title: "Updated task", priority: "high", due_date: "2026-09-20T00:00:00.000Z" } },
+  { group: "Tasks", name: "Toggle complete", method: "PATCH", path: "/tasks/:task_id/complete", auth: true,
+    params: [{ name: "task_id", type: "number" }] },
+  { group: "Tasks", name: "Delete task (owner only)", method: "DELETE", path: "/tasks/:task_id", auth: true,
+    params: [{ name: "task_id", type: "number" }] },
+
+  { group: "Tags", name: "Create tag", method: "POST", path: "/tags", auth: true,
+    body: { tag_name: "urgent" } },
+  { group: "Tags", name: "Get all tags", method: "GET", path: "/tags", auth: true },
+  { group: "Tags", name: "Add tag to task", method: "POST", path: "/tasks/:task_id/tags/:tag_id", auth: true,
+    params: [{ name: "task_id", type: "number" }, { name: "tag_id", type: "number" }] },
+  { group: "Tags", name: "Get tags on task", method: "GET", path: "/tasks/:task_id/tags", auth: true,
+    params: [{ name: "task_id", type: "number" }] },
+  { group: "Tags", name: "Remove tag from task", method: "DELETE", path: "/tasks/:task_id/tags/:tag_id", auth: true,
+    params: [{ name: "task_id", type: "number" }, { name: "tag_id", type: "number" }] },
+
+  { group: "Comments", name: "Create comment", method: "POST", path: "/tasks/:task_id/comments", auth: true,
+    params: [{ name: "task_id", type: "number" }],
+    body: { new_body: "This is a comment" } },
+  { group: "Comments", name: "Get comments on task", method: "GET", path: "/tasks/:task_id/comments", auth: true,
+    params: [{ name: "task_id", type: "number" }] },
+  { group: "Comments", name: "Delete all comments on task (owner only)", method: "DELETE", path: "/tasks/:task_id/comments", auth: true,
+    params: [{ name: "task_id", type: "number" }] },
+
+  { group: "Testing", name: "Owner test page", method: "GET", path: "/testing", auth: false,
+    query: [{ name: "key", value: "" }] },
+];
+
+let activeIndex = null;
+let historyLog = [];
+let searchTerm = "";
+let mobileTab = "request";
+
+const sidebar = document.getElementById('sidebar');
+const sidebarList = document.getElementById('sidebarList');
+const requestPanel = document.getElementById('requestPanel');
+const responsePanel = document.getElementById('responsePanel');
+const tokenInput = document.getElementById('tokenInput');
+const tokenDot = document.getElementById('tokenDot');
+const scrim = document.getElementById('scrim');
+const menuBtn = document.getElementById('menuBtn');
+const endpointSearch = document.getElementById('endpointSearch');
+const mobileTabs = document.getElementById('mobileTabs');
+const originNote = document.getElementById('originNote');
+
+// Show where requests are actually going, for sanity — no input needed,
+// it's always wherever this page itself was loaded from.
+originNote.textContent = window.location.origin;
+
+// ---------------------------------------------------------------------
+// Persistence — only the token needs to survive a reload now.
+// ---------------------------------------------------------------------
+function loadPersisted(){
+  try{
+    const savedToken = localStorage.getItem('apiconsole.token');
+    if (savedToken){
+      tokenInput.value = savedToken;
+      tokenDot.classList.add('on');
+    }
+  } catch(e) { /* storage unavailable, ignore */ }
+}
+function persistToken(){
+  try{ localStorage.setItem('apiconsole.token', tokenInput.value); } catch(e){}
+}
+
+// ---------------------------------------------------------------------
+// Sidebar
+// ---------------------------------------------------------------------
+function matchesSearch(ep, term){
+  if (!term) return true;
+  const hay = (ep.name + ' ' + ep.method + ' ' + ep.path + ' ' + ep.group).toLowerCase();
+  return hay.includes(term.toLowerCase());
+}
+
+function escapeHtml(str){
+  return String(str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function buildSidebar(){
+  const groups = {};
+  ENDPOINTS.forEach((ep, i) => {
+    if (!matchesSearch(ep, searchTerm)) return;
+    groups[ep.group] = groups[ep.group] || [];
+    groups[ep.group].push(i);
+  });
+
+  sidebarList.innerHTML = '';
+  const groupNames = Object.keys(groups);
+
+  if (!groupNames.length){
+    sidebarList.innerHTML = `<div class="sidebar-empty">No endpoints match "${escapeHtml(searchTerm)}".</div>`;
+    return;
+  }
+
+  groupNames.forEach(groupName => {
+    const title = document.createElement('div');
+    title.className = 'group-title';
+    title.innerHTML = `<span>${escapeHtml(groupName)}</span><span class="group-count">${groups[groupName].length}</span>`;
+    sidebarList.appendChild(title);
+    groups[groupName].forEach(i => {
+      const ep = ENDPOINTS[i];
+      const row = document.createElement('div');
+      row.className = 'endpoint' + (ep.notWired ? ' disabled' : '');
+      row.dataset.index = i;
+      row.setAttribute('role', 'button');
+      row.tabIndex = 0;
+      row.innerHTML = `<span class="method-tag m-${ep.method}">${ep.method}</span><span class="endpoint-name">${escapeHtml(ep.name)}</span>${ep.notWired ? '<span class="not-wired-badge">no route</span>' : ''}`;
+      row.addEventListener('click', () => { selectEndpoint(i); closeDrawer(); });
+      row.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); selectEndpoint(i); closeDrawer(); }
+      });
+      sidebarList.appendChild(row);
+    });
+  });
+}
+
+function selectEndpoint(i){
+  activeIndex = i;
+  document.querySelectorAll('.endpoint').forEach(el => {
+    el.classList.toggle('active', Number(el.dataset.index) === i);
+  });
+  renderRequestPanel(ENDPOINTS[i]);
+  setMobileTab('request');
+}
+
+// ---------------------------------------------------------------------
+// Mobile drawer + tabs
+// ---------------------------------------------------------------------
+function openDrawer(){
+  sidebar.classList.add('open');
+  scrim.classList.add('show');
+}
+function closeDrawer(){
+  sidebar.classList.remove('open');
+  scrim.classList.remove('show');
+}
+menuBtn.addEventListener('click', () => {
+  sidebar.classList.contains('open') ? closeDrawer() : openDrawer();
+});
+scrim.addEventListener('click', closeDrawer);
+
+function setMobileTab(tab){
+  mobileTab = tab;
+  requestPanel.classList.toggle('mobile-active', tab === 'request');
+  responsePanel.classList.toggle('mobile-active', tab === 'response');
+  document.querySelectorAll('.mobile-tabs button').forEach(b => {
+    b.classList.toggle('active', b.dataset.tab === tab);
+  });
+}
+mobileTabs.addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-tab]');
+  if (btn) setMobileTab(btn.dataset.tab);
+});
+
+// ---------------------------------------------------------------------
+// Request panel rendering
+// ---------------------------------------------------------------------
+function renderRequestPanel(ep){
+  let html = `
+    <div class="req-head">
+      <span class="method-tag m-${ep.method}">${ep.method}</span>
+      <span class="req-path">${escapeHtml(ep.path)}</span>
+    </div>
+    <p class="req-desc">${ep.auth ? 'Requires <code>Authorization: Bearer &lt;token&gt;</code>.' : 'No auth required.'}</p>
+  `;
+
+  if (ep.notWired){
+    html += `<div class="warn-banner">This controller/service exists in code, but no route is registered for it in <code>app.js</code> yet. Sending this will return <code>404 Route not found</code>.</div>`;
+  }
+
+  if (ep.params && ep.params.length){
+    html += `<div class="section-label">Path params</div>`;
+    ep.params.forEach(p => {
+      html += `
+        <div class="param-row">
+          <span class="param-name">${escapeHtml(p.name)}</span>
+          <input data-param="${escapeHtml(p.name)}" placeholder="${escapeHtml(p.placeholder || (p.type === 'uuid' ? 'uuid…' : 'numeric id…'))}" spellcheck="false" autocapitalize="off">
+        </div>`;
+    });
+  }
+
+  if (ep.query && ep.query.length){
+    html += `<div class="section-label">Query params</div>`;
+    ep.query.forEach(q => {
+      html += `
+        <div class="param-row">
+          <span class="param-name">${escapeHtml(q.name)}</span>
+          <input data-query="${escapeHtml(q.name)}" value="${escapeHtml(q.value || '')}" spellcheck="false" autocapitalize="off">
+        </div>`;
+    });
+  }
+
+  const bodyLabel = ep.body
+    ? `<div class="section-label">Body <button type="button" class="format-btn" id="formatBtn">format</button></div>`
+    : `<div class="section-label">Body (none)</div>`;
+  html += bodyLabel;
+
+  if (ep.body){
+    html += `<textarea class="body-editor" id="bodyEditor" spellcheck="false">${escapeHtml(JSON.stringify(ep.body, null, 2))}</textarea>`;
+    html += `<div class="json-error" id="jsonError"></div>`;
+  } else {
+    html += `<div class="empty-note">This request has no body.</div>`;
+  }
+
+  html += `
+    <div class="send-row">
+      <button class="send-btn" id="sendBtn">Send request</button>
+      ${ep.auth ? '<span class="auth-note"><span class="lock-icon">🔒</span> uses token above</span>' : ''}
+      <span class="shortcut-hint">⌘/Ctrl + Enter to send</span>
+    </div>
+  `;
+
+  requestPanel.innerHTML = html;
+  document.getElementById('sendBtn').addEventListener('click', () => sendRequest(ep));
+
+  const editor = document.getElementById('bodyEditor');
+  if (editor){
+    editor.addEventListener('input', () => validateJsonLive());
+    editor.addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter'){
+        e.preventDefault();
+        sendRequest(ep);
+      }
+      if (e.key === 'Tab'){
+        e.preventDefault();
+        const start = editor.selectionStart, end = editor.selectionEnd;
+        editor.value = editor.value.slice(0, start) + '  ' + editor.value.slice(end);
+        editor.selectionStart = editor.selectionEnd = start + 2;
+      }
+    });
+  }
+  const formatBtn = document.getElementById('formatBtn');
+  if (formatBtn){
+    formatBtn.addEventListener('click', () => {
+      try{
+        const parsed = JSON.parse(editor.value);
+        editor.value = JSON.stringify(parsed, null, 2);
+        validateJsonLive();
+      } catch(e){ /* leave as-is, error already shown */ }
+    });
+  }
+
+  requestPanel.querySelectorAll('[data-param], [data-query]').forEach(inp => {
+    inp.addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter'){
+        e.preventDefault();
+        sendRequest(ep);
+      }
+    });
+  });
+}
+
+function validateJsonLive(){
+  const editor = document.getElementById('bodyEditor');
+  const errEl = document.getElementById('jsonError');
+  if (!editor || !errEl) return;
+  try{
+    JSON.parse(editor.value);
+    errEl.textContent = '';
+  } catch(e){
+    errEl.textContent = 'Invalid JSON — ' + e.message;
+  }
+}
+
+// ---------------------------------------------------------------------
+// JSON syntax highlight
+// ---------------------------------------------------------------------
+function highlightJson(obj){
+  const json = JSON.stringify(obj, null, 2);
+  return json
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)/g,
+      (match) => {
+        let cls = 'json-num';
+        if (/^"/.test(match)){
+          cls = /:$/.test(match) ? 'json-key' : 'json-str';
+        } else if (/true|false/.test(match)){
+          cls = 'json-bool';
+        } else if (/null/.test(match)){
+          cls = 'json-null';
+        }
+        return `<span class="${cls}">${match}</span>`;
+      });
+}
+
+// ---------------------------------------------------------------------
+// Sending requests — always relative, always same-origin as this page.
+// Works unmodified on localhost during development and on Render (or
+// anywhere else) once deployed, because it's served by the same
+// Express app that owns the API routes.
+// ---------------------------------------------------------------------
+async function sendRequest(ep){
+  let path = ep.path;
+  let missingParam = false;
+
+  if (ep.params){
+    for (const p of ep.params){
+      const el = document.querySelector(`[data-param="${cssEscape(p.name)}"]`);
+      const val = el ? el.value.trim() : '';
+      if (!val){ missingParam = true; if (el) el.style.borderColor = 'var(--err)'; }
+      path = path.replace(`:${p.name}`, encodeURIComponent(val || `:${p.name}`));
+    }
+  }
+
+  if (missingParam){
+    renderResponse({ error: true, status: null, statusText: 'Missing required path param(s)', body: 'Fill in every path param highlighted in red before sending.', ms: 0, method: ep.method, path });
+    setMobileTab('response');
+    return;
+  }
+
+  let query = '';
+  if (ep.query){
+    const parts = [];
+    ep.query.forEach(q => {
+      const el = document.querySelector(`[data-query="${cssEscape(q.name)}"]`);
+      const val = el ? el.value.trim() : '';
+      if (val) parts.push(`${encodeURIComponent(q.name)}=${encodeURIComponent(val)}`);
+    });
+    if (parts.length) query = '?' + parts.join('&');
+  }
+
+  const url = path + query; // relative — resolves against window.location.origin automatically
+
+  const headers = { 'Content-Type': 'application/json' };
+  const token = tokenInput.value.trim();
+  if (ep.auth && token){
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  let bodyStr = undefined;
+  if (ep.body){
+    const editor = document.getElementById('bodyEditor');
+    try {
+      const parsed = JSON.parse(editor.value);
+      bodyStr = JSON.stringify(parsed);
+    } catch (e) {
+      renderResponse({ error: true, status: null, statusText: 'Invalid JSON in request body', body: e.message, ms: 0, method: ep.method, path });
+      setMobileTab('response');
+      return;
+    }
+  }
+
+  const sendBtn = document.getElementById('sendBtn');
+  if (sendBtn){ sendBtn.disabled = true; sendBtn.textContent = 'Sending…'; }
+  renderPending();
+  setMobileTab('response');
+
+  const started = performance.now();
+  try {
+    const res = await fetch(url, {
+      method: ep.method,
+      headers,
+      body: (ep.method !== 'GET' && bodyStr !== undefined) ? bodyStr : undefined,
+    });
+    const ms = Math.round(performance.now() - started);
+    const text = await res.text();
+    let parsedBody = text;
+    let contentType = res.headers.get('content-type') || '';
+    if (contentType.includes('application/json') && text){
+      try { parsedBody = JSON.parse(text); } catch(e) { /* leave as text */ }
+    }
+    const result = { error: false, status: res.status, statusText: res.statusText, body: parsedBody, ms, method: ep.method, path };
+    renderResponse(result);
+    logHistory(result);
+  } catch (err) {
+    const ms = Math.round(performance.now() - started);
+    const result = { error: true, status: null, statusText: 'Network error', body: err.message, ms, method: ep.method, path };
+    renderResponse(result);
+    logHistory(result);
+  } finally {
+    const btn = document.getElementById('sendBtn');
+    if (btn){ btn.disabled = false; btn.textContent = 'Send request'; }
+  }
+}
+
+function cssEscape(str){
+  return String(str).replace(/(["\\])/g, '\\$1');
+}
+
+function statusClass(status, isError){
+  if (isError || status === null) return 'status-err';
+  if (status >= 200 && status < 300) return 'status-2xx';
+  if (status >= 400 && status < 500) return 'status-4xx';
+  return 'status-5xx';
+}
+
+function renderPending(){
+  responsePanel.innerHTML = `
+    <div class="section-label">Response</div>
+    <div class="resp-meta">
+      <span class="status-badge status-pending">…</span>
+    </div>
+    <pre class="resp-body">waiting…</pre>
+  `;
+}
+
+let lastResultRaw = '';
+
+function renderResponse(result){
+  const cls = statusClass(result.status, result.error);
+  const label = result.error ? (result.status || 'ERR') : result.status;
+  let bodyHtml;
+  if (typeof result.body === 'object' && result.body !== null){
+    bodyHtml = highlightJson(result.body);
+    lastResultRaw = JSON.stringify(result.body, null, 2);
+  } else {
+    const raw = String(result.body ?? '(empty response)');
+    lastResultRaw = raw;
+    bodyHtml = raw.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  responsePanel.innerHTML = `
+    <div class="section-label">Response</div>
+    <div class="resp-meta">
+      <span class="status-badge ${cls}">${label} ${result.statusText || ''}</span>
+      <span class="timing">${result.ms}ms</span>
+      <button class="copy-btn" id="copyRespBtn">Copy</button>
+    </div>
+    <pre class="resp-body">${bodyHtml}</pre>
+    <div class="history" id="historyWrap" style="${historyLog.length ? '' : 'display:none;'}">
+      <div class="history-head">
+        <div class="section-label" style="margin:0;">History (this session)</div>
+        <button class="history-clear" id="historyClearBtn">clear</button>
+      </div>
+      <div id="historyList"></div>
+    </div>
+  `;
+  renderHistoryList();
+
+  const copyBtn = document.getElementById('copyRespBtn');
+  if (copyBtn){
+    copyBtn.addEventListener('click', () => copyToClipboard(lastResultRaw, copyBtn));
+  }
+  const clearBtn = document.getElementById('historyClearBtn');
+  if (clearBtn){
+    clearBtn.addEventListener('click', () => {
+      historyLog = [];
+      renderHistoryList();
+    });
+  }
+}
+
+function copyToClipboard(text, btn){
+  const done = () => {
+    const original = btn.textContent;
+    btn.textContent = 'Copied';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = original; btn.classList.remove('copied'); }, 1200);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+  } else {
+    fallbackCopy(text, done);
+  }
+}
+function fallbackCopy(text, done){
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try{ document.execCommand('copy'); done(); } catch(e){}
+  document.body.removeChild(ta);
+}
+
+function logHistory(result){
+  historyLog.unshift(result);
+  if (historyLog.length > 25) historyLog.pop();
+}
+
+function renderHistoryList(){
+  const wrap = document.getElementById('historyWrap');
+  const list = document.getElementById('historyList');
+  if (!wrap || !list) return;
+  if (!historyLog.length){ wrap.style.display = 'none'; return; }
+  wrap.style.display = '';
+  list.innerHTML = historyLog.map((h, idx) => {
+    const ok = !h.error && h.status >= 200 && h.status < 400;
+    return `<div class="history-item" data-hist-index="${idx}">
+      <span class="hist-status ${ok ? 'ok' : 'bad'}">${h.error ? 'ERR' : h.status}</span>
+      <span>${escapeHtml(h.method)}</span>
+      <span class="hist-path">${escapeHtml(h.path)}</span>
+      <span style="margin-left:auto;flex-shrink:0;">${h.ms}ms</span>
+    </div>`;
+  }).join('');
+  list.querySelectorAll('.history-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const idx = Number(el.dataset.histIndex);
+      renderResponse(historyLog[idx]);
+      setMobileTab('response');
+    });
+  });
+}
+
+// ---------------------------------------------------------------------
+// Search
+// ---------------------------------------------------------------------
+endpointSearch.addEventListener('input', (e) => {
+  searchTerm = e.target.value;
+  buildSidebar();
+});
+
+// ---------------------------------------------------------------------
+// Token
+// ---------------------------------------------------------------------
+tokenInput.addEventListener('input', () => {
+  tokenDot.classList.toggle('on', tokenInput.value.trim().length > 0);
+  persistToken();
+});
+document.getElementById('clearTokenBtn').addEventListener('click', () => {
+  tokenInput.value = '';
+  tokenDot.classList.remove('on');
+  persistToken();
+});
+
+function tryAutoFillToken(body){
+  if (body && typeof body === 'object' && typeof body.token === 'string'){
+    tokenInput.value = body.token;
+    tokenDot.classList.add('on');
+    persistToken();
+  }
+}
+const originalRenderResponse = renderResponse;
+renderResponse = function(result){
+  originalRenderResponse(result);
+  tryAutoFillToken(result.body);
+};
+
+// ---------------------------------------------------------------------
+// Keyboard shortcuts: "/" focuses search (unless already typing)
+// ---------------------------------------------------------------------
+document.addEventListener('keydown', (e) => {
+  if (e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA'){
+    e.preventDefault();
+    if (window.innerWidth <= 980) openDrawer();
+    endpointSearch.focus();
+  }
+  if (e.key === 'Escape'){
+    closeDrawer();
+  }
+});
+
+// ---------------------------------------------------------------------
+// Init
+// ---------------------------------------------------------------------
+loadPersisted();
+buildSidebar();
+selectEndpoint(0);
+</script>
+
+</body>
+</html>

@@ -25,7 +25,7 @@ app.use(express.static(path.join(__dirname, "frontend")));
 // :requested_id param and these routes never get reached.
 
 app.get("/testing", authenticateOwner, (req, res) => {
-  res.sendFile(path.join(__dirname, "authOwner.html"));
+  res.sendFile(path.join(__dirname, "frontend", "testing.html")); 
 });
 
 app.post("/users/signup", asyncHandler(userControllers.signup));
