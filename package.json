@@ -2,9 +2,9 @@
   "name": "session-auth-practice",
   "version": "1.0.0",
   "description": "Practice: session-based auth from scratch, no external auth provider",
-  "main": "server.js",
+  "main": "app.js",
   "scripts": {
-    "start": "app.js"
+    "start": "node app.js"
   },
   "dependencies": {
     "@prisma/client": "^7.9.1",
