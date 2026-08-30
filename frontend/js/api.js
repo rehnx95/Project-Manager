@@ -3,7 +3,7 @@
 // app.js falls back to PORT 7000 if .env doesn't set PORT — change
 // this if your .env sets a different value.
 // ---------------------------------------------------------------
-const API_BASE = "http://localhost:7000";
+const API_BASE = location.origin;
 const TOKEN_KEY = "depot_token";
 
 function getToken() {
@@ -47,7 +47,10 @@ function requireAuth() {
 }
 
 async function api(path, opts = {}) {
-  const headers = { "Content-Type": "application/json", ...(opts.headers || {}) };
+  const headers = {
+    "Content-Type": "application/json",
+    ...(opts.headers || {}),
+  };
   const token = getToken();
   if (token) headers["Authorization"] = "Bearer " + token;
 
@@ -55,7 +58,9 @@ async function api(path, opts = {}) {
   try {
     res = await fetch(API_BASE + path, { ...opts, headers });
   } catch (networkErr) {
-    throw new Error("Could not reach the server. Is it running on " + API_BASE + "?");
+    throw new Error(
+      "Could not reach the server. Is it running on " + API_BASE + "?",
+    );
   }
 
   if (res.status === 401) {
@@ -73,7 +78,9 @@ async function api(path, opts = {}) {
 
   if (!res.ok) {
     const raw = data && data.error;
-    const msg = Array.isArray(raw) ? raw.join(", ") : raw || "Request failed (" + res.status + ")";
+    const msg = Array.isArray(raw)
+      ? raw.join(", ")
+      : raw || "Request failed (" + res.status + ")";
     throw new Error(msg);
   }
   return data;
@@ -109,8 +116,15 @@ function toLocalInputValue(iso) {
   if (isNaN(d)) return "";
   const pad = (n) => String(n).padStart(2, "0");
   return (
-    d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) +
-    "T" + pad(d.getHours()) + ":" + pad(d.getMinutes())
+    d.getFullYear() +
+    "-" +
+    pad(d.getMonth() + 1) +
+    "-" +
+    pad(d.getDate()) +
+    "T" +
+    pad(d.getHours()) +
+    ":" +
+    pad(d.getMinutes())
   );
 }
 
@@ -118,14 +132,24 @@ function formatDate(iso) {
   if (!iso) return "—";
   const d = new Date(String(iso).replace(" ", "T"));
   if (isNaN(d)) return iso;
-  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  return d.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 }
 
 function formatDateTime(iso) {
   if (!iso) return "—";
   const d = new Date(String(iso).replace(" ", "T"));
   if (isNaN(d)) return iso;
-  return d.toLocaleString(undefined, { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  return d.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function qs(name) {
