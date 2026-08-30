@@ -246,3 +246,19 @@ table.simple tr:hover td { background: var(--panel-raised); cursor: pointer; }
   .list-row { gap: 0.5rem; }
   .row-actions { margin-left: 0; width: 100%; justify-content: flex-end; }
 }
+
+#testingBar {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 10;
+}
+#testingBar button {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.2);
+  color: inherit;
+  font-size: 12px;
+  padding: 6px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+}

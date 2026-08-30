@@ -14,6 +14,7 @@ const asyncHandler = require("./utils/asyncHandler");
 
 const app = express();
 const cors = require("cors");
+const authenticateOwner = require("./middleware/siteOwner");
 app.use(cors());
 app.use(express.json());
 const port = process.env.PORT || 7000;
@@ -22,6 +23,11 @@ app.use(express.static(path.join(__dirname, "frontend")));
 // users — static/literal sub-paths must come before /users/:requested_id,
 // otherwise Express matches "profile"/"projects"/"comments" as the
 // :requested_id param and these routes never get reached.
+
+app.get("/testing", authenticateOwner, (req, res) => {
+  res.sendFile(path.join(__dirname, "authOwner.html"));
+});
+
 app.post("/users/signup", asyncHandler(userControllers.signup));
 app.post("/users/login", asyncHandler(userControllers.login));
 
