@@ -22,7 +22,7 @@ async function createUsers(new_user) {
 async function findByEmail(email) {
   console.log(new Date().toLocaleTimeString("en-GB"), "[usersDatabase] findByEmail");
   const result = await pool.query(
-    "SELECT id,email,password FROM users WHERE email=$1",
+    "SELECT id,email,password,role FROM users WHERE email=$1",
     [email],
   );
   return result.rows[0];
