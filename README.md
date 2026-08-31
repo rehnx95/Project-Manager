@@ -1,5 +1,3 @@
-Working Url - https://project-manager-owgl.onrender.com/
-
 # Depot — Project & Task Management API
 
 A backend-focused project management API built with **Node.js**, **Express**, and **PostgreSQL**, with JWT-based authentication and a lightweight vanilla JS frontend to exercise every route.
