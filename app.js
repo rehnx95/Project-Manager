@@ -7,6 +7,7 @@ const tagControllers = require("./controllers/tagControllers");
 const projectMemberControllers = require("./controllers/projectMemberControllers");
 const projectControllers = require("./controllers/projectControllers");
 const commentControllers = require("./controllers/commentControllers");
+const noteControllers = require("./controllers/noteControllers");
 const authenticateToken = require("./middleware/authenticateToken");
 const authenticateRole = require("./middleware/authenticateRole");
 
@@ -25,7 +26,7 @@ app.use(express.static(path.join(__dirname, "frontend")));
 // :requested_id param and these routes never get reached.
 
 app.get("/testing", authenticateOwner, (req, res) => {
-  res.sendFile(path.join(__dirname, "frontend", "testing.html")); 
+  res.sendFile(path.join(__dirname, "frontend", "testing.html"));
 });
 
 app.post("/users/signup", asyncHandler(userControllers.signup));
@@ -62,6 +63,41 @@ app.delete(
   "/users/comments/:comment_id",
   authenticateToken,
   asyncHandler(commentControllers.deleteCommentById),
+);
+
+app.post(
+  "/users/notes",
+  authenticateToken,
+  asyncHandler(noteControllers.createNotes),
+);
+
+app.get(
+  "/users/notes",
+  authenticateToken,
+  asyncHandler(noteControllers.listNotes),
+);
+app.delete(
+  "/users/notes",
+  authenticateToken,
+  asyncHandler(noteControllers.deleteAllNotes),
+);
+
+app.get(
+  "/users/notes/:note_id",
+  authenticateToken,
+  asyncHandler(noteControllers.getOneNote),
+);
+
+app.patch(
+  "/users/notes/:note_id",
+  authenticateToken,
+  asyncHandler(noteControllers.updateNote),
+);
+
+app.delete(
+  "/users/notes/:note_id",
+  authenticateToken,
+  asyncHandler(noteControllers.deleteNote),
 );
 
 app.delete(
@@ -225,6 +261,8 @@ app.delete(
   authenticateToken,
   asyncHandler(commentControllers.deleteAllCommentFromTask),
 );
+
+// notes
 
 app.use((req, res) => {
   res.status(404).json({ success: false, error: "Route not found" });
