@@ -1,4 +1,3 @@
-const { success } = require("zod");
 const projectMembersDatabase = require("../repository/projectMembersDatabase");
 const projectsDatabase = require("../repository/projectsDatabase");
 
@@ -39,12 +38,12 @@ async function addMemberToProject(
       error: "Forbidden Only Owner Can Add Member To That Project",
     };
   }
-  const result = await projectMembersDatabase.addMemberToProject(
+  const added_member = await projectMembersDatabase.addMemberToProject(
     project_id,
     target_user_id,
     new_role,
   );
-  return { success: true, value: result };
+  return { success: true, value: added_member };
 }
 
 async function getAllMembersOfProject(user_id, project_id) {
@@ -60,9 +59,9 @@ async function getAllMembersOfProject(user_id, project_id) {
   if (!membership) {
     return { success: false, error: "Forbidden Not Member Of That Project" };
   }
-  const result =
+  const project_members =
     await projectMembersDatabase.getAllMembersOfProject(project_id);
-  return { success: true, value: result };
+  return { success: true, value: project_members };
 }
 
 async function countOwner(project_id) {
@@ -75,11 +74,11 @@ async function countOwner(project_id) {
 
 async function getAllProjectsOfUser(user_id) {
   console.log(new Date().toLocaleTimeString("en-GB"), "[projectMemberService] getAllProjectsOfUser");
-  const result = await projectMembersDatabase.getAllProjectsOfUser(user_id);
-  if (!result) {
+  const projects = await projectMembersDatabase.getAllProjectsOfUser(user_id);
+  if (!projects) {
     return { success: false, error: "Project Not Exist" };
   }
-  return { success: true, value: result };
+  return { success: true, value: projects };
 }
 
 async function removeMemberFromProject(
@@ -119,11 +118,11 @@ async function removeMemberFromProject(
       };
     }
   }
-  const result = await projectMembersDatabase.removeMemberFromProject(
+  const removed_member = await projectMembersDatabase.removeMemberFromProject(
     project_id,
     target_user_id,
   );
-  return { success: true, value: result };
+  return { success: true, value: removed_member };
 }
 
 async function changeMemberRole(
@@ -165,12 +164,12 @@ async function changeMemberRole(
       };
     }
   }
-  const result = await projectMembersDatabase.changeMemberRole(
+  const changed_member = await projectMembersDatabase.changeMemberRole(
     project_id,
     target_user_id,
     new_role,
   );
-  return { success: true, value: result };
+  return { success: true, value: changed_member };
 }
 
 module.exports = {

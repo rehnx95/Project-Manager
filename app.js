@@ -145,7 +145,7 @@ app.get(
 app.get(
   "/projects",
   authenticateToken,
-  asyncHandler(projectControllers.getProject),
+  asyncHandler(projectControllers.getProjects),
 );
 app.get(
   "/projects/:project_id/tasks",

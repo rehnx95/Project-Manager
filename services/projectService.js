@@ -9,10 +9,6 @@ async function createProject(
   new_status,
 ) {
   console.log(new Date().toLocaleTimeString("en-GB"), "[projectService] createProject");
-  const user = await usersDatabase.getUser(user_id);
-  if (!user) {
-    return { success: false, error: "User Not Exist" };
-  }
 
   const new_project = {
     user_id,
@@ -20,9 +16,9 @@ async function createProject(
     new_description,
     new_status,
   };
-  const result = await projectsDatabase.createProject(new_project);
-  await projectMembersDatabase.addMemberToProject(result.id, user_id, "owner");
-  return { success: true, value: result };
+  const created_project = await projectsDatabase.createProject(new_project);
+  await projectMembersDatabase.addMemberToProject(created_project.id, user_id, "owner");
+  return { success: true, value: created_project };
 }
 
 // logged in user can see all their by searching with project id
@@ -45,12 +41,8 @@ async function getOneProject(user_id, project_id) {
 
 // only admins or logged in user (with their own user_id) can do
 // middleware use to check non - member or member/owner
-async function getProject(user_id) {
-  console.log(new Date().toLocaleTimeString("en-GB"), "[projectService] getProject");
-  const user = await usersDatabase.getUser(user_id);
-  if (!user) {
-    return { success: false, error: "User Not Exist" };
-  }
+async function getProjects(user_id) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[projectService] getProjects");
 
   const memberships =
     await projectMembersDatabase.getAllProjectsOfUser(user_id);
@@ -125,14 +117,14 @@ async function deleteProject(project_id, user_id) {
   if (!membership || membership.role !== "owner") {
     return { success: false, error: "Forbidden Only Owner Can Delete Project" };
   }
-  const result = await projectsDatabase.deleteProject(project_id);
-  return { success: true, value: result };
+  const deleted_project = await projectsDatabase.deleteProject(project_id);
+  return { success: true, value: deleted_project };
 }
 
 module.exports = {
   createProject,
   getOneProject,
-  getProject,
+  getProjects,
   getTaskByProject,
   updateProject,
   deleteProject,

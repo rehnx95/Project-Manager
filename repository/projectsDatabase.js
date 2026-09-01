@@ -25,8 +25,8 @@ async function getOneProject(project_id) {
   return result.rows[0];
 }
 
-async function getProject(user_id) {
-  console.log(new Date().toLocaleTimeString("en-GB"), "[projectsDatabase] getProject");
+async function getProjects(user_id) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[projectsDatabase] getProjects");
   const result = await pool.query("SELECT * FROM projects WHERE user_id =$1", [
     user_id,
   ]);
@@ -62,7 +62,7 @@ async function deleteProject(id) {
 module.exports = {
   createProject,
   getOneProject,
-  getProject,
+  getProjects,
   getTaskByProject,
   updateProject,
   deleteProject,

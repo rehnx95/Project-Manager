@@ -1,18 +1,8 @@
 const projectService = require("../services/projectService");
 const { z } = require("zod");
 
-const id_schema = z.coerce.number().int().positive();
 const uuid_schema = z.uuid();
 
-function parseIdParam(req, res, param_name) {
-  console.log(new Date().toLocaleTimeString("en-GB"), "[projectControllers] parseIdParam");
-  const result = id_schema.safeParse(req.params[param_name]);
-  if (!result.success) {
-    res.status(400).json({ success: false, error: `Invalid ${param_name}` });
-    return null;
-  }
-  return result.data;
-}
 
 function parseUUIDParam(req, res, param_name) {
   console.log(new Date().toLocaleTimeString("en-GB"), "[projectControllers] parseUUIDParam");
@@ -85,9 +75,9 @@ async function getOneProject(req, res) {
   });
 }
 
-async function getProject(req, res) {
-  console.log(new Date().toLocaleTimeString("en-GB"), "[projectControllers] getProject");
-  const outcome = await projectService.getProject(req.user.id);
+async function getProjects(req, res) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[projectControllers] getProjects");
+  const outcome = await projectService.getProjects(req.user.id);
   if (outcome.success === false) {
     return handleServiceError(res, outcome.error);
   }
@@ -159,7 +149,7 @@ async function deleteProject(req, res) {
 module.exports = {
   createProject,
   getOneProject,
-  getProject,
+  getProjects,
   getTaskByProject,
   updateProject,
   deleteProject,

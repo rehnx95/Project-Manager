@@ -7,18 +7,7 @@ const role_schema = z.object({
   }),
 });
 
-const id_schema = z.coerce.number().int().positive();
 const uuid_schema = z.uuid();
-
-function parseIdParam(req, res, param_name) {
-  console.log(new Date().toLocaleTimeString("en-GB"), "[projectMemberControllers] parseIdParam");
-  const result = id_schema.safeParse(req.params[param_name]);
-  if (!result.success) {
-    res.status(400).json({ success: false, error: `Invalid ${param_name}` });
-    return null;
-  }
-  return result.data;
-}
 
 function parseUUIDParam(req, res, param_name) {
   console.log(new Date().toLocaleTimeString("en-GB"), "[projectMemberControllers] parseUUIDParam");
