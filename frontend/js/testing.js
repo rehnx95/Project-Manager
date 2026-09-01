@@ -82,7 +82,15 @@ const ENDPOINTS = [
   },
   {
     group: "Users",
-    name: "Update email",
+    name: "Update my email",
+    method: "PATCH",
+    path: "/users",
+    auth: true,
+    body: { email: "new@example.com" },
+  },
+  {
+    group: "Users",
+    name: "Update other user's email(admin)",
     method: "PATCH",
     path: "/users/:requested_id",
     auth: true,
