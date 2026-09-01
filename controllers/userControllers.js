@@ -1,21 +1,14 @@
-const { z } = require("zod");
+const { z, success } = require("zod");
 const UserService = require("../services/userService");
+const { error } = require("node:console");
 
-const id_schema = z.coerce.number().int().positive();
 const uuid_schema = z.uuid();
 
-function parseIdParam(req, res, param_name) {
-  console.log(new Date().toLocaleTimeString("en-GB"), "[userControllers] parseIdParam");
-  const result = id_schema.safeParse(req.params[param_name]);
-  if (!result.success) {
-    res.status(400).json({ success: false, error: `Invalid ${param_name}` });
-    return null;
-  }
-  return result.data;
-}
-
 function parseUUIDParam(req, res, param_name) {
-  console.log(new Date().toLocaleTimeString("en-GB"), "[userControllers] parseUUIDParam");
+  console.log(
+    new Date().toLocaleTimeString("en-GB"),
+    "[userControllers] parseUUIDParam",
+  );
   const result = uuid_schema.safeParse(req.params[param_name]);
   if (!result.success) {
     res.status(400).json({ success: false, error: `Invalid ${param_name}` });
@@ -43,8 +36,14 @@ const profile_schema = z.object({
 });
 
 function handleServiceError(res, error) {
-  console.log(new Date().toLocaleTimeString("en-GB"), "[userControllers] handleServiceError");
-  if (error === "Unauthorize") {
+  console.log(
+    new Date().toLocaleTimeString("en-GB"),
+    "[userControllers] handleServiceError",
+  );
+  if (
+    error === "Unauthorize" ||
+    error === "Forbidden Only Owner Can Update Other Email"
+  ) {
     return res.status(403).json({ success: false, error });
   }
   if (error === "User Not Exist" || error === "Profile Not Exist") {
@@ -59,7 +58,10 @@ function handleServiceError(res, error) {
 }
 
 async function signup(req, res) {
-  console.log(new Date().toLocaleTimeString("en-GB"), "[userControllers] signup");
+  console.log(
+    new Date().toLocaleTimeString("en-GB"),
+    "[userControllers] signup",
+  );
   const result = signup_schema.safeParse(req.body);
   if (!result.success) {
     const errors = result.error.issues.map((issue) => issue.message);
@@ -77,7 +79,10 @@ async function signup(req, res) {
 }
 
 async function login(req, res) {
-  console.log(new Date().toLocaleTimeString("en-GB"), "[userControllers] login");
+  console.log(
+    new Date().toLocaleTimeString("en-GB"),
+    "[userControllers] login",
+  );
   const result = login_schema.safeParse(req.body);
   if (!result.success) {
     const errors = result.error.issues.map((issue) => issue.message);
@@ -95,16 +100,11 @@ async function login(req, res) {
   });
 }
 
-async function updateUser(req, res) {
-  console.log(new Date().toLocaleTimeString("en-GB"), "[userControllers] updateUser");
-  const requested_id = parseUUIDParam(req, res, "requested_id");
-  if (requested_id === null) return;
-  if (requested_id !== req.user.id) {
-    return res.status(403).json({
-      success: false,
-      error: "Forbidden Not Allow To Update Other Email",
-    });
-  }
+async function selfUpdateEmail(req, res) {
+  console.log(
+    new Date().toLocaleTimeString("en-GB"),
+    "[userControllers] selfUpdateEmail",
+  );
 
   const result = update_user_schema.safeParse(req.body);
   if (!result.success) {
@@ -112,7 +112,39 @@ async function updateUser(req, res) {
     return res.status(400).json({ success: false, error: errors });
   }
 
-  const outcome = await UserService.updateUser(requested_id, result.data.email);
+  const outcome = await UserService.selfUpdateEmail(
+    req.user.id,
+    req.user.email,
+    result.data.email,
+  );
+  if (outcome.success === false) {
+    return handleServiceError(res, outcome.error);
+  }
+  res.status(200).json({ success: true, value: outcome.value });
+}
+
+async function updateOtherEmail(req, res) {
+  console.log(
+    new Date().toLocaleTimeString("en-GB"),
+    "[userControllers] updateUser",
+  );
+
+  const target_id = parseUUIDParam(req, res, "target_id");
+  if (target_id === null) return;
+
+  const result = update_user_schema.safeParse(req.body);
+  if (!result.success) {
+    const errors = result.error.issues.map((issue) => issue.message);
+    return res.status(400).json({ success: false, error: errors });
+  }
+
+  const outcome = await UserService.updateOtherEmail(
+    req.user.id,
+    req.user.email,
+    req.user.role,
+    target_id,
+    result.data.email,
+  );
   if (outcome.success === false) {
     return handleServiceError(res, outcome.error);
   }
@@ -120,23 +152,29 @@ async function updateUser(req, res) {
 }
 
 async function getUser(req, res) {
-  console.log(new Date().toLocaleTimeString("en-GB"), "[userControllers] getUser");
-  const requested_id = parseUUIDParam(req, res, "requested_id");
-  if (requested_id === null) return;
+  console.log(
+    new Date().toLocaleTimeString("en-GB"),
+    "[userControllers] getUser",
+  );
+  const target_id = parseUUIDParam(req, res, "target_id");
+  if (target_id === null) return;
 
   // Intentionally no ownership check here: this route is admin-only
   // (gated by authenticateRole("admin") in app.js), so any authenticated
   // admin is allowed to look up any user by id.
-  const outcome = await UserService.getUser(requested_id);
+  const outcome = await UserService.getUser(target_id);
   if (outcome.success === false) {
     return handleServiceError(res, outcome.error);
   }
   res.status(200).json({ success: true, value: outcome.value });
 }
 
-async function getAllUser(req, res) {
-  console.log(new Date().toLocaleTimeString("en-GB"), "[userControllers] getAllUser");
-  const outcome = await UserService.getAllUser();
+async function getAllUsers(req, res) {
+  console.log(
+    new Date().toLocaleTimeString("en-GB"),
+    "[userControllers] getAllUsers",
+  );
+  const outcome = await UserService.getAllUsers();
   res.status(200).json({
     success: true,
     value: outcome.value,
@@ -144,7 +182,10 @@ async function getAllUser(req, res) {
 }
 
 async function deleteUser(req, res) {
-  console.log(new Date().toLocaleTimeString("en-GB"), "[userControllers] deleteUser");
+  console.log(
+    new Date().toLocaleTimeString("en-GB"),
+    "[userControllers] deleteUser",
+  );
   const email = req.user.email;
   const outcome = await UserService.deleteUser(email);
   if (outcome.success === false) {
@@ -154,7 +195,10 @@ async function deleteUser(req, res) {
 }
 
 async function createProfile(req, res) {
-  console.log(new Date().toLocaleTimeString("en-GB"), "[userControllers] createProfile");
+  console.log(
+    new Date().toLocaleTimeString("en-GB"),
+    "[userControllers] createProfile",
+  );
   const result = profile_schema.safeParse(req.body);
   if (!result.success) {
     const errors = result.error.issues.map((issue) => issue.message);
@@ -172,7 +216,10 @@ async function createProfile(req, res) {
 }
 
 async function updateProfile(req, res) {
-  console.log(new Date().toLocaleTimeString("en-GB"), "[userControllers] updateProfile");
+  console.log(
+    new Date().toLocaleTimeString("en-GB"),
+    "[userControllers] updateProfile",
+  );
   const result = profile_schema.safeParse(req.body);
   if (!result.success) {
     const errors = result.error.issues.map((issue) => issue.message);
@@ -190,7 +237,10 @@ async function updateProfile(req, res) {
 }
 
 async function getProfile(req, res) {
-  console.log(new Date().toLocaleTimeString("en-GB"), "[userControllers] getProfile");
+  console.log(
+    new Date().toLocaleTimeString("en-GB"),
+    "[userControllers] getProfile",
+  );
   const outcome = await UserService.getProfile(req.user.id);
   if (outcome.success === false) {
     return handleServiceError(res, outcome.error);
@@ -201,10 +251,11 @@ async function getProfile(req, res) {
 module.exports = {
   signup,
   login,
-  getAllUser,
+  getAllUsers,
   deleteUser,
   getUser,
-  updateUser,
+  selfUpdateEmail,
+  updateOtherEmail,
   createProfile,
   updateProfile,
   getProfile,

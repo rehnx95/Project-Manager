@@ -107,18 +107,25 @@ app.delete(
 );
 
 app.patch(
-  "/users/:requested_id",
+  "/users",
   authenticateToken,
-  asyncHandler(userControllers.updateUser),
+  asyncHandler(userControllers.selfUpdateEmail),
+);
+
+app.patch(
+  "/users/:target_id",
+  authenticateToken,
+  authenticateRole("admin"),
+  asyncHandler(userControllers.updateOtherEmail),
 );
 app.get(
   "/users",
   authenticateToken,
   authenticateRole("admin"),
-  asyncHandler(userControllers.getAllUser),
+  asyncHandler(userControllers.getAllUsers),
 );
 app.get(
-  "/users/:requested_id",
+  "/users/:target_id",
   authenticateToken,
   authenticateRole("admin"),
   asyncHandler(userControllers.getUser),

@@ -1,7 +1,6 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const usersDatabase = require("../repository/usersDatabase");
-const { success } = require("zod");
 
 async function signup(email, password) {
   console.log(new Date().toLocaleTimeString("en-GB"), "[userService] signup");
@@ -14,8 +13,8 @@ async function signup(email, password) {
     email,
     password: hashed_password,
   };
-  const result = await usersDatabase.createUsers(new_user);
-  return { success: true, value: result };
+  const created_user = await usersDatabase.createUsers(new_user);
+  return { success: true, value: created_user };
 }
 
 async function login(email, password) {
@@ -37,21 +36,63 @@ async function login(email, password) {
   return { success: true, value: token };
 }
 
-async function updateUser(id, new_email) {
-  console.log(new Date().toLocaleTimeString("en-GB"), "[userService] updateUser");
-  const user = await usersDatabase.getUser(id);
-  if (!user) {
-    return { success: false, error: "User Not Exist" };
-  }
+async function selfUpdateEmail(user_id, old_email, new_email) {
+  console.log(
+    new Date().toLocaleTimeString("en-GB"),
+    "[userService] selfUpdateEmail",
+  );
   const email_check = await usersDatabase.findByEmail(new_email);
-  if (email_check && email_check.id !== id) {
+  if (email_check && email_check.id !== user_id) {
     return { success: false, error: "Email Already Exist" };
   }
-  const updated_user = await usersDatabase.updateUser(id, new_email);
+  const updated_user = await usersDatabase.updateEmail(user_id, new_email);
+  if (!updated_user) {
+    return { success: false, error: "User Not Exist" };
+  }
   const new_user = {
     id: updated_user.id,
-    oldEmail: user.email,
+    oldEmail: old_email,
     newEmail: updated_user.email,
+  };
+  return { success: true, value: new_user };
+}
+
+async function updateOtherEmail(
+  requested_id,
+  requested_email,
+  requested_role,
+  target_id,
+  new_email,
+) {
+  console.log(
+    new Date().toLocaleTimeString("en-GB"),
+    "[userService] updateOtherEmail",
+  );
+
+  if (requested_role !== "admin") {
+    return {
+      success: false,
+      error: "Forbidden Only Owner Can Update Other Email",
+    };
+  }
+
+  const email_check = await usersDatabase.findByEmail(new_email);
+  if (email_check && email_check.id !== target_id) {
+    return { success: false, error: "Email Already Exist" };
+  }
+
+  const user = await usersDatabase.getUser(target_id);
+  const updated_user = await usersDatabase.updateEmail(target_id, new_email);
+  if (!updated_user) {
+    return { success: false, error: "User Not Exist" };
+  }
+
+  const new_user = {
+    id: target_id,
+    oldEmail: user.email,
+    newEmail: new_email,
+    requestedAdminId: requested_id,
+    requestedAdminEmail: requested_email,
   };
   return { success: true, value: new_user };
 }
@@ -65,27 +106,32 @@ async function getUser(id) {
   return { success: true, value: user };
 }
 
-async function getAllUser() {
-  console.log(new Date().toLocaleTimeString("en-GB"), "[userService] getAllUser");
-  const result = await usersDatabase.getall();
-  return { success: true, value: result };
+async function getAllUsers() {
+  console.log(
+    new Date().toLocaleTimeString("en-GB"),
+    "[userService] getAllUsers",
+  );
+  const all_users = await usersDatabase.getAllUsers();
+  return { success: true, value: all_users };
 }
 
 async function deleteUser(email) {
-  console.log(new Date().toLocaleTimeString("en-GB"), "[userService] deleteUser");
-  const result = await usersDatabase.deleteUser(email);
-  if (!result) {
+  console.log(
+    new Date().toLocaleTimeString("en-GB"),
+    "[userService] deleteUser",
+  );
+  const deleted_user = await usersDatabase.deleteUser(email);
+  if (!deleted_user) {
     return { success: false, error: "User Not Exist" };
   }
-  return { success: true, value: result };
+  return { success: true, value: deleted_user };
 }
 
 async function createProfile(user_id, new_name, new_bio) {
-  console.log(new Date().toLocaleTimeString("en-GB"), "[userService] createProfile");
-  const user = await usersDatabase.getUser(user_id);
-  if (!user) {
-    return { success: false, error: "User Not Exist" };
-  }
+  console.log(
+    new Date().toLocaleTimeString("en-GB"),
+    "[userService] createProfile",
+  );
 
   const new_profile = {
     user_id,
@@ -97,11 +143,11 @@ async function createProfile(user_id, new_name, new_bio) {
 }
 
 async function updateProfile(user_id, new_name, new_bio) {
-  console.log(new Date().toLocaleTimeString("en-GB"), "[userService] updateProfile");
-  const user = await usersDatabase.getUser(user_id);
-  if (!user) {
-    return { success: false, error: "User Not Exist" };
-  }
+  console.log(
+    new Date().toLocaleTimeString("en-GB"),
+    "[userService] updateProfile",
+  );
+
   const updated_profile = await usersDatabase.updateProfile(
     user_id,
     new_name,
@@ -113,11 +159,11 @@ async function updateProfile(user_id, new_name, new_bio) {
 }
 
 async function getProfile(user_id) {
-  console.log(new Date().toLocaleTimeString("en-GB"), "[userService] getProfile");
-  const user = await usersDatabase.getUser(user_id);
-  if (!user) {
-    return { success: false, error: "User Not Exist" };
-  }
+  console.log(
+    new Date().toLocaleTimeString("en-GB"),
+    "[userService] getProfile",
+  );
+
   const profile = await usersDatabase.getProfile(user_id);
   if (!profile) return { success: false, error: "Profile Not Exist" };
   return { success: true, value: profile };
@@ -126,10 +172,11 @@ async function getProfile(user_id) {
 module.exports = {
   signup,
   login,
-  getAllUser,
+  getAllUsers,
   deleteUser,
   getUser,
-  updateUser,
+  selfUpdateEmail,
+  updateOtherEmail,
   updateProfile,
   createProfile,
   getProfile,
