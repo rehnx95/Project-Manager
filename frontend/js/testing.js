@@ -358,6 +358,53 @@ const ENDPOINTS = [
     auth: false,
     query: [{ name: "key", value: "" }],
   },
+  {
+    group: "Notes",
+    name: "Create note",
+    method: "POST",
+    path: "/users/notes",
+    auth: true,
+    body: { title: "New note", body: "Note contents" },
+  },
+  {
+    group: "Notes",
+    name: "Get my notes",
+    method: "GET",
+    path: "/users/notes",
+    auth: true,
+  },
+  {
+    group: "Notes",
+    name: "Get one note",
+    method: "GET",
+    path: "/users/notes/:note_id",
+    auth: true,
+    params: [{ name: "note_id", type: "number" }],
+  },
+  {
+    group: "Notes",
+    name: "Update note",
+    method: "PATCH",
+    path: "/users/notes/:note_id",
+    auth: true,
+    params: [{ name: "note_id", type: "number" }],
+    body: { title: "Updated note", body: "Updated contents" },
+  },
+  {
+    group: "Notes",
+    name: "Delete note",
+    method: "DELETE",
+    path: "/users/notes/:note_id",
+    auth: true,
+    params: [{ name: "note_id", type: "number" }],
+  },
+  {
+    group: "Notes",
+    name: "Delete all my notes",
+    method: "DELETE",
+    path: "/users/notes",
+    auth: true,
+  },
 ];
 
 let activeIndex = null;
