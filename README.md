@@ -12,11 +12,13 @@ A backend-focused project management API built with **Node.js**, **Express**, an
 
 - **Auth** — signup/login with `bcrypt` password hashing and `jsonwebtoken` sessions
 - **Users & Profiles** — account management, profile create/update, admin-only user listing
+- **Email management** — users update their own email (`PATCH /users`); admins can update any user's email from the admin panel (`PATCH /users/:target_id`, admin-only)
 - **Projects** — create, read, update, delete, with ownership rules
 - **Project Members** — invite/remove members, role management (`owner` / `member`), last-owner protection
 - **Tasks** — full CRUD, priority levels, due dates, completion toggling, pagination
 - **Tags** — create tags and attach/detach them to tasks (many-to-many)
 - **Comments** — per-task comments with owner-only bulk delete
+- **Notes** — private, per-user notes with full CRUD (create, list, view, update, delete one, delete all)
 - **Role-based & resource-based authorization** — every mutating route checks both "is logged in" and "is allowed to touch this resource"
 - **Built-in API console** (`/testing`, owner-key gated) — a self-contained page for exercising every endpoint without Postman
 
@@ -64,13 +66,14 @@ The app follows a **controller → service → repository** layering:
 
 ## Database Schema
 
-8 tables, custom Postgres ENUMs, UUID primary keys, and `updated_at` triggers.
+9 tables, custom Postgres ENUMs, UUID primary keys, and `updated_at` triggers.
 
 ```
 users ──< profiles
 users ──< projects ──< project_members >── users
 projects ──< tasks ──< tasks_tags >── tags
 tasks ──< comments >── users
+users ──< notes
 ```
 
 - **users** — `id (uuid)`, `email`, `password`, `role (user|admin)`
@@ -80,6 +83,7 @@ tasks ──< comments >── users
 - **tasks** — belongs to a project, `priority (low|medium|high)`, `due_date`, `completed`
 - **tags** / **tasks_tags** — many-to-many tagging on tasks
 - **comments** — belongs to a task and a user
+- **notes** — private notes belonging to a single user, `title`, `body`
 
 See [`mydb.sql`](./mydb.sql) for the full DDL and [`demoQueries.sql`](./demoQueries.sql) for example queries (joins, aggregation, `RANK()`, CTEs, `UNION ALL`).
 
@@ -92,12 +96,14 @@ All routes are prefixed at the app root. Protected routes require `Authorization
 | Resource | Routes |
 |---|---|
 | **Auth** | `POST /users/signup`, `POST /users/login` |
-| **Users** | `GET/POST/PATCH /users/profile`, `PATCH /users/:id`, `DELETE /users`, `GET /users` (admin), `GET /users/:id` (admin) |
+| **Users** | `GET/POST/PATCH /users/profile`, `DELETE /users`, `GET /users` (admin) |
+| **Email** | `PATCH /users` (update your own email), `PATCH /users/:target_id` (admin updates any user's email), `GET /users/:target_id` (admin lookup) |
 | **Projects** | `POST /projects`, `GET /projects`, `GET /projects/:id`, `PATCH /projects/:id`, `DELETE /projects/:id` |
 | **Project Members** | `GET /projects/:id/membership`, `GET /projects/:id/members`, `POST/PATCH/DELETE /projects/:id/users/:userId` |
 | **Tasks** | `POST /projects/:id/tasks`, `GET /tasks`, `GET/PATCH/DELETE /tasks/:id`, `PATCH /tasks/:id/complete` |
 | **Tags** | `POST/GET /tags`, `POST/GET/DELETE /tasks/:taskId/tags/:tagId` |
 | **Comments** | `POST/GET/DELETE /tasks/:taskId/comments`, `GET /users/comments`, `DELETE /users/comments/:id` |
+| **Notes** | `POST/GET/DELETE /users/notes`, `GET/PATCH/DELETE /users/notes/:noteId` |
 
 For the full endpoint catalog with example bodies, run the app locally (or hit the live demo) and open **`/testing`** — a built-in API console that mirrors `app.js` exactly.
 
@@ -160,8 +166,9 @@ A small multi-page vanilla JS client lives in `frontend/`, built to exercise the
 - `project.html` — project detail, tasks, crew/member management
 - `task.html` — task detail, tags, comments
 - `tasks.html` — paginated view of all your tasks across projects
-- `profile.html` — profile + account settings
-- `admin.html` — admin-only user directory
+- `profile.html` — profile, account settings, and self-service email updates
+- `notes.html` — private per-user notes
+- `admin.html` — admin-only user directory, with lookup-by-ID and the ability to update any user's email
 - `testing.html` — interactive API console (owner-key gated via `/testing?key=...`)
 
 The frontend talks to the API using `location.origin`, so it works unmodified whether served locally or from the deployed URL — no config needed.
@@ -182,6 +189,7 @@ Deployed on **Render.com**:
 - Passwords are hashed with `bcrypt` before storage
 - JWTs are verified on every protected request, and the associated user is re-checked against the database (so deleted users can't use a stale token)
 - Every mutating route enforces **resource-level** authorization (e.g. only a project's `owner` can delete it or change member roles), not just "is logged in"
+- Self-service and admin-driven email updates are handled by separate routes (`PATCH /users` vs `PATCH /users/:target_id`), so a regular user's request always goes through their own route rather than the admin-gated one
 - The `/testing` console is gated behind a constant-time comparison against a server-side secret key
 
 ---
