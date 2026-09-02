@@ -21,7 +21,7 @@ app.use(express.json());
 const port = process.env.PORT || 7000;
 app.use(express.static(path.join(__dirname, "frontend")));
 
-// users — static/literal sub-paths must come before /users/:requested_id,
+// users —static/literal sub-paths must come before /users/:requested_id,
 // otherwise Express matches "profile"/"projects"/"comments" as the
 // :requested_id param and these routes never get reached.
 
