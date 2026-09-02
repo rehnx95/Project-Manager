@@ -236,3 +236,172 @@ SELECT
     comments
 FROM project_stats
 ORDER BY pct_done DESC NULLS LAST;
+
+
+-- =========================================================
+-- DEMO 14: A user's private notes, most recent first
+-- (simple filter + sort on the notes table)
+-- =========================================================
+SELECT
+    n.title,
+    n.body,
+    n.created_at
+FROM notes n
+JOIN users u ON u.id = n.user_id
+WHERE u.email = 'someone@example.com'
+ORDER BY n.created_at DESC;
+
+
+-- =========================================================
+-- DEMO 15: Users with no projects at all
+-- (LEFT JOIN + IS NULL anti-join pattern)
+-- =========================================================
+SELECT
+    u.email,
+    u.created_at
+FROM users u
+LEFT JOIN project_members pm ON pm.user_id = u.id
+WHERE pm.project_id IS NULL
+ORDER BY u.created_at;
+
+
+-- =========================================================
+-- DEMO 16: Same result as Demo 15, using NOT EXISTS instead
+-- (equivalent anti-join, different technique worth comparing)
+-- =========================================================
+SELECT
+    u.email
+FROM users u
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM project_members pm
+    WHERE pm.user_id = u.id
+)
+ORDER BY u.email;
+
+
+-- =========================================================
+-- DEMO 17: Projects where every task is already completed
+-- (aggregate HAVING with a bool_and-style all-true check)
+-- =========================================================
+SELECT
+    p.project_name,
+    COUNT(t.id) AS total_tasks
+FROM projects p
+JOIN tasks t ON t.project_id = p.id
+GROUP BY p.id, p.project_name
+HAVING BOOL_AND(t.completed) = TRUE
+ORDER BY p.project_name;
+
+
+-- =========================================================
+-- DEMO 18: Most-used tags, busiest first
+-- (many-to-many aggregation, opposite direction of Demo 5)
+-- =========================================================
+SELECT
+    tg.tag_name,
+    COUNT(tt.task_id) AS times_used
+FROM tags tg
+LEFT JOIN tasks_tags tt ON tt.tags_id = tg.id
+GROUP BY tg.id, tg.tag_name
+ORDER BY times_used DESC, tg.tag_name;
+
+
+-- =========================================================
+-- DEMO 19: Task priority breakdown per project
+-- (conditional aggregation with CASE, pivot-style without crosstab)
+-- =========================================================
+SELECT
+    p.project_name,
+    COUNT(*) FILTER (WHERE t.priority = 'low')    AS low_count,
+    COUNT(*) FILTER (WHERE t.priority = 'medium') AS medium_count,
+    COUNT(*) FILTER (WHERE t.priority = 'high')   AS high_count
+FROM projects p
+JOIN tasks t ON t.project_id = p.id
+GROUP BY p.id, p.project_name
+ORDER BY high_count DESC;
+
+
+-- =========================================================
+-- DEMO 20: Each task alongside the running comment count for
+-- that project, most recent task first
+-- (window function: SUM(...) OVER, partitioned by project)
+-- =========================================================
+SELECT
+    p.project_name,
+    t.title,
+    t.created_at,
+    COUNT(c.id) AS comments_on_task,
+    SUM(COUNT(c.id)) OVER (
+        PARTITION BY p.id
+        ORDER BY t.created_at
+    ) AS running_comment_total
+FROM tasks t
+JOIN projects p ON p.id = t.project_id
+LEFT JOIN comments c ON c.task_id = t.id
+GROUP BY p.id, p.project_name, t.id, t.title, t.created_at
+ORDER BY p.project_name, t.created_at;
+
+
+-- =========================================================
+-- DEMO 21: Gap in days between a user's consecutive tasks
+-- (window function: LAG, useful for spotting activity gaps)
+-- =========================================================
+SELECT
+    u.email,
+    t.title,
+    t.created_at,
+    t.created_at - LAG(t.created_at) OVER (
+        PARTITION BY u.id
+        ORDER BY t.created_at
+    ) AS gap_since_previous_task
+FROM tasks t
+JOIN users u ON u.id = t.user_id
+ORDER BY u.email, t.created_at;
+
+
+-- =========================================================
+-- DEMO 22: Owners managing more than one project
+-- (correlated subquery in the WHERE clause)
+-- =========================================================
+SELECT
+    u.email,
+    (
+        SELECT COUNT(*)
+        FROM project_members pm
+        WHERE pm.user_id = u.id
+          AND pm.role = 'owner'
+    ) AS projects_owned
+FROM users u
+WHERE (
+    SELECT COUNT(*)
+    FROM project_members pm
+    WHERE pm.user_id = u.id
+      AND pm.role = 'owner'
+) > 1
+ORDER BY projects_owned DESC;
+
+
+-- =========================================================
+-- DEMO 23: Full member roster per project, role counts side
+-- by side with the raw member list (CTE + join back to detail)
+-- =========================================================
+WITH role_counts AS (
+    SELECT
+        project_id,
+        COUNT(*) FILTER (WHERE role = 'owner')  AS owners,
+        COUNT(*) FILTER (WHERE role = 'member') AS members
+    FROM project_members
+    GROUP BY project_id
+)
+SELECT
+    p.project_name,
+    rc.owners,
+    rc.members,
+    u.email,
+    pm.role
+FROM projects p
+JOIN role_counts rc ON rc.project_id = p.id
+JOIN project_members pm ON pm.project_id = p.id
+JOIN users u ON u.id = pm.user_id
+ORDER BY p.project_name, pm.role, u.email;
