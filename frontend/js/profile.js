@@ -61,7 +61,7 @@ document.getElementById("emailForm").addEventListener("submit", async (e) => {
   errEl.textContent = "";
   const email = document.getElementById("acEmail").value;
   try {
-    await api("/users/" + me.id, { method: "PATCH", body: JSON.stringify({ email }) });
+    await api("/users/", { method: "PATCH", body: JSON.stringify({ email }) });
     toast("Email updated. Sign in again if your session looks stale.");
   } catch (err) {
     errEl.textContent = err.message;
