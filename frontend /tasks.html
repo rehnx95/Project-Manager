@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Depot — My Tasks</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="toast"></div>
+  <div class="app-shell">
+    <div id="navHost"></div>
+    <main class="main">
+      <div class="view-head">
+        <div>
+          <h2>My Tasks</h2>
+          <div class="sub">Every task across every project you belong to.</div>
+        </div>
+      </div>
+      <div class="panel">
+        <div id="myTaskList"></div>
+        <div class="pagination">
+          <button class="btn btn-sm" id="prevPage">&larr; Prev</button>
+          <span class="page-info mono" id="pageInfo"></span>
+          <button class="btn btn-sm" id="nextPage">Next &rarr;</button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/nav.js"></script>
+  <script src="js/tasks.js"></script>
+</body>
+</html>

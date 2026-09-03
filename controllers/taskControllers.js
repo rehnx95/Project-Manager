@@ -7,14 +7,19 @@ const task_schema = z.object({
   priority: z.enum(["low", "medium", "high"], {
     message: "Priority must be low, medium, or high",
   }),
-  due_date: z.iso.datetime("Please provide a valid date"),
+  due_date: z.union([z.iso.date(), z.iso.datetime()], {
+    message: "Please provide a valid date",
+  }),
 });
 
 const id_schema = z.coerce.number().int().positive();
 const uuid_schema = z.uuid();
 
 function parseIdParam(req, res, param_name) {
-  console.log(new Date().toLocaleTimeString("en-GB"), "[taskControllers] parseIdParam");
+  console.log(
+    new Date().toLocaleTimeString("en-GB"),
+    "[taskControllers] parseIdParam",
+  );
   const result = id_schema.safeParse(req.params[param_name]);
   if (!result.success) {
     res.status(400).json({ success: false, error: `Invalid ${param_name}` });
@@ -24,7 +29,10 @@ function parseIdParam(req, res, param_name) {
 }
 
 function parseUUIDParam(req, res, param_name) {
-  console.log(new Date().toLocaleTimeString("en-GB"), "[taskControllers] parseUUIDParam");
+  console.log(
+    new Date().toLocaleTimeString("en-GB"),
+    "[taskControllers] parseUUIDParam",
+  );
   const result = uuid_schema.safeParse(req.params[param_name]);
   if (!result.success) {
     res.status(400).json({ success: false, error: `Invalid ${param_name}` });
@@ -34,7 +42,10 @@ function parseUUIDParam(req, res, param_name) {
 }
 
 function handleServiceError(res, error) {
-  console.log(new Date().toLocaleTimeString("en-GB"), "[taskControllers] handleServiceError");
+  console.log(
+    new Date().toLocaleTimeString("en-GB"),
+    "[taskControllers] handleServiceError",
+  );
   if (
     error === "Forbidden Not Member Of That Project" ||
     error === "Forbidden Only Owner Can Delete Task"
@@ -49,7 +60,10 @@ function handleServiceError(res, error) {
 }
 
 async function createTask(req, res) {
-  console.log(new Date().toLocaleTimeString("en-GB"), "[taskControllers] createTask");
+  console.log(
+    new Date().toLocaleTimeString("en-GB"),
+    "[taskControllers] createTask",
+  );
   const project_id = parseUUIDParam(req, res, "project_id");
   if (project_id === null) return;
 
@@ -80,7 +94,10 @@ async function createTask(req, res) {
 }
 
 async function getTaskByUser(req, res) {
-  console.log(new Date().toLocaleTimeString("en-GB"), "[taskControllers] getTaskByUser");
+  console.log(
+    new Date().toLocaleTimeString("en-GB"),
+    "[taskControllers] getTaskByUser",
+  );
   const page = Number(req.query.page) || 1;
   const limit = Number(req.query.limit) || 10;
 
@@ -96,7 +113,10 @@ async function getTaskByUser(req, res) {
 }
 
 async function getOneTask(req, res) {
-  console.log(new Date().toLocaleTimeString("en-GB"), "[taskControllers] getOneTask");
+  console.log(
+    new Date().toLocaleTimeString("en-GB"),
+    "[taskControllers] getOneTask",
+  );
   const task_id = parseIdParam(req, res, "task_id");
   if (task_id === null) return;
 
@@ -109,7 +129,10 @@ async function getOneTask(req, res) {
 }
 
 async function updateTask(req, res) {
-  console.log(new Date().toLocaleTimeString("en-GB"), "[taskControllers] updateTask");
+  console.log(
+    new Date().toLocaleTimeString("en-GB"),
+    "[taskControllers] updateTask",
+  );
   const task_id = parseIdParam(req, res, "task_id");
   if (task_id === null) return;
 
@@ -136,7 +159,10 @@ async function updateTask(req, res) {
 }
 
 async function deleteTask(req, res) {
-  console.log(new Date().toLocaleTimeString("en-GB"), "[taskControllers] deleteTask");
+  console.log(
+    new Date().toLocaleTimeString("en-GB"),
+    "[taskControllers] deleteTask",
+  );
   const task_id = parseIdParam(req, res, "task_id");
   if (task_id === null) return;
 
@@ -150,7 +176,10 @@ async function deleteTask(req, res) {
 }
 
 async function completeTask(req, res) {
-  console.log(new Date().toLocaleTimeString("en-GB"), "[taskControllers] completeTask");
+  console.log(
+    new Date().toLocaleTimeString("en-GB"),
+    "[taskControllers] completeTask",
+  );
   const task_id = parseIdParam(req, res, "task_id");
   if (task_id === null) return;
 
