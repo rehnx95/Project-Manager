@@ -78,6 +78,8 @@ CREATE TABLE notes(
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+
+
 CREATE INDEX idx_profiles_user_id ON profiles(user_id);
 CREATE INDEX idx_projects_user_id ON projects(user_id);
 CREATE INDEX idx_tasks_project_id ON tasks(project_id);

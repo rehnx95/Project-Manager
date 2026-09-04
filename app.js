@@ -14,6 +14,7 @@ const projectMemberRoutes = require("./route/projectMemberRoutes");
 const taskRoutes = require("./route/taskRoutes");
 const tagRoutes = require("./route/tagRoutes");
 const commentRoutes = require("./route/commentRoutes");
+const databaseRoutes = require("./route/databaseRoutes");
 
 app.use("/", noteRoutes);
 app.use("/", userRoutes);
@@ -22,6 +23,7 @@ app.use("/", projectMemberRoutes);
 app.use("/", taskRoutes);
 app.use("/", tagRoutes);
 app.use("/", commentRoutes);
+app.use("/", databaseRoutes);
 
 const authenticateOwner = require("./middleware/siteOwner");
 app.get("/testing", authenticateOwner, (req, res) => {

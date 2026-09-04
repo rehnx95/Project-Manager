@@ -413,6 +413,15 @@ const ENDPOINTS = [
     path: "/users/notes",
     auth: true,
   },
+  {
+    group: "Database (owner only)",
+    name: "Run SQL query",
+    method: "POST",
+    path: "/database",
+    auth: false,
+    rawSqlBody: true, // ← new flag
+    query: [{ name: "key", value: "" }],
+  },
 ];
 
 let activeIndex = null;
@@ -602,15 +611,15 @@ function renderRequestPanel(ep) {
     });
   }
 
-  const bodyLabel = ep.body
-    ? `<div class="section-label">Body <button type="button" class="format-btn" id="formatBtn">format</button></div>`
-    : `<div class="section-label">Body (none)</div>`;
-  html += bodyLabel;
-
-  if (ep.body) {
+  if (ep.rawSqlBody) {
+    html += `<div class="section-label">SQL query (paste raw SQL — no JSON needed)</div>`;
+    html += `<textarea class="body-editor" id="bodyEditor" spellcheck="false" placeholder="SELECT * FROM users LIMIT 10;"></textarea>`;
+  } else if (ep.body) {
+    html += `<div class="section-label">Body <button type="button" class="format-btn" id="formatBtn">format</button></div>`;
     html += `<textarea class="body-editor" id="bodyEditor" spellcheck="false">${escapeHtml(JSON.stringify(ep.body, null, 2))}</textarea>`;
     html += `<div class="json-error" id="jsonError"></div>`;
   } else {
+    html += `<div class="section-label">Body (none)</div>`;
     html += `<div class="empty-note">This request has no body.</div>`;
   }
 
@@ -765,7 +774,24 @@ async function sendRequest(ep) {
   }
 
   let bodyStr = undefined;
-  if (ep.body) {
+  if (ep.rawSqlBody) {
+    const editor = document.getElementById("bodyEditor");
+    const sqlQuery = editor.value.trim();
+    if (!sqlQuery) {
+      renderResponse({
+        error: true,
+        status: null,
+        statusText: "Empty query",
+        body: "Type or paste a SQL query first.",
+        ms: 0,
+        method: ep.method,
+        path,
+      });
+      setMobileTab("response");
+      return;
+    }
+    bodyStr = JSON.stringify({ sqlQuery }); // JS builds valid JSON + escaping for you
+  } else if (ep.body) {
     const editor = document.getElementById("bodyEditor");
     try {
       const parsed = JSON.parse(editor.value);
