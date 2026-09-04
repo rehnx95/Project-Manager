@@ -15,7 +15,7 @@ const taskRoutes = require("./route/taskRoutes");
 const tagRoutes = require("./route/tagRoutes");
 const commentRoutes = require("./route/commentRoutes");
 
-app.use("/users", noteRoutes);
+app.use("/", noteRoutes);
 app.use("/", userRoutes);
 app.use("/", projectRoutes);
 app.use("/", projectMemberRoutes);

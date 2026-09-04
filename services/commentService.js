@@ -44,18 +44,12 @@ async function getCommentByTask(task_id, user_id) {
     };
   }
   const result = await commentsDatabase.getCommentByTask(task_id);
-  if (!result || result.length === 0) {
-    return { success: false, error: "No Comment On Task" };
-  }
   return { success: true, value: result };
 }
 
 async function getCommentByUser(user_id) {
   console.log(new Date().toLocaleTimeString("en-GB"), "[commentService] getCommentByUser");
   const result = await commentsDatabase.getCommentByUser(user_id);
-  if (!result || result.length === 0) {
-    return { success: false, error: "No Comment By User" };
-  }
   return { success: true, value: result };
 }
 

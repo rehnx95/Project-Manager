@@ -76,7 +76,7 @@ CREATE TABLE notes(
     title TEXT NOT NULL,
     body TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-)
+);
 
 CREATE INDEX idx_profiles_user_id ON profiles(user_id);
 CREATE INDEX idx_projects_user_id ON projects(user_id);
