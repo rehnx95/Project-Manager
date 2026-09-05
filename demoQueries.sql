@@ -1,7 +1,6 @@
--- =========================================================
--- DEMO 1: Users and the projects they belong to
--- (shows the users <-> projects many-to-many via project_members)
--- =========================================================
+INSERT INTO queries (label, query) VALUES
+
+('Demo 1: Users and the projects they belong to', $$
 SELECT
     u.email,
     p.project_name,
@@ -11,13 +10,9 @@ FROM users u
 JOIN project_members pm ON pm.user_id = u.id
 JOIN projects p ON p.id = pm.project_id
 ORDER BY u.email;
+$$),
 
-
--- =========================================================
--- DEMO 2: Each project, its owner, and task stats
--- (shows aggregation across a join, LEFT JOIN so empty
--- projects still show up)
--- =========================================================
+('Demo 2: Each project, its owner, and task stats', $$
 SELECT
     p.project_name,
     u.email AS owner_email,
@@ -28,11 +23,9 @@ JOIN users u ON u.id = p.user_id
 LEFT JOIN tasks t ON t.project_id = p.id
 GROUP BY p.id, p.project_name, u.email
 ORDER BY p.project_name;
+$$),
 
-
--- =========================================================
--- DEMO 3: Open (incomplete) tasks, with project + assignee
--- =========================================================
+('Demo 3: Open (incomplete) tasks, with project + assignee', $$
 SELECT
     t.title,
     t.priority,
@@ -44,12 +37,9 @@ JOIN projects p ON p.id = t.project_id
 JOIN users u ON u.id = t.user_id
 WHERE t.completed = FALSE
 ORDER BY t.due_date;
+$$),
 
-
--- =========================================================
--- DEMO 4: Comments with the task and who wrote them
--- (three-table join)
--- =========================================================
+('Demo 4: Comments with the task and who wrote them', $$
 SELECT
     t.title AS task,
     u.email AS commenter,
@@ -59,12 +49,9 @@ FROM comments c
 JOIN tasks t ON t.id = c.task_id
 JOIN users u ON u.id = c.user_id
 ORDER BY c.created_at DESC;
+$$),
 
-
--- =========================================================
--- DEMO 5: Tasks with their tags collapsed into one line
--- (many-to-many through tasks_tags, using STRING_AGG)
--- =========================================================
+('Demo 5: Tasks with their tags collapsed into one line', $$
 SELECT
     t.title,
     STRING_AGG(tg.tag_name, ', ') AS tags
@@ -73,13 +60,9 @@ JOIN tasks_tags tt ON tt.task_id = t.id
 JOIN tags tg ON tg.id = tt.tags_id
 GROUP BY t.id, t.title
 ORDER BY t.title;
+$$),
 
-
--- =========================================================
--- DEMO 6 (the "wow" one): Full picture for a single project
--- Combines project + owner + members + task counts + tags
--- in one query. Replace the WHERE clause with a real project name.
--- =========================================================
+('Demo 6: Full picture for a single project', $$
 SELECT
     p.project_name,
     p.status,
@@ -95,12 +78,9 @@ LEFT JOIN tasks t ON t.project_id = p.id
 LEFT JOIN comments c ON c.task_id = t.id
 WHERE p.project_name = 'Your Project Name Here'
 GROUP BY p.id, p.project_name, p.status, owner.email;
+$$),
 
-
--- =========================================================
--- DEMO 7: A user's whole dashboard — every project they're in,
--- with role and task progress per project
--- =========================================================
+('Demo 7: A user''s whole dashboard across projects', $$
 SELECT
     u.email,
     p.project_name,
@@ -114,11 +94,9 @@ LEFT JOIN tasks t ON t.project_id = p.id
 WHERE u.email = 'someone@example.com'
 GROUP BY u.email, p.project_name, pm.role
 ORDER BY p.project_name;
+$$),
 
--- =========================================================
--- DEMO 8: Most active users — ranked by total tasks created
--- (window function: RANK)
--- =========================================================
+('Demo 8: Most active users (RANK window function)', $$
 SELECT
     u.email,
     COUNT(t.id) AS tasks_created,
@@ -127,12 +105,9 @@ FROM users u
 LEFT JOIN tasks t ON t.user_id = u.id
 GROUP BY u.id, u.email
 ORDER BY activity_rank;
+$$),
 
-
--- =========================================================
--- DEMO 9: Overdue tasks (due_date passed, not completed)
--- with days overdue calculated
--- =========================================================
+('Demo 9: Overdue tasks with days overdue', $$
 SELECT
     t.title,
     p.project_name,
@@ -145,12 +120,9 @@ JOIN users u ON u.id = t.user_id
 WHERE t.completed = FALSE
   AND t.due_date < NOW()
 ORDER BY t.due_date;
+$$),
 
-
--- =========================================================
--- DEMO 10: Project health score — % of tasks completed,
--- ranked best to worst
--- =========================================================
+('Demo 10: Project health score, ranked', $$
 SELECT
     p.project_name,
     COUNT(t.id) AS total_tasks,
@@ -163,12 +135,9 @@ FROM projects p
 LEFT JOIN tasks t ON t.project_id = p.id
 GROUP BY p.id, p.project_name
 ORDER BY percent_complete DESC NULLS LAST;
+$$),
 
-
--- =========================================================
--- DEMO 11: Unified activity feed — recent tasks AND comments
--- merged into one timeline (UNION ALL across different tables)
--- =========================================================
+('Demo 11: Unified activity feed (UNION ALL)', $$
 SELECT
     'task_created' AS event_type,
     t.title AS detail,
@@ -189,12 +158,9 @@ JOIN users u ON u.id = c.user_id
 
 ORDER BY happened_at DESC
 LIMIT 20;
+$$),
 
-
--- =========================================================
--- DEMO 12: Users who own projects but have no admin role
--- (finding a business-logic condition, not just structure)
--- =========================================================
+('Demo 12: Owners who have no admin role', $$
 SELECT
     u.email,
     u.role AS system_role,
@@ -205,12 +171,9 @@ WHERE u.role <> 'admin'
 GROUP BY u.id, u.email, u.role
 HAVING COUNT(p.id) > 0
 ORDER BY owned_projects DESC;
+$$),
 
-
--- =========================================================
--- DEMO 13 (the flex one): CTE combining everything into a
--- single "project report card"
--- =========================================================
+('Demo 13: Project report card (CTE)', $$
 WITH project_stats AS (
     SELECT
         p.id,
@@ -236,12 +199,9 @@ SELECT
     comments
 FROM project_stats
 ORDER BY pct_done DESC NULLS LAST;
+$$),
 
-
--- =========================================================
--- DEMO 14: A user's private notes, most recent first
--- (simple filter + sort on the notes table)
--- =========================================================
+('Demo 14: A user''s private notes, most recent first', $$
 SELECT
     n.title,
     n.body,
@@ -250,12 +210,9 @@ FROM notes n
 JOIN users u ON u.id = n.user_id
 WHERE u.email = 'someone@example.com'
 ORDER BY n.created_at DESC;
+$$),
 
-
--- =========================================================
--- DEMO 15: Users with no projects at all
--- (LEFT JOIN + IS NULL anti-join pattern)
--- =========================================================
+('Demo 15: Users with no projects (LEFT JOIN anti-join)', $$
 SELECT
     u.email,
     u.created_at
@@ -263,12 +220,9 @@ FROM users u
 LEFT JOIN project_members pm ON pm.user_id = u.id
 WHERE pm.project_id IS NULL
 ORDER BY u.created_at;
+$$),
 
-
--- =========================================================
--- DEMO 16: Same result as Demo 15, using NOT EXISTS instead
--- (equivalent anti-join, different technique worth comparing)
--- =========================================================
+('Demo 16: Users with no projects (NOT EXISTS version)', $$
 SELECT
     u.email
 FROM users u
@@ -278,12 +232,9 @@ WHERE NOT EXISTS (
     WHERE pm.user_id = u.id
 )
 ORDER BY u.email;
+$$),
 
-
--- =========================================================
--- DEMO 17: Projects where every task is already completed
--- (aggregate HAVING with a bool_and-style all-true check)
--- =========================================================
+('Demo 17: Projects where every task is completed', $$
 SELECT
     p.project_name,
     COUNT(t.id) AS total_tasks
@@ -292,12 +243,9 @@ JOIN tasks t ON t.project_id = p.id
 GROUP BY p.id, p.project_name
 HAVING BOOL_AND(t.completed) = TRUE
 ORDER BY p.project_name;
+$$),
 
-
--- =========================================================
--- DEMO 18: Most-used tags, busiest first
--- (many-to-many aggregation, opposite direction of Demo 5)
--- =========================================================
+('Demo 18: Most-used tags, busiest first', $$
 SELECT
     tg.tag_name,
     COUNT(tt.task_id) AS times_used
@@ -305,12 +253,9 @@ FROM tags tg
 LEFT JOIN tasks_tags tt ON tt.tags_id = tg.id
 GROUP BY tg.id, tg.tag_name
 ORDER BY times_used DESC, tg.tag_name;
+$$),
 
-
--- =========================================================
--- DEMO 19: Task priority breakdown per project
--- (conditional aggregation with CASE, pivot-style without crosstab)
--- =========================================================
+('Demo 19: Task priority breakdown per project', $$
 SELECT
     p.project_name,
     COUNT(*) FILTER (WHERE t.priority = 'low')    AS low_count,
@@ -320,13 +265,9 @@ FROM projects p
 JOIN tasks t ON t.project_id = p.id
 GROUP BY p.id, p.project_name
 ORDER BY high_count DESC;
+$$),
 
-
--- =========================================================
--- DEMO 20: Each task alongside the running comment count for
--- that project, most recent task first
--- (window function: SUM(...) OVER, partitioned by project)
--- =========================================================
+('Demo 20: Running comment total per project (window SUM)', $$
 SELECT
     p.project_name,
     t.title,
@@ -341,12 +282,9 @@ JOIN projects p ON p.id = t.project_id
 LEFT JOIN comments c ON c.task_id = t.id
 GROUP BY p.id, p.project_name, t.id, t.title, t.created_at
 ORDER BY p.project_name, t.created_at;
+$$),
 
-
--- =========================================================
--- DEMO 21: Gap in days between a user's consecutive tasks
--- (window function: LAG, useful for spotting activity gaps)
--- =========================================================
+('Demo 21: Gap in days between a user''s consecutive tasks (LAG)', $$
 SELECT
     u.email,
     t.title,
@@ -358,12 +296,9 @@ SELECT
 FROM tasks t
 JOIN users u ON u.id = t.user_id
 ORDER BY u.email, t.created_at;
+$$),
 
-
--- =========================================================
--- DEMO 22: Owners managing more than one project
--- (correlated subquery in the WHERE clause)
--- =========================================================
+('Demo 22: Owners managing more than one project (correlated subquery)', $$
 SELECT
     u.email,
     (
@@ -380,12 +315,9 @@ WHERE (
       AND pm.role = 'owner'
 ) > 1
 ORDER BY projects_owned DESC;
+$$),
 
-
--- =========================================================
--- DEMO 23: Full member roster per project, role counts side
--- by side with the raw member list (CTE + join back to detail)
--- =========================================================
+('Demo 23: Full member roster per project with role counts (CTE)', $$
 WITH role_counts AS (
     SELECT
         project_id,
@@ -405,3 +337,4 @@ JOIN role_counts rc ON rc.project_id = p.id
 JOIN project_members pm ON pm.project_id = p.id
 JOIN users u ON u.id = pm.user_id
 ORDER BY p.project_name, pm.role, u.email;
+$$);
