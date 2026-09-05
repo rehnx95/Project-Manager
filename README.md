@@ -44,8 +44,7 @@ A backend-focused project management API built with **Node.js**, **Express**, an
 ├── app.js                          # Express app + all route registration
 ├── db.js                           # PostgreSQL pool (pg, with SSL config for Render)
 ├── mydb_p1qi.sql                   # Full schema: tables, enums, indexes, triggers
-├── demoQueries.sql                 # Example SQL — joins, aggregation, window functions, CTEs
-├── seedQueries.sql                 # Optional: seeds the `queries` table (testing console dropdown)
+├── demoQueries.sql                 # Optional: seeds the `queries` table (testing console dropdown)
 ├── mistakes.js                     # Personal bug/mistake log, reviewed before writing new code
 ├── package.json
 ├── package-lock.json
@@ -156,7 +155,7 @@ users ──< notes
 - **tags** / **tasks_tags** — many-to-many tagging on tasks
 - **comments** — belongs to a task and a user
 - **notes** — private notes belonging to a single user, `title`, `body`
-- **queries** — `label`, `query` pairs used only by the `/testing` console's SQL query picker (see [`seedQueries.sql`](./seedQueries.sql))
+- **queries** — `label`, `query` pairs used only by the `/testing` console's SQL query picker (see [`demoQueries.sql`](./demoQueries.sql))
 
 Because `projects` and `project_members` are separate tables, "projects I created" and "projects I'm involved in" are genuinely different questions — see the Projects row in the API table below.
 
@@ -211,7 +210,7 @@ psql "$DATABASE_URL" -f mydb_p1qi.sql
 Optionally, seed the demo SQL queries used by the `/testing` console's query picker:
 
 ```bash
-psql "$DATABASE_URL" -f seedQueries.sql
+psql "$DATABASE_URL" -f demoQueries.sql
 ```
 
 ### 3. Configure environment variables
