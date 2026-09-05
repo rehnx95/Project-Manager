@@ -9,16 +9,15 @@ async function createProject(
   new_status,
 ) {
   console.log(new Date().toLocaleTimeString("en-GB"), "[projectService] createProject");
-
   const new_project = {
     user_id,
     new_project_name,
     new_description,
     new_status,
   };
-  const created_project = await projectsDatabase.createProject(new_project);
-  await projectMembersDatabase.addMemberToProject(created_project.id, user_id, "owner");
-  return { success: true, value: created_project };
+  const result = await projectsDatabase.createProject(new_project);
+  await projectMembersDatabase.addMemberToProject(result.id, user_id, "owner");
+  return { success: true, value: result };
 }
 
 // logged in user can see all their by searching with project id
@@ -39,10 +38,24 @@ async function getOneProject(user_id, project_id) {
   return { success: true, value: project };
 }
 
-// only admins or logged in user (with their own user_id) can do
-// middleware use to check non - member or member/owner
-async function getProjects(user_id) {
-  console.log(new Date().toLocaleTimeString("en-GB"), "[projectService] getProjects");
+// Projects this user CREATED — based on projects.user_id, the owner
+// column set once at creation time. Does not include projects the
+// user was later added to as a member/owner of someone else's project.
+async function getProjectsCreatedByUser(user_id) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[projectService] getProjectsCreatedByUser");
+
+  const projects = await projectsDatabase.getProjectsCreatedByUser(user_id);
+  if (!projects || projects.length === 0) {
+    return { success: false, error: "Project Not Exist" };
+  }
+  return { success: true, value: projects };
+}
+
+// Projects this user is INVOLVED IN — based on project_members, so it
+// includes projects they created (auto-added as owner) AND projects
+// they were added to later by someone else.
+async function getProjectsInvolvedIn(user_id) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[projectService] getProjectsInvolvedIn");
 
   const memberships =
     await projectMembersDatabase.getAllProjectsOfUser(user_id);
@@ -117,14 +130,15 @@ async function deleteProject(project_id, user_id) {
   if (!membership || membership.role !== "owner") {
     return { success: false, error: "Forbidden Only Owner Can Delete Project" };
   }
-  const deleted_project = await projectsDatabase.deleteProject(project_id);
-  return { success: true, value: deleted_project };
+  const result = await projectsDatabase.deleteProject(project_id);
+  return { success: true, value: result };
 }
 
 module.exports = {
   createProject,
   getOneProject,
-  getProjects,
+  getProjectsCreatedByUser,
+  getProjectsInvolvedIn,
   getTaskByProject,
   updateProject,
   deleteProject,

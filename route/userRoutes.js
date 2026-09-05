@@ -1,6 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const userControllers = require("../controllers/userControllers");
+const taskControllers = require("../controllers/taskControllers");
+
 const projectMemberControllers = require("../controllers/projectMemberControllers");
 const commentControllers = require("../controllers/commentControllers");
 const authenticateToken = require("../middleware/authenticateToken");
@@ -34,6 +36,12 @@ router.get(
 );
 
 router.get(
+  "/users/tasks",
+  authenticateToken,
+  asyncHandler(taskControllers.getTaskByUser),
+);
+
+router.get(
   "/users/comments",
   authenticateToken,
   asyncHandler(commentControllers.getCommentByUser),
@@ -43,8 +51,6 @@ router.delete(
   authenticateToken,
   asyncHandler(commentControllers.deleteCommentById),
 );
-
-
 
 router.delete(
   "/users",

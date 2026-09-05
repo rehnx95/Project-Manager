@@ -1,5 +1,6 @@
+const { validateHeaderName } = require("node:http");
 const databaseService = require("../services/databaseService");
-const { z } = require("zod");
+const { z, success } = require("zod");
 
 const sqlQuery_schema = z.object({
   sqlQuery: z.string().min(1, "Enter SQL query"),
@@ -25,6 +26,19 @@ async function showDatabase(req, res) {
   return res.status(200).json({ success: true, value: outcome.value });
 }
 
+async function listDemoQueries(req, res) {
+  console.log(
+    new Date().toLocaleTimeString("en-GB"),
+    "[databaseControllers] listDemoQueries",
+  );
+  const outcome = await databaseService.listDemoQueries();
+  if (outcome.success === false) {
+    return res.status(404).json({ success: false, error: outcome.error });
+  }
+  return res.status(200).json({ success: true, value: outcome.value });
+}
+
 module.exports = {
   showDatabase,
+  listDemoQueries,
 };

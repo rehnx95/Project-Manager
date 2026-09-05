@@ -10,11 +10,6 @@ router.post(
   asyncHandler(taskControllers.createTask),
 );
 router.get(
-  "/tasks",
-  authenticateToken,
-  asyncHandler(taskControllers.getTaskByUser),
-);
-router.get(
   "/tasks/:task_id",
   authenticateToken,
   asyncHandler(taskControllers.getOneTask),

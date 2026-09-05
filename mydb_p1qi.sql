@@ -78,7 +78,11 @@ CREATE TABLE notes(
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-
+CREATE TABLE queries(
+    id BIGSERIAL PRIMARY KEY,
+    label TEXT NOT NULL,
+    query TEXT NOT NULL
+);
 
 CREATE INDEX idx_profiles_user_id ON profiles(user_id);
 CREATE INDEX idx_projects_user_id ON projects(user_id);

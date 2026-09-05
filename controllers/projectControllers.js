@@ -75,9 +75,21 @@ async function getOneProject(req, res) {
   });
 }
 
-async function getProjects(req, res) {
-  console.log(new Date().toLocaleTimeString("en-GB"), "[projectControllers] getProjects");
-  const outcome = await projectService.getProjects(req.user.id);
+async function getProjectsCreatedByUser(req, res) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[projectControllers] getProjectsCreatedByUser");
+  const outcome = await projectService.getProjectsCreatedByUser(req.user.id);
+  if (outcome.success === false) {
+    return handleServiceError(res, outcome.error);
+  }
+  res.status(200).json({
+    success: true,
+    value: outcome.value,
+  });
+}
+
+async function getProjectsInvolvedIn(req, res) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[projectControllers] getProjectsInvolvedIn");
+  const outcome = await projectService.getProjectsInvolvedIn(req.user.id);
   if (outcome.success === false) {
     return handleServiceError(res, outcome.error);
   }
@@ -149,7 +161,8 @@ async function deleteProject(req, res) {
 module.exports = {
   createProject,
   getOneProject,
-  getProjects,
+  getProjectsCreatedByUser,
+  getProjectsInvolvedIn,
   getTaskByProject,
   updateProject,
   deleteProject,

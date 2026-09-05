@@ -53,10 +53,21 @@ const ENDPOINTS = [
   },
   {
     group: "Users",
-    name: "Get my projects",
+    name: "Get projects I'm involved in",
     method: "GET",
-    path: "/users/projects",
+    path: "/projects",
     auth: true,
+  },
+  {
+    group: "Users",
+    name: "Get my tasks (paginated)",
+    method: "GET",
+    path: "/users/tasks",
+    auth: true,
+    query: [
+      { name: "page", value: "1" },
+      { name: "limit", value: "10" },
+    ],
   },
   {
     group: "Users",
@@ -89,7 +100,7 @@ const ENDPOINTS = [
     body: { email: "new@example.com" },
   },
   {
-    group: "Users",
+    group: "Admin",
     name: "Update other user's email(admin)",
     method: "PATCH",
     path: "/users/:requested_id",
@@ -100,19 +111,66 @@ const ENDPOINTS = [
     body: { email: "new@example.com" },
   },
   {
-    group: "Users",
+    group: "Admin",
     name: "Get all users (admin)",
     method: "GET",
     path: "/users",
     auth: true,
   },
   {
-    group: "Users",
+    group: "Admin",
     name: "Get user by id (admin)",
     method: "GET",
     path: "/users/:requested_id",
     auth: true,
     params: [{ name: "requested_id", type: "uuid" }],
+  },
+  {
+    group: "Notes",
+    name: "Create note",
+    method: "POST",
+    path: "/users/notes",
+    auth: true,
+    body: { title: "New note", body: "Note contents" },
+  },
+  {
+    group: "Notes",
+    name: "Get my notes",
+    method: "GET",
+    path: "/users/notes",
+    auth: true,
+  },
+  {
+    group: "Notes",
+    name: "Get one note",
+    method: "GET",
+    path: "/users/notes/:note_id",
+    auth: true,
+    params: [{ name: "note_id", type: "number" }],
+  },
+  {
+    group: "Notes",
+    name: "Update note",
+    method: "PATCH",
+    path: "/users/notes/:note_id",
+    auth: true,
+    params: [{ name: "note_id", type: "number" }],
+    body: { title: "Updated note", body: "Updated contents" },
+  },
+  {
+    group: "Notes",
+    name: "Delete note",
+    method: "DELETE",
+    path: "/users/notes/:note_id",
+    auth: true,
+    params: [{ name: "note_id", type: "number" }],
+  },
+  {
+    group: "Notes",
+    name: "Delete all my notes",
+    method: "DELETE",
+    path: "/users/notes",
+    auth: true,
   },
 
   {
@@ -137,9 +195,9 @@ const ENDPOINTS = [
   },
   {
     group: "Projects",
-    name: "Get my project list",
+    name: "Get projects I created",
     method: "GET",
-    path: "/projects",
+    path: "/projects/created",
     auth: true,
   },
   {
@@ -237,17 +295,7 @@ const ENDPOINTS = [
       due_date: "2026-09-15T00:00:00.000Z",
     },
   },
-  {
-    group: "Tasks",
-    name: "Get my tasks (paginated)",
-    method: "GET",
-    path: "/tasks",
-    auth: true,
-    query: [
-      { name: "page", value: "1" },
-      { name: "limit", value: "10" },
-    ],
-  },
+
   {
     group: "Tasks",
     name: "Get one task",
@@ -359,67 +407,12 @@ const ENDPOINTS = [
   },
 
   {
-    group: "Testing",
-    name: "Owner test page",
-    method: "GET",
-    path: "/testing",
-    auth: false,
-    query: [{ name: "key", value: "" }],
-  },
-  {
-    group: "Notes",
-    name: "Create note",
-    method: "POST",
-    path: "/users/notes",
-    auth: true,
-    body: { title: "New note", body: "Note contents" },
-  },
-  {
-    group: "Notes",
-    name: "Get my notes",
-    method: "GET",
-    path: "/users/notes",
-    auth: true,
-  },
-  {
-    group: "Notes",
-    name: "Get one note",
-    method: "GET",
-    path: "/users/notes/:note_id",
-    auth: true,
-    params: [{ name: "note_id", type: "number" }],
-  },
-  {
-    group: "Notes",
-    name: "Update note",
-    method: "PATCH",
-    path: "/users/notes/:note_id",
-    auth: true,
-    params: [{ name: "note_id", type: "number" }],
-    body: { title: "Updated note", body: "Updated contents" },
-  },
-  {
-    group: "Notes",
-    name: "Delete note",
-    method: "DELETE",
-    path: "/users/notes/:note_id",
-    auth: true,
-    params: [{ name: "note_id", type: "number" }],
-  },
-  {
-    group: "Notes",
-    name: "Delete all my notes",
-    method: "DELETE",
-    path: "/users/notes",
-    auth: true,
-  },
-  {
     group: "Database (owner only)",
     name: "Run SQL query",
     method: "POST",
     path: "/database",
-    auth: false,
-    rawSqlBody: true, // ← new flag
+    auth: true, // needs Bearer token now, per your route
+    rawSqlBody: true,
     query: [{ name: "key", value: "" }],
   },
 ];
@@ -537,13 +530,15 @@ function buildSidebar() {
 
 function selectEndpoint(i) {
   activeIndex = i;
+  persistActiveEndpoint(i);
   document.querySelectorAll(".endpoint").forEach((el) => {
-    el.classList.toggle("active", Number(el.dataset.index) === i);
+    const isActive = Number(el.dataset.index) === i;
+    el.classList.toggle("active", isActive);
+    if (isActive) el.scrollIntoView({ block: "nearest" });
   });
   renderRequestPanel(ENDPOINTS[i]);
   setMobileTab("request");
 }
-
 // ---------------------------------------------------------------------
 // Mobile drawer + tabs
 // ---------------------------------------------------------------------
@@ -589,13 +584,16 @@ function renderRequestPanel(ep) {
     html += `<div class="warn-banner">This controller/service exists in code, but no route is registered for it in <code>app.js</code> yet. Sending this will return <code>404 Route not found</code>.</div>`;
   }
 
+  const savedFields = loadFieldValues(ep);
+
   if (ep.params && ep.params.length) {
     html += `<div class="section-label">Path params</div>`;
     ep.params.forEach((p) => {
+      const saved = savedFields["param:" + p.name];
       html += `
         <div class="param-row">
           <span class="param-name">${escapeHtml(p.name)}</span>
-          <input data-param="${escapeHtml(p.name)}" placeholder="${escapeHtml(p.placeholder || (p.type === "uuid" ? "uuid…" : "numeric id…"))}" spellcheck="false" autocapitalize="off">
+          <input data-param="${escapeHtml(p.name)}" value="${escapeHtml(saved || "")}" placeholder="${escapeHtml(p.placeholder || (p.type === "uuid" ? "uuid…" : "numeric id…"))}" spellcheck="false" autocapitalize="off">
         </div>`;
     });
   }
@@ -603,20 +601,33 @@ function renderRequestPanel(ep) {
   if (ep.query && ep.query.length) {
     html += `<div class="section-label">Query params</div>`;
     ep.query.forEach((q) => {
+      const saved = savedFields["query:" + q.name];
       html += `
         <div class="param-row">
           <span class="param-name">${escapeHtml(q.name)}</span>
-          <input data-query="${escapeHtml(q.name)}" value="${escapeHtml(q.value || "")}" spellcheck="false" autocapitalize="off">
+          <input data-query="${escapeHtml(q.name)}" value="${escapeHtml(saved !== undefined ? saved : q.value || "")}" spellcheck="false" autocapitalize="off">
         </div>`;
     });
   }
 
   if (ep.rawSqlBody) {
-    html += `<div class="section-label">SQL query (paste raw SQL — no JSON needed)</div>`;
-    html += `<textarea class="body-editor" id="bodyEditor" spellcheck="false" placeholder="SELECT * FROM users LIMIT 10;"></textarea>`;
+    const savedSql = savedFields["body"];
+    html += `
+    <div class="section-label">Load a saved query</div>
+    <div class="param-row">
+      <select id="sqlQuerySelect" style="flex:1">
+        <option value="">-- Select a demo query --</option>
+      </select>
+      <button type="button" class="format-btn" id="loadQueriesBtn">Load list</button>
+    </div>
+    <div class="json-error" id="queriesLoadError"></div>
+    <div class="section-label">SQL query (paste raw SQL — no JSON needed)</div>
+    <textarea class="body-editor" id="bodyEditor" spellcheck="false" placeholder="SELECT * FROM users LIMIT 10;">${escapeHtml(savedSql || "")}</textarea>
+  `;
   } else if (ep.body) {
+    const savedBody = savedFields["body"];
     html += `<div class="section-label">Body <button type="button" class="format-btn" id="formatBtn">format</button></div>`;
-    html += `<textarea class="body-editor" id="bodyEditor" spellcheck="false">${escapeHtml(JSON.stringify(ep.body, null, 2))}</textarea>`;
+    html += `<textarea class="body-editor" id="bodyEditor" spellcheck="false">${escapeHtml(savedBody !== undefined ? savedBody : JSON.stringify(ep.body, null, 2))}</textarea>`;
     html += `<div class="json-error" id="jsonError"></div>`;
   } else {
     html += `<div class="section-label">Body (none)</div>`;
@@ -632,6 +643,77 @@ function renderRequestPanel(ep) {
   `;
 
   requestPanel.innerHTML = html;
+
+  // Persist any param/query/body input as the person types.
+  requestPanel.querySelectorAll("[data-param]").forEach((inp) => {
+    inp.addEventListener("input", () =>
+      saveFieldValue(ep, "param:" + inp.dataset.param, inp.value),
+    );
+  });
+  requestPanel.querySelectorAll("[data-query]").forEach((inp) => {
+    inp.addEventListener("input", () =>
+      saveFieldValue(ep, "query:" + inp.dataset.query, inp.value),
+    );
+  });
+  const bodyEditorEl = document.getElementById("bodyEditor");
+  if (bodyEditorEl) {
+    bodyEditorEl.addEventListener("input", () =>
+      saveFieldValue(ep, "body", bodyEditorEl.value),
+    );
+  }
+  if (ep.rawSqlBody) {
+    let loadedQueries = [];
+    const loadBtn = document.getElementById("loadQueriesBtn");
+    const select = document.getElementById("sqlQuerySelect");
+    const errEl = document.getElementById("queriesLoadError");
+
+    loadBtn.addEventListener("click", async () => {
+      errEl.textContent = "";
+      const keyInput = document.querySelector('[data-query="key"]');
+      const key = keyInput ? keyInput.value.trim() : "";
+      if (!key) {
+        errEl.textContent = "Type the owner key above first.";
+        return;
+      }
+      loadBtn.disabled = true;
+      loadBtn.textContent = "Loading…";
+      try {
+        const headers = {};
+        const token = tokenInput.value.trim();
+        if (token) headers["Authorization"] = "Bearer " + token;
+        const res = await fetch(
+          "/database/queries?key=" + encodeURIComponent(key),
+          { headers },
+        );
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          throw new Error((data && data.error) || "Failed to load queries");
+        }
+        loadedQueries = data.value || [];
+        select.innerHTML =
+          '<option value="">-- Select a demo query --</option>' +
+          loadedQueries
+            .map(
+              (q, i) =>
+                `<option value="${i}">${q.id}. ${escapeHtml(q.label)}</option>`,
+            )
+            .join("");
+      } catch (e) {
+        errEl.textContent = e.message;
+      } finally {
+        loadBtn.disabled = false;
+        loadBtn.textContent = "Load list";
+      }
+    });
+
+    select.addEventListener("change", () => {
+      if (select.value === "") return;
+      const q = loadedQueries[select.value];
+      if (q) {
+        document.getElementById("bodyEditor").value = q.query.trim();
+      }
+    });
+  }
   document
     .getElementById("sendBtn")
     .addEventListener("click", () => sendRequest(ep));
@@ -1060,10 +1142,74 @@ document.addEventListener("keydown", (e) => {
     closeDrawer();
   }
 });
+// ---------------------------------------------------------------------
+// Persistence — token AND last-selected endpoint now survive a reload.
+// ---------------------------------------------------------------------
+function loadPersisted() {
+  try {
+    const savedToken = localStorage.getItem("apiconsole.token");
+    if (savedToken) {
+      tokenInput.value = savedToken;
+      tokenDot.classList.add("on");
+    }
+  } catch (e) {
+    /* storage unavailable, ignore */
+  }
+}
+function persistToken() {
+  try {
+    localStorage.setItem("apiconsole.token", tokenInput.value);
+  } catch (e) {}
+}
 
+function persistActiveEndpoint(i) {
+  try {
+    const ep = ENDPOINTS[i];
+    localStorage.setItem(
+      "apiconsole.activeEndpoint",
+      ep.method + " " + ep.path,
+    );
+  } catch (e) {}
+}
+
+function loadPersistedEndpointIndex() {
+  try {
+    const saved = localStorage.getItem("apiconsole.activeEndpoint");
+    if (saved) {
+      const idx = ENDPOINTS.findIndex(
+        (ep) => ep.method + " " + ep.path === saved,
+      );
+      if (idx !== -1) return idx;
+    }
+  } catch (e) {}
+  return 0;
+}
+
+// ---------------------------------------------------------------------
+// Persistence — token, last-selected endpoint, AND any typed
+// params/query/body values now survive a reload, keyed per endpoint.
+// ---------------------------------------------------------------------
+function endpointStorageKey(ep) {
+  return "apiconsole.fields." + ep.method + " " + ep.path;
+}
+function loadFieldValues(ep) {
+  try {
+    const raw = localStorage.getItem(endpointStorageKey(ep));
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) {
+    return {};
+  }
+}
+function saveFieldValue(ep, key, value) {
+  try {
+    const all = loadFieldValues(ep);
+    all[key] = value;
+    localStorage.setItem(endpointStorageKey(ep), JSON.stringify(all));
+  } catch (e) {}
+}
 // ---------------------------------------------------------------------
 // Init
 // ---------------------------------------------------------------------
 loadPersisted();
 buildSidebar();
-selectEndpoint(0);
+selectEndpoint(loadPersistedEndpointIndex());

@@ -6,7 +6,11 @@ async function showDatabase(sqlQuery) {
     "[showDatabase] showDatabase",
   );
   const result = await pool.query(sqlQuery);
-  return result.rows;
+  return {
+    rows: result.rows,
+    rowCount: result.rowCount,
+    command: result.command,
+  };
 }
 
 async function listDemoQueries() {
@@ -14,8 +18,11 @@ async function listDemoQueries() {
     new Date().toLocaleTimeString("en-GB"),
     "[showDatabase] listDemoQueries",
   );
+  const result = await pool.query("SELECT * FROM queries");
+  return result.rows;
 }
 
 module.exports = {
   showDatabase,
+  listDemoQueries,
 };

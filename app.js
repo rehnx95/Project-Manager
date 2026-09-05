@@ -25,7 +25,7 @@ app.use("/", tagRoutes);
 app.use("/", commentRoutes);
 app.use("/", databaseRoutes);
 
-const authenticateOwner = require("./middleware/siteOwner");
+const authenticateOwner = require("./middleware/authenticateOwner");
 app.get("/testing", authenticateOwner, (req, res) => {
   res.sendFile(path.join(__dirname, "frontend", "testing.html"));
 });
@@ -39,7 +39,7 @@ app.use((err, req, res, next) => {
   res.status(500).json({ success: false, error: "Something went wrong" });
 });
 
-const port = process.env.PORT || 7000;
+const port = 8000;
 app.listen(port, "0.0.0.0", () => {
   console.log(new Date().toLocaleTimeString("en-GB"), `server running ${port}`);
 });

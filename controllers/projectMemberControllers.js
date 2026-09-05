@@ -101,18 +101,6 @@ async function getAllMembersOfProject(req, res) {
   });
 }
 
-async function getAllProjectsOfUser(req, res) {
-  console.log(new Date().toLocaleTimeString("en-GB"), "[projectMemberControllers] getAllProjectsOfUser");
-  const outcome = await projectMemberService.getAllProjectsOfUser(req.user.id);
-  if (outcome.success === false) {
-    return handleServiceError(res, outcome.error);
-  }
-  res.status(200).json({
-    success: true,
-    value: outcome.value,
-  });
-}
-
 async function removeMemberFromProject(req, res) {
   console.log(new Date().toLocaleTimeString("en-GB"), "[projectMemberControllers] removeMemberFromProject");
   const project_id = parseUUIDParam(req, res, "project_id");
@@ -174,7 +162,6 @@ module.exports = {
   getMembership,
   addMemberToProject,
   getAllMembersOfProject,
-  getAllProjectsOfUser,
   removeMemberFromProject,
   changeMemberRole,
 };
