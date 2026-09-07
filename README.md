@@ -15,7 +15,7 @@ The frontend and API are served from the same Express application, so the applic
 - **Email management** — users update their own email (`PATCH /users`); admins can update any user's email from the admin panel (`PATCH /users/:target_id`, admin-only)
 - **Projects** — create, read, update, delete, with ownership rules, and a clear split between projects you **created** and projects you're **involved in** as a member
 - **Project Members** — invite/remove members, role management (`owner` / `member`), last-owner protection
-- **Tasks** — full CRUD, priority levels, optional due dates, completion toggling, pagination, and permission-aware editing
+- **Tasks** — full CRUD, priority level, optional due dates, completion toggling, pagination, and permission-aware editing
 - **Tags** — project-scoped tags that members can attach/detach to tasks (many-to-many)
 - **Task assignments** — project owners assign tasks to project members
 - **Comments** — per-task comments with owner-only bulk delete
