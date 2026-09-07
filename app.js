@@ -5,6 +5,25 @@ const app = express();
 const cors = require("cors");
 app.use(cors());
 app.use(express.json());
+const authenticateOwner = require("./middleware/authenticateOwner");
+app.post("/testing/access", (req, res) => {
+  const secret = process.env.SECRET_KEY;
+  if (!secret) {
+    return res.status(500).json({ success: false, error: "Server misconfigured" });
+  }
+  if (!authenticateOwner.isValidSecret(req.body?.key, secret)) {
+    return res.status(403).json({ success: false, error: "Forbidden: invalid key" });
+  }
+  const token = authenticateOwner.createAccessToken(secret);
+  res.setHeader(
+    "Set-Cookie",
+    `testing_access=${encodeURIComponent(token)}; HttpOnly; SameSite=Strict; Max-Age=300; Path=/`,
+  );
+  return res.status(204).send();
+});
+app.get("/testing.html", authenticateOwner, (req, res) => {
+  res.sendFile(path.join(__dirname, "frontend", "testing.html"));
+});
 app.use(express.static(path.join(__dirname, "frontend")));
 
 const userRoutes = require("./route/userRoutes");
@@ -25,7 +44,6 @@ app.use("/", tagRoutes);
 app.use("/", commentRoutes);
 app.use("/", databaseRoutes);
 
-const authenticateOwner = require("./middleware/authenticateOwner");
 app.get("/testing", authenticateOwner, (req, res) => {
   res.sendFile(path.join(__dirname, "frontend", "testing.html"));
 });

@@ -69,7 +69,7 @@
                   <option value="high">High</option>
                 </select>
               </div>
-              <div class="field"><label for="ntDueDate">Due date</label><input id="ntDueDate" type="datetime-local" required /></div>
+              <div class="field"><label for="ntDueDate">Due date <span class="optional">(optional)</span></label><input id="ntDueDate" type="datetime-local" /></div>
             </div>
             <div class="error-text" id="newTaskError"></div>
             <div style="display:flex; gap:0.6rem">
@@ -100,6 +100,7 @@
             <h3 style="margin:0">Crew roster</h3>
             <button class="btn btn-sm" id="showAddMemberBtn" hidden>+ Add member</button>
           </div>
+          <p class="permission-note" id="crewPermissionNote"></p>
           <div id="memberList"></div>
         </div>
       </div>

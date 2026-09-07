@@ -4,8 +4,8 @@ const authenticateToken = require("../middleware/authenticateToken");
 const asyncHandler = require("../utils/asyncHandler");
 const tagControllers = require("../controllers/tagControllers");
 
-router.post("/tags", authenticateToken, asyncHandler(tagControllers.createTag));
-router.get("/tags", authenticateToken, asyncHandler(tagControllers.getAllTags));
+router.post("/projects/:project_id/tags", authenticateToken, asyncHandler(tagControllers.createTag));
+router.get("/projects/:project_id/tags", authenticateToken, asyncHandler(tagControllers.getAllTags));
 
 // task <-> tag (previously missing — controllers/repository already
 // supported this, they just weren't wired to a route)

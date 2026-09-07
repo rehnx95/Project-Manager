@@ -4,7 +4,8 @@
   "description": "Practice: session-based auth from scratch, no external auth provider",
   "main": "app.js",
   "scripts": {
-    "start": "node app.js"
+    "start": "node app.js",
+    "test": "node --test"
   },
   "dependencies": {
     "@prisma/client": "^7.9.1",

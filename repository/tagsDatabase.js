@@ -1,17 +1,17 @@
 const pool = require("../db");
 
-async function createTag(tag_name) {
+async function createTag(project_id, tag_name) {
   console.log(new Date().toLocaleTimeString("en-GB"), "[tagsDatabase] createTag");
   const result = await pool.query(
-    "INSERT INTO tags (tag_name) VALUES ($1) RETURNING *",
-    [tag_name],
+    "INSERT INTO tags (project_id, tag_name) VALUES ($1, $2) RETURNING *",
+    [project_id, tag_name],
   );
   return result.rows[0];
 }
 
-async function getAllTags() {
+async function getAllTags(project_id) {
   console.log(new Date().toLocaleTimeString("en-GB"), "[tagsDatabase] getAllTags");
-  const result = await pool.query("SELECT * FROM tags");
+  const result = await pool.query("SELECT * FROM tags WHERE project_id=$1 ORDER BY tag_name", [project_id]);
   return result.rows;
 }
 

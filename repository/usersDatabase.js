@@ -49,15 +49,25 @@ async function updateEmail(id, new_email) {
   return result.rows[0];
 }
 
-async function deleteUser(email) {
+async function deleteUser(user_id) {
   console.log(
     new Date().toLocaleTimeString("en-GB"),
     "[usersDatabase] deleteUser",
   );
-  const result = await pool.query(
-    "DELETE FROM users WHERE email=$1 RETURNING *",
-    [email],
-  );
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query("DELETE FROM projects WHERE user_id=$1", [user_id]);
+    await client.query("DELETE FROM tasks WHERE user_id=$1", [user_id]);
+    const result = await client.query("DELETE FROM users WHERE id=$1 RETURNING id,email", [user_id]);
+    await client.query("COMMIT");
+    return result.rows[0];
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
   return result.rows[0];
 }
 

@@ -24,8 +24,11 @@ function handleServiceError(res, error) {
   if (error.startsWith("Forbidden")) {
     return res.status(403).json({ success: false, error });
   }
-  if (error === "Project Not Exist") {
+  if (error === "Project Not Exist" || error === "User Not Exist") {
     return res.status(404).json({ success: false, error });
+  }
+  if (error === "User Already Member Of That Project") {
+    return res.status(409).json({ success: false, error });
   }
 
   return res.status(400).json({ success: false, error });
@@ -55,7 +58,7 @@ async function addMemberToProject(req, res) {
   if (!result.success) {
     return res.status(400).json({
       success: false,
-      error: result.error.errors[0].message,
+      error: result.error.issues[0].message,
     });
   }
 
@@ -129,7 +132,7 @@ async function changeMemberRole(req, res) {
   if (!result.success) {
     return res.status(400).json({
       success: false,
-      error: result.error.errors[0].message,
+      error: result.error.issues[0].message,
     });
   }
 

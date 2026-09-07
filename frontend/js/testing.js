@@ -14,6 +14,13 @@
 const ENDPOINTS = [
   {
     group: "Users",
+    name: "Logout",
+    method: "POST",
+    path: "/users/logout",
+    auth: true,
+  },
+  {
+    group: "Users",
     name: "Signup",
     method: "POST",
     path: "/users/signup",
@@ -336,18 +343,20 @@ const ENDPOINTS = [
 
   {
     group: "Tags",
-    name: "Create tag",
+    name: "Create project tag (owner only)",
     method: "POST",
-    path: "/tags",
+    path: "/projects/:project_id/tags",
     auth: true,
+    params: [{ name: "project_id", type: "uuid" }],
     body: { tag_name: "urgent" },
   },
   {
     group: "Tags",
-    name: "Get all tags",
+    name: "Get project tags",
     method: "GET",
-    path: "/tags",
+    path: "/projects/:project_id/tags",
     auth: true,
+    params: [{ name: "project_id", type: "uuid" }],
   },
   {
     group: "Tags",
@@ -405,6 +414,36 @@ const ENDPOINTS = [
     auth: true,
     params: [{ name: "task_id", type: "number" }],
   },
+  {
+    group: "Tasks",
+    name: "Get task assignees",
+    method: "GET",
+    path: "/tasks/:task_id/assignees",
+    auth: true,
+    params: [{ name: "task_id", type: "number" }],
+  },
+  {
+    group: "Tasks",
+    name: "Assign task member (owner only)",
+    method: "POST",
+    path: "/tasks/:task_id/assignees/:target_user_id",
+    auth: true,
+    params: [
+      { name: "task_id", type: "number" },
+      { name: "target_user_id", type: "uuid" },
+    ],
+  },
+  {
+    group: "Tasks",
+    name: "Unassign task member (owner only)",
+    method: "DELETE",
+    path: "/tasks/:task_id/assignees/:target_user_id",
+    auth: true,
+    params: [
+      { name: "task_id", type: "number" },
+      { name: "target_user_id", type: "uuid" },
+    ],
+  },
 
   {
     group: "Database (owner only)",
@@ -413,7 +452,6 @@ const ENDPOINTS = [
     path: "/database",
     auth: true, // needs Bearer token now, per your route
     rawSqlBody: true,
-    query: [{ name: "key", value: "" }],
   },
 ];
 
@@ -669,12 +707,6 @@ function renderRequestPanel(ep) {
 
     loadBtn.addEventListener("click", async () => {
       errEl.textContent = "";
-      const keyInput = document.querySelector('[data-query="key"]');
-      const key = keyInput ? keyInput.value.trim() : "";
-      if (!key) {
-        errEl.textContent = "Type the owner key above first.";
-        return;
-      }
       loadBtn.disabled = true;
       loadBtn.textContent = "Loading…";
       try {
@@ -682,7 +714,7 @@ function renderRequestPanel(ep) {
         const token = tokenInput.value.trim();
         if (token) headers["Authorization"] = "Bearer " + token;
         const res = await fetch(
-          "/database/queries?key=" + encodeURIComponent(key),
+          "/database/queries",
           { headers },
         );
         const data = await res.json();

@@ -54,6 +54,9 @@ function applyRolePermissions() {
   document.getElementById("editProjectBtn").hidden = !isOwner;
   document.getElementById("deleteProjectBtn").hidden = !isOwner;
   document.getElementById("showAddMemberBtn").hidden = !isOwner;
+  document.getElementById("crewPermissionNote").textContent = isOwner
+    ? "You are an owner. You can manage members, roles, and project settings."
+    : "You are a member. You can view the crew and collaborate on project work.";
   const roleStamp = document.getElementById("pRoleStamp");
   if (state.myRole) {
     roleStamp.textContent = "you: " + state.myRole;

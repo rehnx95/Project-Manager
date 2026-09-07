@@ -1,10 +1,10 @@
 const pool = require("../db");
 const crypto = require("crypto");
 
-async function createProject(new_project) {
+async function createProject(new_project, client = pool) {
   console.log(new Date().toLocaleTimeString("en-GB"), "[projectsDatabase] createProject");
   const id = crypto.randomUUID();
-  const result = await pool.query(
+  const result = await client.query(
     "INSERT INTO projects (id,user_id,project_name,description,status) VALUES ($1,$2,$3,$4,$5) RETURNING *",
     [
       id,

@@ -5,7 +5,14 @@ async function showDatabase(sqlQuery) {
     new Date().toLocaleTimeString("en-GB"),
     "[databaseService] showDatabase",
   );
-  const result = await database.showDatabase(sqlQuery);
+  const normalized = sqlQuery.trim();
+  if (!/^SELECT\b/i.test(normalized) || /;/.test(normalized)) {
+    return {
+      success: false,
+      error: "Only a single read-only SELECT query is allowed",
+    };
+  }
+  const result = await database.showDatabase(normalized);
   // No rows AND no affected rows means genuinely nothing happened —
   // e.g. a SELECT that matched zero records. That's still a valid,
   // successful result, not an error.

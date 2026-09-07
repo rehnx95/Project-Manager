@@ -1,6 +1,8 @@
 const projectsDatabase = require("../repository/projectsDatabase");
 const usersDatabase = require("../repository/usersDatabase");
 const projectMembersDatabase = require("../repository/projectMembersDatabase");
+const pool = require("../db");
+const securityDatabase = require("../repository/securityDatabase");
 
 async function createProject(
   user_id,
@@ -15,9 +17,19 @@ async function createProject(
     new_description,
     new_status,
   };
-  const result = await projectsDatabase.createProject(new_project);
-  await projectMembersDatabase.addMemberToProject(result.id, user_id, "owner");
-  return { success: true, value: result };
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const result = await projectsDatabase.createProject(new_project, client);
+    await projectMembersDatabase.addMemberToProject(result.id, user_id, "owner", client);
+    await client.query("COMMIT");
+    return { success: true, value: result };
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 // logged in user can see all their by searching with project id
@@ -130,6 +142,7 @@ async function deleteProject(project_id, user_id) {
   if (!membership || membership.role !== "owner") {
     return { success: false, error: "Forbidden Only Owner Can Delete Project" };
   }
+  await securityDatabase.createAuditLog(user_id, "project.delete", "project", project_id);
   const result = await projectsDatabase.deleteProject(project_id);
   return { success: true, value: result };
 }

@@ -21,7 +21,7 @@ async function showDatabase(req, res) {
   const { sqlQuery } = result.data;
   const outcome = await databaseService.showDatabase(sqlQuery);
   if (outcome.success === false) {
-    return res.status(404).json({ success: false, error: outcome.error });
+    return res.status(400).json({ success: false, error: outcome.error });
   }
   return res.status(200).json({ success: true, value: outcome.value });
 }

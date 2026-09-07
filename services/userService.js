@@ -1,6 +1,7 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const usersDatabase = require("../repository/usersDatabase");
+const securityDatabase = require("../repository/securityDatabase");
 
 async function signup(email, password) {
   console.log(new Date().toLocaleTimeString("en-GB"), "[userService] signup");
@@ -28,10 +29,16 @@ async function login(email, password) {
   if (!user || !is_match) {
     return { success: false, error: "Unauthorize" };
   }
+  const jti = require("crypto").randomUUID();
   const token = jwt.sign(
-    { id: user.id, email: user.email, role: user.role },
+    { id: user.id, email: user.email, role: user.role, jti },
     process.env.JWT_SECRET,
     { expiresIn: "1h" },
+  );
+  await securityDatabase.createTokenSession(
+    jti,
+    user.id,
+    new Date(Date.now() + 60 * 60 * 1000),
   );
   return { success: true, value: token };
 }
@@ -49,6 +56,7 @@ async function selfUpdateEmail(user_id, old_email, new_email) {
   if (!updated_user) {
     return { success: false, error: "User Not Exist" };
   }
+  await securityDatabase.createAuditLog(user_id, "user.email.update", "user", user_id, { old_email, new_email });
   const new_user = {
     id: updated_user.id,
     oldEmail: old_email,
@@ -82,10 +90,14 @@ async function updateOtherEmail(
   }
 
   const user = await usersDatabase.getUser(target_id);
+  if (user && user.role === "admin" && target_id !== requested_id) {
+    return { success: false, error: "Forbidden Cannot Modify Another Admin" };
+  }
   const updated_user = await usersDatabase.updateEmail(target_id, new_email);
   if (!updated_user) {
     return { success: false, error: "User Not Exist" };
   }
+  await securityDatabase.createAuditLog(requested_id, "user.email.admin_update", "user", target_id, { old_email: user.email, new_email });
 
   const new_user = {
     id: target_id,
@@ -115,16 +127,23 @@ async function getAllUsers() {
   return { success: true, value: all_users };
 }
 
-async function deleteUser(email) {
+async function deleteUser(user_id) {
   console.log(
     new Date().toLocaleTimeString("en-GB"),
     "[userService] deleteUser",
   );
-  const deleted_user = await usersDatabase.deleteUser(email);
+  await securityDatabase.createAuditLog(user_id, "user.delete", "user", user_id);
+  const deleted_user = await usersDatabase.deleteUser(user_id);
   if (!deleted_user) {
     return { success: false, error: "User Not Exist" };
   }
+
   return { success: true, value: deleted_user };
+}
+
+async function logout(jti) {
+  await securityDatabase.revokeToken(jti);
+  return { success: true };
 }
 
 async function createProfile(user_id, new_name, new_bio) {
@@ -174,6 +193,7 @@ module.exports = {
   login,
   getAllUsers,
   deleteUser,
+  logout,
   getUser,
   selfUpdateEmail,
   updateOtherEmail,

@@ -9,7 +9,7 @@ const task_schema = z.object({
   }),
   due_date: z.union([z.iso.date(), z.iso.datetime()], {
     message: "Please provide a valid date",
-  }),
+  }).nullable(),
 });
 
 const id_schema = z.coerce.number().int().positive();
@@ -48,12 +48,16 @@ function handleServiceError(res, error) {
   );
   if (
     error === "Forbidden Not Member Of That Project" ||
-    error === "Forbidden Only Owner Can Delete Task"
+    error === "Forbidden Only Owner Can Delete Task" ||
+    error === "Forbidden Only Owner Can Assign Task"
   ) {
     return res.status(403).json({ success: false, error });
   }
-  if (error === "Project Not Exist") {
+  if (error === "Project Not Exist" || error === "Task Not Exist") {
     return res.status(404).json({ success: false, error });
+  }
+  if (error === "User Not Member Of That Project") {
+    return res.status(403).json({ success: false, error });
   }
 
   return res.status(400).json({ success: false, error });
@@ -98,8 +102,20 @@ async function getTaskByUser(req, res) {
     new Date().toLocaleTimeString("en-GB"),
     "[taskControllers] getTaskByUser",
   );
-  const page = Number(req.query.page) || 1;
-  const limit = Number(req.query.limit) || 10;
+  const page = req.query.page === undefined ? 1 : Number(req.query.page);
+  const limit = req.query.limit === undefined ? 10 : Number(req.query.limit);
+  if (
+    !Number.isInteger(page) ||
+    page < 1 ||
+    !Number.isInteger(limit) ||
+    limit < 1 ||
+    limit > 100
+  ) {
+    return res.status(400).json({
+      success: false,
+      error: "page must be an integer >= 1 and limit must be an integer between 1 and 100",
+    });
+  }
 
   const outcome = await taskService.getTaskByUser(req.user.id, page, limit);
 
@@ -188,8 +204,39 @@ async function completeTask(req, res) {
   if (outcome.success === false) {
     return handleServiceError(res, outcome.error);
   }
-
   res.status(200).json({ success: true, value: outcome.value });
+}
+
+async function assignTask(req, res) {
+  const task_id = parseIdParam(req, res, "task_id");
+  if (task_id === null) return;
+  const targetResult = uuid_schema.safeParse(req.params.target_user_id);
+  if (!targetResult.success) {
+    return res.status(400).json({ success: false, error: "Invalid target_user_id" });
+  }
+  const outcome = await taskService.assignTask(req.user.id, task_id, targetResult.data);
+  if (outcome.success === false) return handleServiceError(res, outcome.error);
+  return res.status(201).json({ success: true, value: outcome.value });
+}
+
+async function unassignTask(req, res) {
+  const task_id = parseIdParam(req, res, "task_id");
+  if (task_id === null) return;
+  const targetResult = uuid_schema.safeParse(req.params.target_user_id);
+  if (!targetResult.success) {
+    return res.status(400).json({ success: false, error: "Invalid target_user_id" });
+  }
+  const outcome = await taskService.unassignTask(req.user.id, task_id, targetResult.data);
+  if (outcome.success === false) return handleServiceError(res, outcome.error);
+  return res.status(204).send();
+}
+
+async function getTaskAssignees(req, res) {
+  const task_id = parseIdParam(req, res, "task_id");
+  if (task_id === null) return;
+  const outcome = await taskService.getTaskAssignees(req.user.id, task_id);
+  if (outcome.success === false) return handleServiceError(res, outcome.error);
+  return res.status(200).json({ success: true, value: outcome.value });
 }
 
 module.exports = {
@@ -199,4 +246,7 @@ module.exports = {
   deleteTask,
   updateTask,
   completeTask,
+  assignTask,
+  unassignTask,
+  getTaskAssignees,
 };

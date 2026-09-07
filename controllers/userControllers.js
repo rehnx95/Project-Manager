@@ -49,6 +49,9 @@ function handleServiceError(res, error) {
   if (error === "User Not Exist" || error === "Profile Not Exist") {
     return res.status(404).json({ success: false, error });
   }
+  if (typeof error === "string" && error.startsWith("Forbidden")) {
+    return res.status(403).json({ success: false, error });
+  }
 
   if (error === "Email Already Exist") {
     return res.status(409).json({ success: false, error });
@@ -88,6 +91,7 @@ async function login(req, res) {
     const errors = result.error.issues.map((issue) => issue.message);
     return res.status(400).json({ success: false, error: errors });
   }
+
   const { email, password } = result.data;
   const outcome = await UserService.login(email, password);
   if (outcome.success === false) {
@@ -98,6 +102,11 @@ async function login(req, res) {
     value: "Login Successful",
     token: outcome.value,
   });
+}
+
+async function logout(req, res) {
+  await UserService.logout(req.auth.jti);
+  return res.status(204).send();
 }
 
 async function selfUpdateEmail(req, res) {
@@ -186,8 +195,7 @@ async function deleteUser(req, res) {
     new Date().toLocaleTimeString("en-GB"),
     "[userControllers] deleteUser",
   );
-  const email = req.user.email;
-  const outcome = await UserService.deleteUser(email);
+  const outcome = await UserService.deleteUser(req.user.id);
   if (outcome.success === false) {
     return handleServiceError(res, outcome.error);
   }
@@ -251,6 +259,7 @@ async function getProfile(req, res) {
 module.exports = {
   signup,
   login,
+  logout,
   getAllUsers,
   deleteUser,
   getUser,

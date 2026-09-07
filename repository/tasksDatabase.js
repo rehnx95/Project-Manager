@@ -9,6 +9,38 @@ async function createTask(new_task) {
   return result.rows[0];
 }
 
+async function assignTask(task_id, user_id) {
+  const result = await pool.query(
+    "INSERT INTO task_assignees (task_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING RETURNING *",
+    [task_id, user_id],
+  );
+  return result.rows[0];
+}
+
+async function unassignTask(task_id, user_id) {
+  const result = await pool.query(
+    "DELETE FROM task_assignees WHERE task_id=$1 AND user_id=$2 RETURNING *",
+    [task_id, user_id],
+  );
+  return result.rows[0];
+}
+
+async function getTaskAssignees(task_id) {
+  const result = await pool.query(
+    "SELECT u.id, u.email FROM task_assignees ta JOIN users u ON u.id=ta.user_id WHERE ta.task_id=$1",
+    [task_id],
+  );
+  return result.rows;
+}
+
+async function isTaskAssignee(task_id, user_id) {
+  const result = await pool.query(
+    "SELECT 1 FROM task_assignees WHERE task_id=$1 AND user_id=$2",
+    [task_id, user_id],
+  );
+  return result.rowCount > 0;
+}
+
 async function getOneTask(id) {
   console.log(new Date().toLocaleTimeString("en-GB"), "[tasksDatabase] getOneTask");
   const result = await pool.query("SELECT * FROM tasks WHERE id=$1", [id]);
@@ -57,4 +89,8 @@ module.exports = {
   updateTask,
   deleteTask,
   completeTask,
+  assignTask,
+  unassignTask,
+  getTaskAssignees,
+  isTaskAssignee,
 };

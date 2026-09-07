@@ -1,6 +1,8 @@
 const tasksDatabase = require("../repository/tasksDatabase");
 const projectsDatabase = require("../repository/projectsDatabase");
 const projectMembersDatabase = require("../repository/projectMembersDatabase");
+const securityDatabase = require("../repository/securityDatabase");
+const { canEditTask } = require("../utils/permissions");
 
 async function completeTask(user_id, id) {
   console.log(new Date().toLocaleTimeString("en-GB"), "[taskService] completeTask");
@@ -11,7 +13,7 @@ async function completeTask(user_id, id) {
     task.project_id,
     user_id,
   );
-  if (!membership) {
+  if (!canEditTask(user_id, task, membership, await tasksDatabase.isTaskAssignee(id, user_id))) {
     return { success: false, error: "Forbidden Not Member Of That Project" };
   }
   const result = await tasksDatabase.completeTask(id, !task.completed);
@@ -48,6 +50,7 @@ async function createTask(
     new_due_date,
   };
   const result = await tasksDatabase.createTask(new_task);
+  await tasksDatabase.assignTask(result.id, user_id);
   return { success: true, value: result };
 }
 
@@ -81,7 +84,6 @@ async function getOneTask(user_id, id) {
   if (!membership) {
     return { success: false, error: "Forbidden Not Member Of That Project" };
   }
-
   return { success: true, value: task };
 }
 
@@ -94,7 +96,7 @@ async function updateTask(user_id, id, new_title, new_priority, new_due_date) {
     task.project_id,
     user_id,
   );
-  if (!membership) {
+  if (!canEditTask(user_id, task, membership, await tasksDatabase.isTaskAssignee(id, user_id))) {
     return { success: false, error: "Forbidden Not Member Of That Project" };
   }
 
@@ -105,6 +107,39 @@ async function updateTask(user_id, id, new_title, new_priority, new_due_date) {
     new_due_date,
   );
   return { success: true, value: result };
+}
+
+async function assignTask(requesting_user_id, task_id, target_user_id) {
+  const task = await tasksDatabase.getOneTask(task_id);
+  if (!task) return { success: false, error: "Task Not Exist" };
+  const owner = await projectMembersDatabase.getMembership(task.project_id, requesting_user_id);
+  const target = await projectMembersDatabase.getMembership(task.project_id, target_user_id);
+  if (!owner || owner.role !== "owner") {
+    return { success: false, error: "Forbidden Only Owner Can Assign Task" };
+  }
+  if (!target) return { success: false, error: "User Not Member Of That Project" };
+  const result = await tasksDatabase.assignTask(task_id, target_user_id);
+  await securityDatabase.createAuditLog(requesting_user_id, "task.assign", "task", String(task_id), { user_id: target_user_id });
+  return { success: true, value: result };
+}
+
+async function unassignTask(requesting_user_id, task_id, target_user_id) {
+  const task = await tasksDatabase.getOneTask(task_id);
+  if (!task) return { success: false, error: "Task Not Exist" };
+  const owner = await projectMembersDatabase.getMembership(task.project_id, requesting_user_id);
+  if (!owner || owner.role !== "owner") {
+    return { success: false, error: "Forbidden Only Owner Can Assign Task" };
+  }
+  const result = await tasksDatabase.unassignTask(task_id, target_user_id);
+  return { success: true, value: result };
+}
+
+async function getTaskAssignees(user_id, task_id) {
+  const task = await tasksDatabase.getOneTask(task_id);
+  if (!task) return { success: false, error: "Task Not Exist" };
+  const membership = await projectMembersDatabase.getMembership(task.project_id, user_id);
+  if (!membership) return { success: false, error: "Forbidden Not Member Of That Project" };
+  return { success: true, value: await tasksDatabase.getTaskAssignees(task_id) };
 }
 
 async function deleteTask(user_id, id) {
@@ -129,4 +164,7 @@ module.exports = {
   updateTask,
   deleteTask,
   completeTask,
+  assignTask,
+  unassignTask,
+  getTaskAssignees,
 };

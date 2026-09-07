@@ -16,7 +16,8 @@ A backend-focused project management API built with **Node.js**, **Express**, an
 - **Projects** — create, read, update, delete, with ownership rules, and a clear split between projects you **created** and projects you're **involved in** as a member
 - **Project Members** — invite/remove members, role management (`owner` / `member`), last-owner protection
 - **Tasks** — full CRUD, priority levels, due dates, completion toggling, pagination
-- **Tags** — create tags and attach/detach them to tasks (many-to-many)
+- **Tags** — project-scoped tags that members can attach/detach to tasks (many-to-many)
+- **Task assignments** — project owners assign tasks to project members
 - **Comments** — per-task comments with owner-only bulk delete
 - **Notes** — private, per-user notes with full CRUD (create, list, view, update, delete one, delete all)
 - **Role-based & resource-based authorization** — every mutating route checks both "is logged in" and "is allowed to touch this resource"
@@ -175,9 +176,11 @@ All routes are prefixed at the app root. Protected routes require `Authorization
 | **Projects**                          | `POST /projects`, `GET /projects` (projects you're involved in), `GET /projects/created` (projects you created), `GET /projects/:id`, `PATCH /projects/:id`, `DELETE /projects/:id` |
 | **Project Members**                   | `GET /projects/:id/membership`, `GET /projects/:id/members`, `POST/PATCH/DELETE /projects/:id/users/:userId`                                                                        |
 | **Tasks**                             | `POST /projects/:id/tasks`, `GET /tasks`, `GET/PATCH/DELETE /tasks/:id`, `PATCH /tasks/:id/complete`                                                                                |
-| **Tags**                              | `POST/GET /tags`, `POST/GET/DELETE /tasks/:taskId/tags/:tagId`                                                                                                                      |
+| **Tags**                              | `POST/GET /projects/:projectId/tags`, `POST/GET/DELETE /tasks/:taskId/tags/:tagId`                                                                                                 |
+| **Assignments**                       | `GET /tasks/:taskId/assignees`, `POST/DELETE /tasks/:taskId/assignees/:userId`                                                                                                     |
 | **Comments**                          | `POST/GET/DELETE /tasks/:taskId/comments`, `GET /users/comments`, `DELETE /users/comments/:id`                                                                                      |
 | **Notes**                             | `POST/GET/DELETE /users/notes`, `GET/PATCH/DELETE /users/notes/:noteId`                                                                                                             |
+| **Sessions**                          | `POST /users/logout` (revokes the current JWT session)                                                                                                                              |
 | **Database console** (owner-key only) | `POST /database` (run raw SQL), `GET /database/queries` (list saved example queries)                                                                                                |
 
 For the full endpoint catalog with example bodies, run the app locally (or hit the live demo) and open **`/testing`** — a built-in API console that mirrors `app.js` exactly.

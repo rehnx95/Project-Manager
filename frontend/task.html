@@ -30,16 +30,34 @@
 
       <div class="panel">
         <h3>Edit task</h3>
+        <p class="permission-note" id="editTaskPermissionNote"></p>
         <div class="field"><label for="etTitle">Title</label><input id="etTitle" required /></div>
         <div class="field-row">
           <div class="field">
             <label for="etPriority">Priority</label>
             <select id="etPriority"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select>
           </div>
-          <div class="field"><label for="etDueDate">Due date</label><input id="etDueDate" type="datetime-local" required /></div>
+          <div class="field"><label for="etDueDate">Due date <span class="optional">(optional)</span></label><input id="etDueDate" type="datetime-local" /></div>
         </div>
         <div class="error-text" id="editTaskError"></div>
         <button class="btn btn-primary btn-sm" id="saveTaskBtn">Save changes</button>
+      </div>
+
+      <div class="panel">
+        <h3>Assignees</h3>
+        <p class="hint-text">Owners assign work to project members. Creators and assignees can edit or complete this task.</p>
+        <div id="assigneeList" class="chip-list"></div>
+        <div class="field-row" id="assigneeControls" hidden>
+          <div class="field" style="flex:2">
+            <label for="assigneeSelect">Assign to project member</label>
+            <select id="assigneeSelect"></select>
+          </div>
+          <div class="field" style="flex:0 0 auto; justify-content:flex-end">
+            <label>&nbsp;</label>
+            <button class="btn btn-sm" id="assignTaskBtn">Assign</button>
+          </div>
+        </div>
+        <div class="error-text" id="assigneeError"></div>
       </div>
 
       <div class="panel">
@@ -57,7 +75,7 @@
         </div>
         <div class="field-row">
           <div class="field" style="flex:2">
-            <label for="newTagName">Or create a new tag</label>
+            <label for="newTagName">Create project tag <span class="owner-only">(owner only)</span></label>
             <input id="newTagName" placeholder="e.g. blocked" />
           </div>
           <div class="field" style="flex:0 0 auto; justify-content:flex-end">

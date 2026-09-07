@@ -13,6 +13,23 @@ CREATE TABLE users (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE token_sessions (
+    jti UUID PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    expires_at TIMESTAMPTZ NOT NULL,
+    revoked_at TIMESTAMPTZ
+);
+
+CREATE TABLE audit_logs (
+    id BIGSERIAL PRIMARY KEY,
+    actor_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    action TEXT NOT NULL,
+    target_type TEXT NOT NULL,
+    target_id TEXT,
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 CREATE TABLE profiles (
     id BIGSERIAL PRIMARY KEY,
     user_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
@@ -24,7 +41,7 @@ CREATE TABLE profiles (
 
 CREATE TABLE projects (
     id UUID NOT NULL PRIMARY KEY,
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     project_name TEXT NOT NULL,
     description TEXT NOT NULL,
     status project_status NOT NULL DEFAULT 'active',
@@ -42,7 +59,7 @@ CREATE TABLE project_members (
 CREATE TABLE tasks (
     id BIGSERIAL PRIMARY KEY,
     project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     title TEXT NOT NULL,
     priority task_priority NOT NULL DEFAULT 'medium',
     due_date TIMESTAMPTZ,
@@ -53,7 +70,16 @@ CREATE TABLE tasks (
 
 CREATE TABLE tags (
     id BIGSERIAL PRIMARY KEY,
-    tag_name TEXT NOT NULL UNIQUE
+    project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    tag_name TEXT NOT NULL,
+    UNIQUE (project_id, tag_name)
+);
+
+CREATE TABLE task_assignees (
+    task_id BIGINT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    assigned_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (task_id, user_id)
 );
 
 CREATE TABLE tasks_tags (
@@ -90,6 +116,9 @@ CREATE INDEX idx_tasks_project_id ON tasks(project_id);
 CREATE INDEX idx_tasks_user_id ON tasks(user_id);
 CREATE INDEX idx_comments_task_id ON comments(task_id);
 CREATE INDEX idx_profiles_notes_id ON notes(id);
+CREATE INDEX idx_token_sessions_user_id ON token_sessions(user_id);
+CREATE INDEX idx_audit_logs_actor_user_id ON audit_logs(actor_user_id);
+CREATE INDEX idx_task_assignees_user_id ON task_assignees(user_id);
 
 
 CREATE OR REPLACE FUNCTION update_updated_at_column()

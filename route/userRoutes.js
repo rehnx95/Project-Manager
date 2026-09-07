@@ -12,6 +12,7 @@ const asyncHandler = require("../utils/asyncHandler");
 
 router.post("/users/signup", asyncHandler(userControllers.signup));
 router.post("/users/login", asyncHandler(userControllers.login));
+router.post("/users/logout", authenticateToken, asyncHandler(userControllers.logout));
 
 router.post(
   "/users/profile",

@@ -5,7 +5,10 @@ async function showDatabase(sqlQuery) {
     new Date().toLocaleTimeString("en-GB"),
     "[showDatabase] showDatabase",
   );
-  const result = await pool.query(sqlQuery);
+  const result = await pool.query({
+    text: sqlQuery,
+    statement_timeout: 5000,
+  });
   return {
     rows: result.rows,
     rowCount: result.rowCount,

@@ -4,7 +4,7 @@ renderNav("tasks");
 const taskId = qs("id");
 if (!taskId) window.location.href = "tasks.html";
 
-const state = { task: null, myRole: null, me: currentUser() };
+const state = { task: null, myRole: null, me: currentUser(), assignees: [], members: [] };
 
 async function loadTask() {
   try {
@@ -24,6 +24,7 @@ async function loadTask() {
   }
   applyRolePermissions();
   loadTags();
+  loadAssignees();
   loadComments();
 }
 
@@ -50,6 +51,22 @@ function applyRolePermissions() {
   const isOwner = state.myRole === "owner";
   document.getElementById("deleteTaskBtn").hidden = !isOwner;
   document.getElementById("clearCommentsBtn").hidden = !isOwner;
+  document.getElementById("assigneeControls").hidden = !isOwner;
+  document.getElementById("createTagBtn").hidden = !isOwner;
+  document.querySelector(".owner-only").hidden = !isOwner;
+  updateTaskEditPermissions();
+}
+
+function updateTaskEditPermissions() {
+  const me = state.me && state.me.id;
+  const creator = state.task && state.task.user_id === me;
+  const assigned = state.assignees.some((user) => (user.id || user.user_id) === me);
+  const canEdit = state.myRole === "owner" || creator || assigned;
+  document.getElementById("saveTaskBtn").disabled = !canEdit;
+  document.getElementById("toggleCompleteBtn").disabled = !canEdit;
+  document.getElementById("editTaskPermissionNote").textContent = canEdit
+    ? "You can edit and complete this task."
+    : "Only the task creator, an assignee, or a project owner can edit or complete it.";
 }
 
 // ---------- edit / complete / delete ----------
@@ -60,7 +77,7 @@ document.getElementById("saveTaskBtn").addEventListener("click", async () => {
   const priority = document.getElementById("etPriority").value;
   const dueLocal = document.getElementById("etDueDate").value;
   try {
-    const due_date = toISODateTime(dueLocal);
+    const due_date = dueLocal ? toISODateTime(dueLocal) : null;
     const data = await api("/tasks/" + taskId, { method: "PATCH", body: JSON.stringify({ title, priority, due_date }) });
     state.task = data.value;
     renderTask();
@@ -128,7 +145,7 @@ async function loadTags() {
   // refresh the "attach existing tag" dropdown against the full tag list
   const select = document.getElementById("tagSelect");
   try {
-    const all = await api("/tags");
+    const all = await api("/projects/" + state.task.project_id + "/tags");
     const attachedIds = new Set(taskTags.map((t) => t.id));
     const available = (all.value || []).filter((t) => !attachedIds.has(t.id));
     select.innerHTML = available.length
@@ -160,13 +177,51 @@ document.getElementById("createTagBtn").addEventListener("click", async () => {
   const tag_name = nameEl.value.trim();
   if (!tag_name) return;
   try {
-    const created = await api("/tags", { method: "POST", body: JSON.stringify({ tag_name }) });
+    const created = await api("/projects/" + state.task.project_id + "/tags", { method: "POST", body: JSON.stringify({ tag_name }) });
     await api("/tasks/" + taskId + "/tags/" + created.value.id, { method: "POST" });
     nameEl.value = "";
     toast("Tag created and attached.");
     loadTags();
   } catch (err) {
     errEl.textContent = err.message;
+  }
+});
+
+async function loadAssignees() {
+  const list = document.getElementById("assigneeList");
+  const select = document.getElementById("assigneeSelect");
+  try {
+    const [assigneeData, memberData] = await Promise.all([
+      api("/tasks/" + taskId + "/assignees"),
+      api("/projects/" + state.task.project_id + "/members"),
+    ]);
+    state.assignees = assigneeData.value || [];
+    state.members = memberData.value || [];
+    list.innerHTML = state.assignees.length
+      ? state.assignees.map((user) => '<span class="tag-chip">' + esc(user.email || user.id) + "</span>").join("")
+      : '<span class="row-meta">No assignees yet.</span>';
+    const assigned = new Set(state.assignees.map((user) => user.id || user.user_id));
+    const available = state.members.filter((member) => !assigned.has(member.user_id));
+    select.innerHTML = available.length
+      ? available.map((member) => '<option value="' + esc(member.user_id) + '">' + esc(member.user_id) + "</option>").join("")
+      : '<option value="">Everyone is already assigned</option>';
+    updateTaskEditPermissions();
+  } catch (err) {
+    list.innerHTML = '<span class="row-meta">Could not load assignees.</span>';
+  }
+}
+
+document.getElementById("assignTaskBtn").addEventListener("click", async () => {
+  const userId = document.getElementById("assigneeSelect").value;
+  const errorEl = document.getElementById("assigneeError");
+  errorEl.textContent = "";
+  if (!userId) return;
+  try {
+    await api("/tasks/" + taskId + "/assignees/" + userId, { method: "POST" });
+    toast("Task assigned.");
+    loadAssignees();
+  } catch (err) {
+    errorEl.textContent = err.message;
   }
 });
 

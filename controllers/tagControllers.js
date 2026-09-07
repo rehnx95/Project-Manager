@@ -2,6 +2,7 @@ const tagService = require("../services/tagService");
 const { z } = require("zod");
 
 const id_schema = z.coerce.number().int().positive();
+const uuid_schema = z.uuid();
 
 function parseIdParam(req, res, param_name) {
   console.log(
@@ -9,6 +10,16 @@ function parseIdParam(req, res, param_name) {
     "[tagControllers] parseIdParam",
   );
   const result = id_schema.safeParse(req.params[param_name]);
+  if (!result.success) {
+    res.status(400).json({ success: false, error: `Invalid ${param_name}` });
+    return null;
+  }
+
+  return result.data;
+}
+
+function parseUUIDParam(req, res, param_name) {
+  const result = uuid_schema.safeParse(req.params[param_name]);
   if (!result.success) {
     res.status(400).json({ success: false, error: `Invalid ${param_name}` });
     return null;
@@ -31,11 +42,14 @@ function handleServiceError(res, error) {
       error,
     });
   }
-  if (error === "Forbidden Member Not Assign To Project's Task") {
+  if (error.startsWith("Forbidden")) {
     return res.status(403).json({
       success: false,
       error,
     });
+  }
+  if (error === "Tag Not In Task Project") {
+    return res.status(403).json({ success: false, error });
   }
   return res.status(400).json({
     success: false,
@@ -52,11 +66,14 @@ async function createTag(req, res) {
   if (!result.success) {
     return res.status(400).json({
       success: false,
-      error: result.error.errors[0].message,
+      error: result.error.issues[0].message,
     });
   }
+  const project_id = parseUUIDParam(req, res, "project_id");
+  if (project_id === null) return;
   const { tag_name } = result.data;
-  const outcome = await tagService.createTag(tag_name);
+  const outcome = await tagService.createTag(project_id, tag_name, req.user.id);
+  if (outcome.success === false) return handleServiceError(res, outcome.error);
   res.status(201).json({
     success: true,
     value: outcome.value,
@@ -68,7 +85,10 @@ async function getAllTags(req, res) {
     new Date().toLocaleTimeString("en-GB"),
     "[tagControllers] getAllTags",
   );
-  const outcome = await tagService.getAllTags();
+  const project_id = parseUUIDParam(req, res, "project_id");
+  if (project_id === null) return;
+  const outcome = await tagService.getAllTags(project_id, req.user.id);
+  if (outcome.success === false) return handleServiceError(res, outcome.error);
   res.status(200).json({ success: true, value: outcome.value });
 }
 

@@ -1,5 +1,7 @@
 const projectMembersDatabase = require("../repository/projectMembersDatabase");
 const projectsDatabase = require("../repository/projectsDatabase");
+const usersDatabase = require("../repository/usersDatabase");
+const securityDatabase = require("../repository/securityDatabase");
 
 async function getMembership(project_id, user_id) {
   console.log(
@@ -44,11 +46,23 @@ async function addMemberToProject(
       error: "Forbidden Only Owner Can Add Member To That Project",
     };
   }
+  const target_user = await usersDatabase.getUser(target_user_id);
+  if (!target_user) {
+    return { success: false, error: "User Not Exist" };
+  }
+  const existing_membership = await projectMembersDatabase.getMembership(
+    project_id,
+    target_user_id,
+  );
+  if (existing_membership) {
+    return { success: false, error: "User Already Member Of That Project" };
+  }
   const added_member = await projectMembersDatabase.addMemberToProject(
     project_id,
     target_user_id,
     new_role,
   );
+  await securityDatabase.createAuditLog(requesting_user_id, "project.member.add", "project", project_id, { user_id: target_user_id, role: new_role });
   return { success: true, value: added_member };
 }
 
@@ -115,19 +129,10 @@ async function removeMemberFromProject(
   if (!target_membership) {
     return { success: false, error: "Forbidden Not Member Of That Project" };
   }
-  if (target_membership.role === "owner") {
-    const owner_count = await countOwner(project_id);
-    if (owner_count <= 1) {
-      return {
-        success: false,
-        error: "Forbidden Cannot Change The Role Of The Last Owner",
-      };
-    }
-  }
-  const removed_member = await projectMembersDatabase.removeMemberFromProject(
-    project_id,
-    target_user_id,
-  );
+  const removal = await projectMembersDatabase.removeMemberWithOwnerProtection(project_id, target_user_id);
+  if (removal.error) return { success: false, error: removal.error };
+  const removed_member = removal.value;
+  await securityDatabase.createAuditLog(requesting_user_id, "project.member.remove", "project", project_id, { user_id: target_user_id });
   return { success: true, value: removed_member };
 }
 
@@ -164,20 +169,10 @@ async function changeMemberRole(
   if (!target_membership) {
     return { success: false, error: "Forbidden Not Member Of That Project" };
   }
-  if (target_membership.role === "owner") {
-    const owner_count = await countOwner(project_id);
-    if (owner_count <= 1) {
-      return {
-        success: false,
-        error: "Forbidden Cannot Change The Role Of The Last Owner",
-      };
-    }
-  }
-  const changed_member = await projectMembersDatabase.changeMemberRole(
-    project_id,
-    target_user_id,
-    new_role,
-  );
+  const change = await projectMembersDatabase.changeMemberRoleWithOwnerProtection(project_id, target_user_id, new_role);
+  if (change.error) return { success: false, error: change.error };
+  const changed_member = change.value;
+  await securityDatabase.createAuditLog(requesting_user_id, "project.member.role_change", "project", project_id, { user_id: target_user_id, role: new_role });
   return { success: true, value: changed_member };
 }
 

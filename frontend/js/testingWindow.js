@@ -1,7 +1,5 @@
-// Owner-only testing gate. Prompts for the secret key configured in
-// the backend's .env (SECRET_KEY) and navigates to the protected
-// /testing route. The backend checks the key — this file just collects
-// it and does a plain page navigation, no fetch involved.
+// Owner-only testing gate. Exchange the configured key for a short-lived
+// HttpOnly cookie before navigating to the protected testing console.
 document.addEventListener("DOMContentLoaded", () => {
   const btn = document.getElementById("testingBtn");
   if (!btn) return;
@@ -9,6 +7,20 @@ document.addEventListener("DOMContentLoaded", () => {
   btn.addEventListener("click", () => {
     const key = prompt("Enter secret key:");
     if (!key) return; // cancelled or empty, do nothing
-    window.location.href = "/testing?key=" + encodeURIComponent(key.trim());
+    fetch("/testing/access", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: key.trim() }),
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          throw new Error(data.error || "Owner access denied");
+        }
+        window.location.href = "/testing";
+      })
+      .catch((error) => {
+        alert(error.message);
+      });
   });
 });
