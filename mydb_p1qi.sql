@@ -1,11 +1,10 @@
-
 CREATE TYPE user_role AS ENUM ('user', 'admin');
 CREATE TYPE project_status AS ENUM ('active', 'archived', 'completed');
 CREATE TYPE task_priority AS ENUM ('low', 'medium', 'high');
 CREATE TYPE member_role AS ENUM ('owner', 'member');
 
 CREATE TABLE users (
-    id UUID NOT NULL PRIMARY KEY,
+    id UUID PRIMARY KEY,
     email VARCHAR(150) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
     role user_role NOT NULL DEFAULT 'user',
@@ -14,17 +13,18 @@ CREATE TABLE users (
 );
 
 CREATE TABLE token_sessions (
-    jti UUID PRIMARY KEY,
+    jti TEXT PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     expires_at TIMESTAMPTZ NOT NULL,
-    revoked_at TIMESTAMPTZ
+    revoked_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE audit_logs (
     id BIGSERIAL PRIMARY KEY,
     actor_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
     action TEXT NOT NULL,
-    target_type TEXT NOT NULL,
+    target_type TEXT,
     target_id TEXT,
     metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -40,7 +40,7 @@ CREATE TABLE profiles (
 );
 
 CREATE TABLE projects (
-    id UUID NOT NULL PRIMARY KEY,
+    id UUID PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     project_name TEXT NOT NULL,
     description TEXT NOT NULL,
@@ -51,7 +51,7 @@ CREATE TABLE projects (
 
 CREATE TABLE project_members (
     project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
     role member_role NOT NULL DEFAULT 'member',
     PRIMARY KEY (project_id, user_id)
 );
@@ -77,8 +77,8 @@ CREATE TABLE tags (
 
 CREATE TABLE task_assignees (
     task_id BIGINT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    assigned_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     PRIMARY KEY (task_id, user_id)
 );
 
@@ -96,7 +96,7 @@ CREATE TABLE comments (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE notes(
+CREATE TABLE notes (
     id BIGSERIAL PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     title TEXT NOT NULL,
@@ -104,7 +104,7 @@ CREATE TABLE notes(
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE queries(
+CREATE TABLE queries (
     id BIGSERIAL PRIMARY KEY,
     label TEXT NOT NULL,
     query TEXT NOT NULL
@@ -115,11 +115,11 @@ CREATE INDEX idx_projects_user_id ON projects(user_id);
 CREATE INDEX idx_tasks_project_id ON tasks(project_id);
 CREATE INDEX idx_tasks_user_id ON tasks(user_id);
 CREATE INDEX idx_comments_task_id ON comments(task_id);
-CREATE INDEX idx_profiles_notes_id ON notes(id);
 CREATE INDEX idx_token_sessions_user_id ON token_sessions(user_id);
 CREATE INDEX idx_audit_logs_actor_user_id ON audit_logs(actor_user_id);
+CREATE INDEX idx_audit_logs_created_at ON audit_logs(created_at);
 CREATE INDEX idx_task_assignees_user_id ON task_assignees(user_id);
-
+CREATE INDEX idx_tags_project_id ON tags(project_id);
 
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
@@ -133,7 +133,7 @@ CREATE TRIGGER trigger_update_profiles_timestamp
 BEFORE UPDATE ON profiles
 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER trigger_update_task_timestamp
+CREATE TRIGGER trigger_update_tasks_timestamp
 BEFORE UPDATE ON tasks
 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
