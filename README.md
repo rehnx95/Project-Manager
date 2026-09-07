@@ -1,26 +1,27 @@
 # Depot — Project & Task Management API
 
-A backend-focused project management API built with **Node.js**, **Express**, and **PostgreSQL**, with JWT-based authentication and a lightweight vanilla JS frontend to exercise every route.
+A full-stack project and task management application built with **Node.js**, **Express**, **PostgreSQL**, JWT authentication, and a vanilla JavaScript frontend. The application combines a practical project workspace with an owner-only API/testing console.
 
 **Live demo:** https://project-manager-owgl.onrender.com/
 
-> This project was built with a backend-first mindset — the frontend exists to showcase and test the API, not as the main focus.
+The frontend and API are served from the same Express application, so the application works locally and on Render without a separate frontend build or API base URL.
 
 ---
 
 ## Features
 
-- **Auth** — signup/login with `bcrypt` password hashing and `jsonwebtoken` sessions
+- **Authentication and sessions** — signup/login with `bcrypt` password hashing, JWT access tokens, persisted token sessions, and server-side logout/revocation
 - **Users & Profiles** — account management, profile create/update, admin-only user listing
 - **Email management** — users update their own email (`PATCH /users`); admins can update any user's email from the admin panel (`PATCH /users/:target_id`, admin-only)
 - **Projects** — create, read, update, delete, with ownership rules, and a clear split between projects you **created** and projects you're **involved in** as a member
 - **Project Members** — invite/remove members, role management (`owner` / `member`), last-owner protection
-- **Tasks** — full CRUD, priority levels, due dates, completion toggling, pagination
+- **Tasks** — full CRUD, priority levels, optional due dates, completion toggling, pagination, and permission-aware editing
 - **Tags** — project-scoped tags that members can attach/detach to tasks (many-to-many)
 - **Task assignments** — project owners assign tasks to project members
 - **Comments** — per-task comments with owner-only bulk delete
 - **Notes** — private, per-user notes with full CRUD (create, list, view, update, delete one, delete all)
 - **Role-based & resource-based authorization** — every mutating route checks both "is logged in" and "is allowed to touch this resource"
+- **Auditability** — security-sensitive changes are recorded in an `audit_logs` table
 - **Built-in API console** (`/testing`, owner-key gated) — a self-contained page for exercising every endpoint without Postman, including a raw SQL query runner with a picker of saved example queries
 
 ---
@@ -71,6 +72,7 @@ A backend-focused project management API built with **Node.js**, **Express**, an
 │   └── databaseService.js
 │
 ├── repository/                     # Only layer that talks to the database (raw pg queries)
+│   ├── securityDatabase.js          # Token sessions, revocation, and audit logs
 │   ├── usersDatabase.js
 │   ├── projectsDatabase.js
 │   ├── projectMembersDatabase.js
@@ -86,17 +88,21 @@ A backend-focused project management API built with **Node.js**, **Express**, an
 │   ├── noteRoutes.js            # Private per-user notes, nested under /users/notes
 │   ├── projectMemberRoutes.js   # Project membership: invite/remove/role-change
 │   ├── projectRoutes.js         # Project CRUD
-│   ├── tagRoutes.js             # Tag CRUD + attach/detach on tasks
-│   ├── taskRoutes.js            # Task CRUD, complete-toggle, pagination
+│   ├── tagRoutes.js             # Project-scoped tag CRUD + attach/detach on tasks
+│   ├── taskRoutes.js            # Task CRUD, completion, pagination, assignments
 │   └── userRoutes.js            # Auth, profile, admin user management
 │
 ├── middleware/
 │   ├── authenticateToken.js        # JWT verification, re-checks user still exists in DB
 │   ├── authenticateRole.js         # Role-gated routes (e.g. admin-only)
-│   └── siteOwner.js                # Secret-key gate for /testing and /database
+│   └── authenticateOwner.js        # Short-lived HttpOnly owner-console cookie
 │
 ├── utils/
-│   └── asyncHandler.js             # Wraps async route handlers, forwards errors to Express
+│   ├── asyncHandler.js              # Wraps async route handlers, forwards errors to Express
+│   └── permissions.js               # Shared task, membership, and admin permission predicates
+│
+├── test/
+│   └── permissions.test.js           # Permission behavior tests
 │
 └── frontend/                       # Static HTML/CSS/JS client + API console (no build step)
     ├── index.html                  # Sign in / register
@@ -122,8 +128,8 @@ A backend-focused project management API built with **Node.js**, **Express**, an
         ├── profile.js
         ├── notes.js
         ├── admin.js
-        ├── testing.js              # API console logic — endpoint catalog, request builder, SQL picker
-        └── testingWindow.js        # "Testing" button on index.html, prompts for the owner key
+        ├── testing.js              # API console endpoint catalog, request builder, SQL picker
+        └── testingWindow.js        # Exchanges SECRET_KEY for owner-console access
 ```
 
 The app follows a **controller → service → repository** layering:
@@ -138,12 +144,15 @@ The app follows a **controller → service → repository** layering:
 
 ## Database Schema
 
-10 tables, custom Postgres ENUMs, UUID primary keys, and `updated_at` triggers.
+The database uses custom Postgres ENUMs, UUID project/user identifiers, BIGSERIAL task identifiers, foreign-key cascades, indexes, and `updated_at` triggers.
 
 ```
 users ──< profiles
 users ──< projects ──< project_members >── users
 projects ──< tasks ──< tasks_tags >── tags
+tasks ──< task_assignees >── users
+users ──< token_sessions
+users ──< audit_logs
 tasks ──< comments >── users
 users ──< notes
 ```
@@ -152,17 +161,34 @@ users ──< notes
 - **profiles** — 1:1 with users, `name`, `bio`
 - **projects** — `status (active|archived|completed)`, owned by the user who created it (`projects.user_id`)
 - **project_members** — many-to-many join between users and projects, with `role (owner|member)`; includes the creator (auto-added as `owner`) plus anyone added later
-- **tasks** — belongs to a project, `priority (low|medium|high)`, `due_date`, `completed`
-- **tags** / **tasks_tags** — many-to-many tagging on tasks
+- **tasks** — belongs to a project and creator, with `priority (low|medium|high)`, optional `due_date`, and `completed`
+- **tags** / **tasks_tags** — project-scoped many-to-many tagging on tasks; tag names are unique per project
+- **task_assignees** — many-to-many assignment of project members to tasks
 - **comments** — belongs to a task and a user
 - **notes** — private notes belonging to a single user, `title`, `body`
 - **queries** — `label`, `query` pairs used only by the `/testing` console's SQL query picker (see [`demoQueries.sql`](./demoQueries.sql))
+- **token_sessions** — active/revoked JWT session identifiers and expiry times
+- **audit_logs** — actor, action, target, metadata, and timestamp for security-relevant changes
 
 Because `projects` and `project_members` are separate tables, "projects I created" and "projects I'm involved in" are genuinely different questions — see the Projects row in the API table below.
 
 See [`mydb_p1qi.sql`](./mydb_p1qi.sql) for the full DDL and [`demoQueries.sql`](./demoQueries.sql) for example queries (joins, aggregation, `RANK()`, CTEs, `UNION ALL`, anti-joins, window functions).
 
 ---
+
+## Architecture and permission model
+
+The application is organized as **routes → controllers → services → repositories**. Routes apply authentication middleware, controllers validate input with Zod, services enforce business and resource permissions, and repositories execute parameterized PostgreSQL queries.
+
+- A signed-in user can access only projects where they are a member.
+- Project owners manage project settings, members, roles, task assignments, tags, and destructive project actions.
+- Members can collaborate through tasks and comments according to task-level permissions.
+- Task creators, assignees, and project owners can edit or complete tasks.
+- Only project owners can delete tasks, assign users, create project tags, manage members, or delete projects.
+- The last project owner cannot be removed or demoted.
+- Account deletion is refused while the user belongs to any project; the user must leave all memberships first.
+- Admin-only routes manage users, while admins cannot modify another admin's email.
+- JWT sessions are stored server-side and logout revokes the current session.
 
 ## API Overview
 
@@ -181,6 +207,7 @@ All routes are prefixed at the app root. Protected routes require `Authorization
 | **Comments**                          | `POST/GET/DELETE /tasks/:taskId/comments`, `GET /users/comments`, `DELETE /users/comments/:id`                                                                                      |
 | **Notes**                             | `POST/GET/DELETE /users/notes`, `GET/PATCH/DELETE /users/notes/:noteId`                                                                                                             |
 | **Sessions**                          | `POST /users/logout` (revokes the current JWT session)                                                                                                                              |
+| **Owner console access**              | `POST /testing/access` (exchanges `SECRET_KEY` for a short-lived HttpOnly cookie), `GET /testing`                                                                                   |
 | **Database console** (owner-key only) | `POST /database` (run raw SQL), `GET /database/queries` (list saved example queries)                                                                                                |
 
 For the full endpoint catalog with example bodies, run the app locally (or hit the live demo) and open **`/testing`** — a built-in API console that mirrors `app.js` exactly.
@@ -209,6 +236,8 @@ Run the schema against your Postgres instance:
 ```bash
 psql "$DATABASE_URL" -f mydb_p1qi.sql
 ```
+
+For an existing database, create a `pg_dump` backup first and apply an incremental migration. Do not run the full schema over production data.
 
 Optionally, seed the demo SQL queries used by the `/testing` console's query picker:
 
@@ -259,7 +288,7 @@ A small multi-page vanilla JS client lives in `frontend/`, built to exercise the
 - `profile.html` — profile, account settings, and self-service email updates
 - `notes.html` — private per-user notes
 - `admin.html` — admin-only user directory, with lookup-by-ID and the ability to update any user's email
-- `testing.html` — interactive API console (owner-key gated via `/testing?key=...`), including a raw SQL runner with a dropdown of saved example queries
+- `testing.html` — interactive API console (owner-key gated through `POST /testing/access`), including a raw SQL runner with a dropdown of saved example queries
 
 The frontend talks to the API using `location.origin`, so it works unmodified whether served locally or from the deployed URL — no config needed.
 
@@ -283,6 +312,9 @@ Deployed on **Render.com**:
 - Self-service and admin-driven email updates are handled by separate routes (`PATCH /users` vs `PATCH /users/:target_id`), so a regular user's request always goes through their own route rather than the admin-gated one
 - The `/testing` console and the `/database` raw SQL endpoint are both gated behind a constant-time comparison against a server-side secret key (`SECRET_KEY`), not a regular user JWT — a normal logged-in user cannot reach either, even with a valid token
 - `POST /database` executes arbitrary SQL against the live database with no statement-type restrictions; it's intended purely as an owner-only debugging tool, not a feature exposed to end users
+- Owner-console access is exchanged for a short-lived HttpOnly cookie through `POST /testing/access`, preventing the secret from remaining in the page URL.
+- Account deletion is blocked while a user belongs to any project, and project/task ownership relationships use cascading foreign keys.
+- Audit-log actor references use `SET NULL` so audit history can survive account removal.
 
 ---
 
