@@ -1,7 +1,7 @@
 -- =========================================================
 -- Seed data for the `queries` table — powers the "Load a saved
 -- query" dropdown in the /testing SQL console (POST /database).
--- Optional: only needed if you want that dropdown populated.
+-- only needed if you want that dropdown populated.
 -- =========================================================
 
 INSERT INTO queries (label, query) VALUES
