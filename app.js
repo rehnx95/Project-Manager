@@ -9,7 +9,7 @@ const authenticateOwner = require("./middleware/authenticateOwner");
 app.post("/testing/access", (req, res) => {
   const secret = process.env.SECRET_KEY;
   if (!secret) {
-    return res.status(500).json({ success: false, error: "Server misconfigured" });
+    return res.status(500).json({ success: false, error: "Server Misconfigured" });
   }
   if (!authenticateOwner.isValidSecret(req.body?.key, secret)) {
     return res.status(403).json({ success: false, error: "Forbidden: invalid key" });
