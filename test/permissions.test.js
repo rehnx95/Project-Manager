@@ -19,7 +19,7 @@ test("only owners can manage project membership", () => {
   assert.equal(canRemoveMember({ role: "member" }), false);
 });
 
-test("admins cannot modify another admin", () => {
+test("admin cannot modify another admin", () => {
   assert.equal(
     canModifyAnotherAdmin({ role: "admin" }, { role: "user" }),
     true,
