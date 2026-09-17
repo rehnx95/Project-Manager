@@ -44,11 +44,12 @@ document.getElementById("profileForm").addEventListener("submit", async (e) => {
   const bio = document.getElementById("pfBio").value;
   try {
     if (hasProfile) {
-      await api("/users/profile", { method: "PATCH", body: JSON.stringify({ name, bio }) });
+      const data = await api("/users/profile", { method: "PATCH", body: JSON.stringify({ name, bio }) });
+      showResponseMessage(data);
     } else {
-      await api("/users/profile", { method: "POST", body: JSON.stringify({ name, bio }) });
+      const data = await api("/users/profile", { method: "POST", body: JSON.stringify({ name, bio }) });
+      showResponseMessage(data);
     }
-    toast("Profile saved.");
     loadProfile();
   } catch (err) {
     errEl.textContent = err.message;
@@ -61,8 +62,8 @@ document.getElementById("emailForm").addEventListener("submit", async (e) => {
   errEl.textContent = "";
   const email = document.getElementById("acEmail").value;
   try {
-    await api("/users/", { method: "PATCH", body: JSON.stringify({ email }) });
-    toast("Email updated. Sign in again if your session looks stale.");
+    const data = await api("/users/", { method: "PATCH", body: JSON.stringify({ email }) });
+    showResponseMessage(data);
   } catch (err) {
     errEl.textContent = err.message;
   }
@@ -71,9 +72,9 @@ document.getElementById("emailForm").addEventListener("submit", async (e) => {
 document.getElementById("deleteAccountBtn").addEventListener("click", async () => {
   if (!confirm("Delete your account permanently? This cannot be undone.")) return;
   try {
-    await api("/users", { method: "DELETE" });
+    const data = await api("/users", { method: "DELETE" });
     clearSession();
-    toast("Account deleted.");
+    showResponseMessage(data);
     window.location.href = "index.html";
   } catch (err) {
     toast(err.message, true);

@@ -54,14 +54,28 @@ async function createTask(
   return { success: true, value: result };
 }
 
-async function getTaskByUser(user_id, page = 1, limit = 10) {
+async function getTaskByUser(user_id, page = 1, limit = 10, filters = {}) {
   console.log(new Date().toLocaleTimeString("en-GB"), "[taskService] getTaskByUser");
   const memberships =
     await projectMembersDatabase.getAllProjectsOfUser(user_id);
   const taskLists = await Promise.all(
     memberships.map((m) => projectsDatabase.getTaskByProject(m.project_id)),
   );
-  const all_task = taskLists.flat();
+  let all_task = taskLists.flat();
+  if (filters.search) {
+    const search = String(filters.search).toLowerCase();
+    all_task = all_task.filter((task) => task.title.toLowerCase().includes(search));
+  }
+  if (filters.priority) all_task = all_task.filter((task) => task.priority === filters.priority);
+  if (filters.completed !== undefined) {
+    const completed = filters.completed === true || filters.completed === "true";
+    all_task = all_task.filter((task) => task.completed === completed);
+  }
+  const sort = filters.sort || "created_at";
+  const direction = filters.order === "asc" ? 1 : -1;
+  if (["created_at", "updated_at", "due_date", "title", "priority"].includes(sort)) {
+    all_task.sort((a, b) => String(a[sort] ?? "").localeCompare(String(b[sort] ?? "")) * direction);
+  }
 
   const total = all_task.length;
   const total_pages = Math.ceil(total / limit);
@@ -69,7 +83,23 @@ async function getTaskByUser(user_id, page = 1, limit = 10) {
   const end = start + limit;
   const paginated_tasks = all_task.slice(start, end);
 
-  return { success: true, value: paginated_tasks, total, page, total_pages };
+  return {
+    success: true,
+    value: await Promise.all(paginated_tasks.map(async (task) => {
+      const membership = memberships.find((m) => m.project_id === task.project_id);
+      const assignee = await tasksDatabase.isTaskAssignee(task.id, user_id);
+      const canEdit = task.user_id === user_id || membership?.role === "owner" || assignee;
+      return {
+        ...task,
+        permissions: {
+          can_edit: canEdit,
+          can_complete: canEdit,
+          can_delete: membership?.role === "owner",
+        },
+      };
+    })),
+    total, page, total_pages,
+  };
 }
 
 async function getOneTask(user_id, id) {
@@ -84,7 +114,18 @@ async function getOneTask(user_id, id) {
   if (!membership) {
     return { success: false, error: "Forbidden Not Member Of That Project" };
   }
-  return { success: true, value: task };
+  const isAssignee = await tasksDatabase.isTaskAssignee(id, user_id);
+  return {
+    success: true,
+    value: {
+      ...task,
+      permissions: {
+        can_edit: task.user_id === user_id || membership.role === "owner" || isAssignee,
+        can_complete: task.user_id === user_id || membership.role === "owner" || isAssignee,
+        can_delete: membership.role === "owner",
+      },
+    },
+  };
 }
 
 async function updateTask(user_id, id, new_title, new_priority, new_due_date) {

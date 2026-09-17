@@ -117,6 +117,25 @@ async function getTaskByProject(req, res) {
   });
 }
 
+async function getProjectActivity(req, res) {
+  const project_id = parseUUIDParam(req, res, "project_id");
+  if (project_id === null) return;
+  const limit = req.query.limit === undefined ? 50 : Number(req.query.limit);
+  if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
+    return res.status(400).json({
+      success: false,
+      error: "limit must be an integer between 1 and 100",
+    });
+  }
+  const outcome = await projectService.getProjectActivity(
+    req.user.id,
+    project_id,
+    limit,
+  );
+  if (outcome.success === false) return handleServiceError(res, outcome.error);
+  return res.status(200).json({ success: true, value: outcome.value || [] });
+}
+
 async function updateProject(req, res) {
   console.log(new Date().toLocaleTimeString("en-GB"), "[projectControllers] updateProject");
   const project_id = parseUUIDParam(req, res, "project_id");
@@ -166,4 +185,5 @@ module.exports = {
   getTaskByProject,
   updateProject,
   deleteProject,
+  getProjectActivity,
 };

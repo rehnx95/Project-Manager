@@ -84,11 +84,11 @@ document.getElementById("updateEmailBtn").addEventListener("click", async () => 
     return;
   }
   try {
-    await api("/users/" + currentLookupId, {
+    const data = await api("/users/" + currentLookupId, {
       method: "PATCH",
       body: JSON.stringify({ email: newEmail }),
     });
-    toast("Email updated.");
+    showResponseMessage(data);
     lookupUser(currentLookupId); // refresh the displayed row
     loadUsers(); // refresh the table too
   } catch (err) {

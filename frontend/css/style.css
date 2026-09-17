@@ -169,6 +169,12 @@ hr { border: none; border-top: 1px solid var(--line); }
 .permission-note { color: var(--muted); font-size: 0.8rem; margin: -0.5rem 0 1rem; }
 .chip-list { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.8rem; }
 .tag-chip { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.6rem; border: 1px solid var(--line); border-radius: var(--radius-pill); background: var(--panel-raised); color: var(--text-dim); font-size: 0.8rem; }
+.stats-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-3); margin: 0 0 var(--sp-5); }
+.stat-card { padding: var(--sp-4); border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); box-shadow: var(--shadow-sm); }
+.stat-card strong { display: block; margin-top: var(--sp-2); font: 600 1.8rem/1 var(--display); }
+.task-filters { display: flex; align-items: end; gap: var(--sp-3); flex-wrap: wrap; margin-bottom: var(--sp-4); }
+.task-filters .field { flex: 1; min-width: 150px; margin-bottom: 0; }
+@media (max-width: 700px) { .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
 /* ---------------------------------------------------------------
    Stamps (status badges)

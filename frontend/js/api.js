@@ -78,12 +78,29 @@ async function api(path, opts = {}) {
 
   if (!res.ok) {
     const raw = data && data.error;
-    const msg = Array.isArray(raw)
-      ? raw.join(", ")
-      : raw || "Request failed (" + res.status + ")";
-    throw new Error(msg);
+    const msg =
+      raw && typeof raw === "object"
+        ? raw.message
+        : Array.isArray(raw)
+          ? raw.join(", ")
+          : raw;
+    const error = new Error(msg || "Request failed (" + res.status + ")");
+    error.status = res.status;
+    error.code = raw && typeof raw === "object" ? raw.code : undefined;
+    error.fields = raw && typeof raw === "object" ? raw.fields : undefined;
+    error.response = data;
+    throw error;
   }
   return data;
+}
+
+function responseMessage(data) {
+  return data && typeof data.message === "string" ? data.message : "";
+}
+
+function showResponseMessage(data) {
+  const message = responseMessage(data);
+  if (message) toast(message);
 }
 
 function esc(str) {

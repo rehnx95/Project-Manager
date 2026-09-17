@@ -19,7 +19,17 @@ async function getMembership(project_id, user_id) {
   if (!membership) {
     return { success: false, error: "Forbidden Not Member Of That Project" };
   }
-  return { success: true, value: membership };
+  return {
+    success: true,
+    value: {
+      ...membership,
+      permissions: {
+        is_owner: membership.role === "owner",
+        can_manage_members: membership.role === "owner",
+        can_edit_project: membership.role === "owner",
+      },
+    },
+  };
 }
 
 async function addMemberToProject(
@@ -84,7 +94,16 @@ async function getAllMembersOfProject(user_id, project_id) {
   }
   const project_members =
     await projectMembersDatabase.getAllMembersOfProject(project_id);
-  return { success: true, value: project_members };
+  return {
+    success: true,
+    value: project_members.map((member) => ({
+      ...member,
+      permissions: {
+        is_owner: member.role === "owner",
+        can_manage_members: member.role === "owner",
+      },
+    })),
+  };
 }
 
 async function countOwner(project_id) {

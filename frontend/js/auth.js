@@ -20,8 +20,8 @@ document.getElementById("registerForm").addEventListener("submit", async (e) => 
   const email = document.getElementById("registerEmail").value;
   const password = document.getElementById("registerPassword").value;
   try {
-    await api("/users/signup", { method: "POST", body: JSON.stringify({ email, password }) });
-    toast("Account created — you can sign in now.");
+    const data = await api("/users/signup", { method: "POST", body: JSON.stringify({ email, password }) });
+    showResponseMessage(data);
     document.querySelector('[data-tab="login"]').click();
     document.getElementById("loginEmail").value = email;
   } catch (err) {
@@ -37,7 +37,8 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
   const password = document.getElementById("loginPassword").value;
   try {
     const data = await api("/users/login", { method: "POST", body: JSON.stringify({ email, password }) });
-    setToken(data.token);
+    setToken(data.token || data.value?.token || data.data?.token);
+    showResponseMessage(data);
     window.location.href = "dashboard.html";
   } catch (err) {
     errEl.textContent = err.message;

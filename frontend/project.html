@@ -50,6 +50,7 @@
       <div class="pagetabs">
         <button class="pagetab is-active" data-tab="tasks">Tasks</button>
         <button class="pagetab" data-tab="crew">Crew</button>
+        <button class="pagetab" data-tab="activity">Activity</button>
       </div>
 
       <div class="tabpanel is-active" id="tab-tasks">
@@ -90,6 +91,13 @@
             <div class="field">
               <label for="amRole">Role</label>
               <select id="amRole"><option value="member">Member</option><option value="owner">Owner</option></select>
+            </div>
+
+            <div class="tabpanel" id="tab-activity">
+              <div class="panel">
+                <h3>Recent activity</h3>
+                <div id="activityList"><div class="empty">Loading activity…</div></div>
+              </div>
             </div>
           </div>
           <div class="error-text" id="addMemberError"></div>

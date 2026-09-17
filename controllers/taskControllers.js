@@ -117,7 +117,25 @@ async function getTaskByUser(req, res) {
     });
   }
 
-  const outcome = await taskService.getTaskByUser(req.user.id, page, limit);
+  const completed = req.query.completed === undefined ? undefined : req.query.completed;
+  if (completed !== undefined && !["true", "false"].includes(String(completed))) {
+    return res.status(400).json({ success: false, error: "completed must be true or false" });
+  }
+  const priority = req.query.priority;
+  if (priority !== undefined && !["low", "medium", "high"].includes(priority)) {
+    return res.status(400).json({ success: false, error: "priority must be low, medium, or high" });
+  }
+  const sort = req.query.sort;
+  if (sort !== undefined && !["created_at", "updated_at", "due_date", "title", "priority"].includes(sort)) {
+    return res.status(400).json({ success: false, error: "Invalid sort field" });
+  }
+  const order = req.query.order;
+  if (order !== undefined && !["asc", "desc"].includes(order)) {
+    return res.status(400).json({ success: false, error: "order must be asc or desc" });
+  }
+  const outcome = await taskService.getTaskByUser(req.user.id, page, limit, {
+    search: req.query.search, priority, completed, sort, order,
+  });
 
   res.status(200).json({
     success: true,

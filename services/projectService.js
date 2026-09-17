@@ -3,6 +3,7 @@ const usersDatabase = require("../repository/usersDatabase");
 const projectMembersDatabase = require("../repository/projectMembersDatabase");
 const pool = require("../db");
 const securityDatabase = require("../repository/securityDatabase");
+const tasksDatabase = require("../repository/tasksDatabase");
 
 async function createProject(
   user_id,
@@ -47,7 +48,18 @@ async function getOneProject(user_id, project_id) {
   if (!membership) {
     return { success: false, error: "Forbidden Not Assign To That Project" };
   }
-  return { success: true, value: project };
+  return {
+    success: true,
+    value: {
+      ...project,
+      permissions: {
+        role: membership.role,
+        can_edit: membership.role === "owner",
+        can_delete: membership.role === "owner",
+        can_manage_members: membership.role === "owner",
+      },
+    },
+  };
 }
 
 // Projects this user CREATED — based on projects.user_id, the owner
@@ -57,10 +69,7 @@ async function getProjectsCreatedByUser(user_id) {
   console.log(new Date().toLocaleTimeString("en-GB"), "[projectService] getProjectsCreatedByUser");
 
   const projects = await projectsDatabase.getProjectsCreatedByUser(user_id);
-  if (!projects || projects.length === 0) {
-    return { success: false, error: "Project Not Exist" };
-  }
-  return { success: true, value: projects };
+  return { success: true, value: projects || [] };
 }
 
 // Projects this user is INVOLVED IN — based on project_members, so it
@@ -72,14 +81,21 @@ async function getProjectsInvolvedIn(user_id) {
   const memberships =
     await projectMembersDatabase.getAllProjectsOfUser(user_id);
   const projects = await Promise.all(
-    memberships.map((m) => projectsDatabase.getOneProject(m.project_id)),
+    memberships.map(async (m) => {
+      const project = await projectsDatabase.getOneProject(m.project_id);
+      return project ? {
+        ...project,
+        permissions: {
+          role: m.role,
+          can_edit: m.role === "owner",
+          can_delete: m.role === "owner",
+          can_manage_members: m.role === "owner",
+        },
+      } : null;
+    }),
   );
 
-  if (!projects || projects.length === 0) {
-    return { success: false, error: "Project Not Exist" };
-  }
-
-  return { success: true, value: projects };
+  return { success: true, value: (projects || []).filter(Boolean) };
 }
 
 async function getTaskByProject(user_id, project_id) {
@@ -98,7 +114,25 @@ async function getTaskByProject(user_id, project_id) {
   }
 
   const tasks = await projectsDatabase.getTaskByProject(project_id);
-  return { success: true, value: tasks };
+  const value = await Promise.all((tasks || []).map(async (task) => ({
+    ...task,
+    permissions: {
+      can_edit: membership.role === "owner" || task.user_id === user_id ||
+        await tasksDatabase.isTaskAssignee(task.id, user_id),
+      can_complete: membership.role === "owner" || task.user_id === user_id ||
+        await tasksDatabase.isTaskAssignee(task.id, user_id),
+      can_delete: membership.role === "owner",
+    },
+  })));
+  return { success: true, value };
+}
+
+async function getProjectActivity(user_id, project_id, limit = 50) {
+  const project = await projectsDatabase.getOneProject(project_id);
+  if (!project) return { success: false, error: "Project Not Exist" };
+  const membership = await projectMembersDatabase.getMembership(project_id, user_id);
+  if (!membership) return { success: false, error: "Forbidden Not Assign To That Project" };
+  return { success: true, value: await projectsDatabase.getProjectActivity(project_id, limit) };
 }
 
 async function updateProject(
@@ -155,4 +189,5 @@ module.exports = {
   getTaskByProject,
   updateProject,
   deleteProject,
+  getProjectActivity,
 };

@@ -19,6 +19,14 @@
           <div class="sub">Every task across every project you belong to.</div>
         </div>
       </div>
+      <div class="panel task-filters">
+        <div class="field"><label for="taskSearch">Search</label><input id="taskSearch" type="search" placeholder="Search tasks" /></div>
+        <div class="field"><label for="taskPriority">Priority</label><select id="taskPriority"><option value="">All priorities</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></div>
+        <div class="field"><label for="taskCompleted">Status</label><select id="taskCompleted"><option value="">All tasks</option><option value="false">Open</option><option value="true">Completed</option></select></div>
+        <div class="field"><label for="taskSort">Sort</label><select id="taskSort"><option value="created_at">Created</option><option value="due_date">Due date</option><option value="title">Title</option><option value="priority">Priority</option></select></div>
+        <button class="btn btn-sm" id="applyTaskFilters" type="button">Apply filters</button>
+      </div>
+
       <div class="panel">
         <div id="myTaskList"></div>
         <div class="pagination">

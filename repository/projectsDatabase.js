@@ -19,7 +19,12 @@ async function createProject(new_project, client = pool) {
 
 async function getOneProject(project_id) {
   console.log(new Date().toLocaleTimeString("en-GB"), "[projectsDatabase] getOneProject");
-  const result = await pool.query("SELECT * FROM projects WHERE id=$1", [
+  const result = await pool.query(`SELECT p.*,
+    COUNT(t.id)::int AS task_count,
+    COUNT(t.id) FILTER (WHERE t.completed)::int AS completed_task_count,
+    COUNT(t.id) FILTER (WHERE NOT t.completed)::int AS pending_task_count
+    FROM projects p LEFT JOIN tasks t ON t.project_id = p.id
+    WHERE p.id=$1 GROUP BY p.id`, [
     project_id,
   ]);
   return result.rows[0];
@@ -27,7 +32,12 @@ async function getOneProject(project_id) {
 
 async function getProjectsCreatedByUser(user_id) {
   console.log(new Date().toLocaleTimeString("en-GB"), "[projectsDatabase] getProjectsCreatedByUser");
-  const result = await pool.query("SELECT * FROM projects WHERE user_id =$1", [
+  const result = await pool.query(`SELECT p.*,
+    COUNT(t.id)::int AS task_count,
+    COUNT(t.id) FILTER (WHERE t.completed)::int AS completed_task_count,
+    COUNT(t.id) FILTER (WHERE NOT t.completed)::int AS pending_task_count
+    FROM projects p LEFT JOIN tasks t ON t.project_id = p.id
+    WHERE p.user_id=$1 GROUP BY p.id`, [
     user_id,
   ]);
   return result.rows;
@@ -59,6 +69,17 @@ async function deleteProject(id) {
   return result.rows[0];
 }
 
+async function getProjectActivity(project_id, limit = 50) {
+  const result = await pool.query(
+    `SELECT a.*, u.email AS actor_email
+     FROM audit_logs a LEFT JOIN users u ON u.id = a.actor_user_id
+     WHERE a.target_type = 'project' AND a.target_id = $1
+     ORDER BY a.created_at DESC LIMIT $2`,
+    [project_id, limit],
+  );
+  return result.rows;
+}
+
 module.exports = {
   createProject,
   getOneProject,
@@ -66,4 +87,5 @@ module.exports = {
   getTaskByProject,
   updateProject,
   deleteProject,
+  getProjectActivity,
 };

@@ -16,10 +16,10 @@ document.getElementById("newNoteForm").addEventListener("submit", async (e) => {
   const title = document.getElementById("nnTitle").value;
   const body = document.getElementById("nnBody").value;
   try {
-    await api("/users/notes", { method: "POST", body: JSON.stringify({ title, body }) });
+    const data = await api("/users/notes", { method: "POST", body: JSON.stringify({ title, body }) });
     document.getElementById("newNoteForm").reset();
     document.getElementById("newNoteForm").hidden = true;
-    toast("Note created.");
+    showResponseMessage(data);
     loadNotes();
   } catch (err) {
     errEl.textContent = err.message;
@@ -29,8 +29,8 @@ document.getElementById("newNoteForm").addEventListener("submit", async (e) => {
 document.getElementById("clearNotesBtn").addEventListener("click", async () => {
   if (!confirm("Delete every note? This cannot be undone.")) return;
   try {
-    await api("/users/notes", { method: "DELETE" });
-    toast("Notes cleared.");
+    const data = await api("/users/notes", { method: "DELETE" });
+    showResponseMessage(data);
     loadNotes();
   } catch (err) {
     toast(err.message, true);
@@ -112,11 +112,11 @@ async function loadNotes() {
       errEl.hidden = true;
       errEl.textContent = "";
       try {
-        await api("/users/notes/" + n.id, {
+        const data = await api("/users/notes/" + n.id, {
           method: "PATCH",
           body: JSON.stringify({ title: titleInput.value, body: bodyInput.value }),
         });
-        toast("Note updated.");
+        showResponseMessage(data);
         loadNotes();
       } catch (err) {
         errEl.textContent = err.message;
@@ -126,8 +126,8 @@ async function loadNotes() {
     card.querySelector("[data-delete-btn]").addEventListener("click", async () => {
       if (!confirm("Delete this note?")) return;
       try {
-        await api("/users/notes/" + n.id, { method: "DELETE" });
-        toast("Note deleted.");
+        const data = await api("/users/notes/" + n.id, { method: "DELETE" });
+        showResponseMessage(data);
         loadNotes();
       } catch (err) {
         toast(err.message, true);

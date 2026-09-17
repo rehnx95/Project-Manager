@@ -4,6 +4,9 @@ const authenticateToken = require("../middleware/authenticateToken");
 const asyncHandler = require("../utils/asyncHandler");
 const taskControllers = require("../controllers/taskControllers");
 
+// Collection endpoint (the legacy /users/tasks route remains supported).
+router.get("/tasks", authenticateToken, asyncHandler(taskControllers.getTaskByUser));
+
 router.post(
   "/projects/:project_id/tasks",
   authenticateToken,

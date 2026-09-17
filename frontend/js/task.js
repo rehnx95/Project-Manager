@@ -49,7 +49,7 @@ function renderTask() {
 
 function applyRolePermissions() {
   const isOwner = state.myRole === "owner";
-  document.getElementById("deleteTaskBtn").hidden = !isOwner;
+  document.getElementById("deleteTaskBtn").hidden = !state.task?.permissions?.can_delete;
   document.getElementById("clearCommentsBtn").hidden = !isOwner;
   document.getElementById("assigneeControls").hidden = !isOwner;
   document.getElementById("createTagBtn").hidden = !isOwner;
@@ -58,13 +58,10 @@ function applyRolePermissions() {
 }
 
 function updateTaskEditPermissions() {
-  const me = state.me && state.me.id;
-  const creator = state.task && state.task.user_id === me;
-  const assigned = state.assignees.some((user) => (user.id || user.user_id) === me);
-  const canEdit = state.myRole === "owner" || creator || assigned;
-  document.getElementById("saveTaskBtn").disabled = !canEdit;
-  document.getElementById("toggleCompleteBtn").disabled = !canEdit;
-  document.getElementById("editTaskPermissionNote").textContent = canEdit
+  const permissions = state.task?.permissions || {};
+  document.getElementById("saveTaskBtn").disabled = !permissions.can_edit;
+  document.getElementById("toggleCompleteBtn").disabled = !permissions.can_complete;
+  document.getElementById("editTaskPermissionNote").textContent = permissions.can_edit
     ? "You can edit and complete this task."
     : "Only the task creator, an assignee, or a project owner can edit or complete it.";
 }
@@ -81,7 +78,7 @@ document.getElementById("saveTaskBtn").addEventListener("click", async () => {
     const data = await api("/tasks/" + taskId, { method: "PATCH", body: JSON.stringify({ title, priority, due_date }) });
     state.task = data.value;
     renderTask();
-    toast("Task updated.");
+    showResponseMessage(data);
   } catch (err) {
     errEl.textContent = err.message;
   }
@@ -92,6 +89,7 @@ document.getElementById("toggleCompleteBtn").addEventListener("click", async () 
     const data = await api("/tasks/" + taskId + "/complete", { method: "PATCH" });
     state.task = data.value;
     renderTask();
+    showResponseMessage(data);
   } catch (err) {
     toast(err.message, true);
   }
@@ -101,8 +99,8 @@ document.getElementById("deleteTaskBtn").addEventListener("click", async () => {
   if (!confirm("Delete this task? This cannot be undone.")) return;
   try {
     const projectId = state.task.project_id;
-    await api("/tasks/" + taskId, { method: "DELETE" });
-    toast("Task deleted.");
+    const data = await api("/tasks/" + taskId, { method: "DELETE" });
+    showResponseMessage(data);
     window.location.href = "project.html?id=" + projectId;
   } catch (err) {
     toast(err.message, true);
@@ -133,7 +131,8 @@ async function loadTags() {
     chips.querySelectorAll("[data-detach]").forEach((btn) => {
       btn.addEventListener("click", async () => {
         try {
-          await api("/tasks/" + taskId + "/tags/" + btn.dataset.detach, { method: "DELETE" });
+          const data = await api("/tasks/" + taskId + "/tags/" + btn.dataset.detach, { method: "DELETE" });
+          showResponseMessage(data);
           loadTags();
         } catch (err) {
           toast(err.message, true);
@@ -162,8 +161,8 @@ document.getElementById("attachTagBtn").addEventListener("click", async () => {
   const tagId = document.getElementById("tagSelect").value;
   if (!tagId) return;
   try {
-    await api("/tasks/" + taskId + "/tags/" + tagId, { method: "POST" });
-    toast("Tag attached.");
+    const data = await api("/tasks/" + taskId + "/tags/" + tagId, { method: "POST" });
+    showResponseMessage(data);
     loadTags();
   } catch (err) {
     errEl.textContent = err.message;
@@ -180,7 +179,7 @@ document.getElementById("createTagBtn").addEventListener("click", async () => {
     const created = await api("/projects/" + state.task.project_id + "/tags", { method: "POST", body: JSON.stringify({ tag_name }) });
     await api("/tasks/" + taskId + "/tags/" + created.value.id, { method: "POST" });
     nameEl.value = "";
-    toast("Tag created and attached.");
+    showResponseMessage(created);
     loadTags();
   } catch (err) {
     errEl.textContent = err.message;
@@ -217,8 +216,8 @@ document.getElementById("assignTaskBtn").addEventListener("click", async () => {
   errorEl.textContent = "";
   if (!userId) return;
   try {
-    await api("/tasks/" + taskId + "/assignees/" + userId, { method: "POST" });
-    toast("Task assigned.");
+    const data = await api("/tasks/" + taskId + "/assignees/" + userId, { method: "POST" });
+    showResponseMessage(data);
     loadAssignees();
   } catch (err) {
     errorEl.textContent = err.message;
@@ -254,7 +253,8 @@ async function loadComments() {
   list.querySelectorAll("[data-delete-comment]").forEach((btn) => {
     btn.addEventListener("click", async () => {
       try {
-        await api("/users/comments/" + btn.dataset.deleteComment, { method: "DELETE" });
+        const data = await api("/users/comments/" + btn.dataset.deleteComment, { method: "DELETE" });
+        showResponseMessage(data);
         loadComments();
       } catch (err) {
         toast(err.message, true);
@@ -270,7 +270,8 @@ document.getElementById("newCommentForm").addEventListener("submit", async (e) =
   const bodyEl = document.getElementById("ncBody");
   const new_body = bodyEl.value;
   try {
-    await api("/tasks/" + taskId + "/comments", { method: "POST", body: JSON.stringify({ new_body }) });
+    const data = await api("/tasks/" + taskId + "/comments", { method: "POST", body: JSON.stringify({ new_body }) });
+    showResponseMessage(data);
     bodyEl.value = "";
     loadComments();
   } catch (err) {
@@ -281,8 +282,8 @@ document.getElementById("newCommentForm").addEventListener("submit", async (e) =
 document.getElementById("clearCommentsBtn").addEventListener("click", async () => {
   if (!confirm("Delete every comment on this task?")) return;
   try {
-    await api("/tasks/" + taskId + "/comments", { method: "DELETE" });
-    toast("Comments cleared.");
+    const data = await api("/tasks/" + taskId + "/comments", { method: "DELETE" });
+    showResponseMessage(data);
     loadComments();
   } catch (err) {
     toast(err.message, true);

@@ -1,16 +1,17 @@
 requireAuth();
 renderNav("tasks");
 
-const state = { page: 1, limit: 10, totalPages: 1 };
+const state = { page: 1, limit: 10, totalPages: 1, filters: {} };
 
 async function loadTasks() {
   const list = document.getElementById("myTaskList");
   list.innerHTML = '<div class="empty">Loading tasks…</div>';
   let data;
   try {
-    data = await api("/tasks?page=" + state.page + "&limit=" + state.limit);
+    const params = new URLSearchParams({ page: state.page, limit: state.limit, ...state.filters });
+    data = await api("/tasks?" + params.toString());
   } catch (err) {
-    list.innerHTML = '<div class="empty">Could not load tasks.</div>';
+    list.innerHTML = '<div class="empty">' + esc(err.message) + "</div>";
     return;
   }
   const tasks = data.value || [];
@@ -56,6 +57,21 @@ document.getElementById("prevPage").addEventListener("click", () => {
 });
 document.getElementById("nextPage").addEventListener("click", () => {
   if (state.page < state.totalPages) { state.page++; loadTasks(); }
+});
+
+document.getElementById("applyTaskFilters").addEventListener("click", () => {
+  state.page = 1;
+  state.filters = {
+    search: document.getElementById("taskSearch").value.trim(),
+    priority: document.getElementById("taskPriority").value,
+    completed: document.getElementById("taskCompleted").value,
+    sort: document.getElementById("taskSort").value,
+    order: "asc",
+  };
+  Object.keys(state.filters).forEach((key) => {
+    if (!state.filters[key]) delete state.filters[key];
+  });
+  loadTasks();
 });
 
 loadTasks();

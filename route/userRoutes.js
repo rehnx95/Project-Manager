@@ -4,15 +4,18 @@ const userControllers = require("../controllers/userControllers");
 const taskControllers = require("../controllers/taskControllers");
 
 const projectMemberControllers = require("../controllers/projectMemberControllers");
+const projectControllers = require("../controllers/projectControllers");
 const commentControllers = require("../controllers/commentControllers");
 const authenticateToken = require("../middleware/authenticateToken");
 const authenticateRole = require("../middleware/authenticateRole");
 
 const asyncHandler = require("../utils/asyncHandler");
+const dashboardControllers = require("../controllers/dashboardControllers");
 
 router.post("/users/signup", asyncHandler(userControllers.signup));
 router.post("/users/login", asyncHandler(userControllers.login));
 router.post("/users/logout", authenticateToken, asyncHandler(userControllers.logout));
+router.get("/dashboard/summary", authenticateToken, asyncHandler(dashboardControllers.getDashboardSummary));
 
 router.post(
   "/users/profile",
@@ -33,7 +36,7 @@ router.get(
 router.get(
   "/users/projects",
   authenticateToken,
-  asyncHandler(projectMemberControllers.getAllProjectsOfUser),
+  asyncHandler(projectControllers.getProjectsInvolvedIn),
 );
 
 router.get(

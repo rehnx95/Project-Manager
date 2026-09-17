@@ -17,10 +17,10 @@ document.getElementById("newProjectForm").addEventListener("submit", async (e) =
   const description = document.getElementById("npDescription").value;
   const status = document.getElementById("npStatus").value;
   try {
-    await api("/projects", { method: "POST", body: JSON.stringify({ name, description, status }) });
+    const data = await api("/projects", { method: "POST", body: JSON.stringify({ name, description, status }) });
     document.getElementById("newProjectForm").reset();
     document.getElementById("newProjectForm").hidden = true;
-    toast("Project created.");
+    showResponseMessage(data);
     loadProjects();
   } catch (err) {
     errEl.textContent = err.message;
@@ -35,8 +35,8 @@ async function loadProjects() {
     const data = await api("/projects");
     projects = data.value || [];
   } catch (err) {
-    // Backend reports "Project Not Exist" when the user has none yet — treat as empty state.
-    projects = [];
+    grid.innerHTML = '<div class="empty">' + esc(err.message) + "</div>";
+    return;
   }
   if (projects.length === 0) {
     grid.innerHTML = '<div class="empty">No projects yet — create your first one to get moving.</div>';
@@ -57,4 +57,18 @@ async function loadProjects() {
   });
 }
 
+async function loadSummary() {
+  try {
+    const data = await api("/dashboard/summary");
+    const summary = data.value || {};
+    document.getElementById("projectCount").textContent = summary.project_count ?? 0;
+    document.getElementById("openTaskCount").textContent = summary.pending_task_count ?? 0;
+    document.getElementById("completedTaskCount").textContent = summary.completed_task_count ?? 0;
+    document.getElementById("taskCount").textContent = summary.task_count ?? 0;
+  } catch (err) {
+    document.getElementById("dashboardSummary").setAttribute("aria-label", err.message);
+  }
+}
+
+loadSummary();
 loadProjects();

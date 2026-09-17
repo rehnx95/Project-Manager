@@ -36,6 +36,11 @@ router.get(
   authenticateToken,
   asyncHandler(projectControllers.getTaskByProject),
 );
+router.get(
+  "/projects/:project_id/activity",
+  authenticateToken,
+  asyncHandler(projectControllers.getProjectActivity),
+);
 
 router.patch(
   "/projects/:project_id",

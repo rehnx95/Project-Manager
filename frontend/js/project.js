@@ -37,6 +37,7 @@ async function loadProject() {
   applyRolePermissions();
   loadTasks();
   loadMembers();
+  loadActivity();
 }
 
 function renderProject() {
@@ -50,11 +51,11 @@ function renderProject() {
 }
 
 function applyRolePermissions() {
-  const isOwner = state.myRole === "owner";
-  document.getElementById("editProjectBtn").hidden = !isOwner;
-  document.getElementById("deleteProjectBtn").hidden = !isOwner;
-  document.getElementById("showAddMemberBtn").hidden = !isOwner;
-  document.getElementById("crewPermissionNote").textContent = isOwner
+  const permissions = state.project?.permissions || {};
+  document.getElementById("editProjectBtn").hidden = !permissions.can_edit;
+  document.getElementById("deleteProjectBtn").hidden = !permissions.can_delete;
+  document.getElementById("showAddMemberBtn").hidden = !permissions.can_manage_members;
+  document.getElementById("crewPermissionNote").textContent = permissions.can_manage_members
     ? "You are an owner. You can manage members, roles, and project settings."
     : "You are a member. You can view the crew and collaborate on project work.";
   const roleStamp = document.getElementById("pRoleStamp");
@@ -86,7 +87,7 @@ document.getElementById("saveProjectEdit").addEventListener("click", async () =>
     const data = await api("/projects/" + projectId, { method: "PATCH", body: JSON.stringify({ name, description, status }) });
     state.project = data.value;
     renderProject();
-    toast("Project updated.");
+    showResponseMessage(data);
   } catch (err) {
     errEl.textContent = err.message;
   }
@@ -94,8 +95,8 @@ document.getElementById("saveProjectEdit").addEventListener("click", async () =>
 document.getElementById("deleteProjectBtn").addEventListener("click", async () => {
   if (!confirm("Delete this project? This cannot be undone.")) return;
   try {
-    await api("/projects/" + projectId, { method: "DELETE" });
-    toast("Project deleted.");
+    const data = await api("/projects/" + projectId, { method: "DELETE" });
+    showResponseMessage(data);
     window.location.href = "dashboard.html";
   } catch (err) {
     toast(err.message, true);
@@ -118,11 +119,11 @@ document.getElementById("newTaskForm").addEventListener("submit", async (e) => {
   const priority = document.getElementById("ntPriority").value;
   const dueLocal = document.getElementById("ntDueDate").value;
   try {
-    const due_date = toISODateTime(dueLocal);
-    await api("/projects/" + projectId + "/tasks", { method: "POST", body: JSON.stringify({ title, priority, due_date }) });
+    const due_date = dueLocal ? toISODateTime(dueLocal) : null;
+    const data = await api("/projects/" + projectId + "/tasks", { method: "POST", body: JSON.stringify({ title, priority, due_date }) });
     document.getElementById("newTaskForm").reset();
     document.getElementById("newTaskForm").hidden = true;
-    toast("Task added.");
+    showResponseMessage(data);
     loadTasks();
   } catch (err) {
     errEl.textContent = err.message;
@@ -137,8 +138,8 @@ async function loadTasks() {
     const data = await api("/projects/" + projectId + "/tasks");
     tasks = data.value || [];
   } catch (err) {
-    toast(err.message, true);
-    tasks = [];
+    list.innerHTML = '<div class="empty">' + esc(err.message) + "</div>";
+    return;
   }
   if (tasks.length === 0) {
     list.innerHTML = '<div class="empty">No tasks in this project yet.</div>';
@@ -161,7 +162,8 @@ async function loadTasks() {
   list.querySelectorAll("[data-complete]").forEach((btn) => {
     btn.addEventListener("click", async () => {
       try {
-        await api("/tasks/" + btn.dataset.complete + "/complete", { method: "PATCH" });
+        const data = await api("/tasks/" + btn.dataset.complete + "/complete", { method: "PATCH" });
+        showResponseMessage(data);
         loadTasks();
       } catch (err) {
         toast(err.message, true);
@@ -180,9 +182,9 @@ document.getElementById("submitAddMember").addEventListener("click", async () =>
   const targetUserId = document.getElementById("amUserId").value.trim();
   const role = document.getElementById("amRole").value;
   try {
-    await api("/projects/" + projectId + "/users/" + targetUserId, { method: "POST", body: JSON.stringify({ role }) });
+    const data = await api("/projects/" + projectId + "/users/" + targetUserId, { method: "POST", body: JSON.stringify({ role }) });
     document.getElementById("amUserId").value = "";
-    toast("Member added.");
+    showResponseMessage(data);
     loadMembers();
   } catch (err) {
     errEl.textContent = err.message;
@@ -200,6 +202,7 @@ async function loadMembers() {
     list.innerHTML = '<div class="empty">Could not load members.</div>';
     return;
   }
+
   if (members.length === 0) {
     list.innerHTML = '<div class="empty">No members yet.</div>';
     return;
@@ -229,11 +232,11 @@ async function loadMembers() {
     list.querySelectorAll("[data-role-for]").forEach((sel) => {
       sel.addEventListener("change", async () => {
         try {
-          await api("/projects/" + projectId + "/users/" + sel.dataset.roleFor, {
+          const data = await api("/projects/" + projectId + "/users/" + sel.dataset.roleFor, {
             method: "PATCH",
             body: JSON.stringify({ role: sel.value }),
           });
-          toast("Role updated.");
+          showResponseMessage(data);
           loadMembers();
         } catch (err) {
           toast(err.message, true);
@@ -245,14 +248,33 @@ async function loadMembers() {
       btn.addEventListener("click", async () => {
         if (!confirm("Remove this member from the project?")) return;
         try {
-          await api("/projects/" + projectId + "/users/" + btn.dataset.remove, { method: "DELETE" });
-          toast("Member removed.");
+          const data = await api("/projects/" + projectId + "/users/" + btn.dataset.remove, { method: "DELETE" });
+          showResponseMessage(data);
           loadMembers();
         } catch (err) {
           toast(err.message, true);
         }
       });
     });
+  }
+}
+
+async function loadActivity() {
+  const list = document.getElementById("activityList");
+  try {
+    const data = await api("/projects/" + projectId + "/activity?limit=50");
+    const activity = data.value || [];
+    if (!activity.length) {
+      list.innerHTML = '<div class="empty">No activity recorded yet.</div>';
+      return;
+    }
+    list.innerHTML = activity.map((item) =>
+      '<div class="list-row"><span class="row-title">' + esc(item.action || "Project activity") +
+      '</span><span class="row-meta mono">' + esc(item.actor_email || "System") +
+      '</span><span class="row-meta">' + formatDateTime(item.created_at) + '</span></div>',
+    ).join("");
+  } catch (err) {
+    list.innerHTML = '<div class="empty">' + esc(err.message) + "</div>";
   }
 }
 

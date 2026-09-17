@@ -5,6 +5,30 @@ const app = express();
 const cors = require("cors");
 app.use(cors());
 app.use(express.json());
+
+// Keep the legacy `value` field available while exposing a predictable
+// response contract for interactive clients.
+app.use((req, res, next) => {
+  const sendJson = res.json.bind(res);
+  res.json = (body) => {
+    if (body && typeof body === "object") {
+      if (body.success === true && !Object.prototype.hasOwnProperty.call(body, "data")) {
+        body.data = body.value ?? null;
+      }
+      if (body.success === false) {
+        const raw = body.error;
+        const message = raw && typeof raw === "object" ? raw.message : Array.isArray(raw) ? raw.join(", ") : raw;
+        body.error = {
+          code: body.error?.code || (res.statusCode === 401 ? "UNAUTHORIZED" : res.statusCode === 403 ? "FORBIDDEN" : res.statusCode === 404 ? "NOT_FOUND" : res.statusCode === 409 ? "CONFLICT" : "REQUEST_FAILED"),
+          message: message || "Request failed",
+          ...(raw && typeof raw === "object" && raw.fields ? { fields: raw.fields } : {}),
+        };
+      }
+    }
+    return sendJson(body);
+  };
+  next();
+});
 const authenticateOwner = require("./middleware/authenticateOwner");
 app.post("/testing/access", (req, res) => {
   const secret = process.env.SECRET_KEY;
@@ -57,7 +81,7 @@ app.use((err, req, res, next) => {
   res.status(500).json({ success: false, error: "Something went wrong" });
 });
 
-const port = process.env.PORT || 7000;
+const port = 8000;
 app.listen(port, "0.0.0.0", () => {
   console.log(new Date().toLocaleTimeString("en-GB"), `server running ${port}`);
 });
