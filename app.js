@@ -83,5 +83,5 @@ app.use((err, req, res, next) => {
 
 const port = 8000;
 app.listen(port, "0.0.0.0", () => {
-  console.log(new Date().toLocaleTimeString("en-GB"), `server running ${port}`);
+  console.log(new Date().toLocaleTimeString("en-GB"), `server is running ${port}`);
 });
