@@ -1,0 +1,91 @@
+const pool = require("../db");
+const crypto = require("crypto");
+
+async function createProject(new_project, client = pool) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[projectsDatabase] createProject");
+  const id = crypto.randomUUID();
+  const result = await client.query(
+    "INSERT INTO projects (id,user_id,project_name,description,status) VALUES ($1,$2,$3,$4,$5) RETURNING *",
+    [
+      id,
+      new_project.user_id,
+      new_project.new_project_name,
+      new_project.new_description,
+      new_project.new_status,
+    ],
+  );
+  return result.rows[0];
+}
+
+async function getOneProject(project_id) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[projectsDatabase] getOneProject");
+  const result = await pool.query(`SELECT p.*,
+    COUNT(t.id)::int AS task_count,
+    COUNT(t.id) FILTER (WHERE t.completed)::int AS completed_task_count,
+    COUNT(t.id) FILTER (WHERE NOT t.completed)::int AS pending_task_count
+    FROM projects p LEFT JOIN tasks t ON t.project_id = p.id
+    WHERE p.id=$1 GROUP BY p.id`, [
+    project_id,
+  ]);
+  return result.rows[0];
+}
+
+async function getProjectsCreatedByUser(user_id) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[projectsDatabase] getProjectsCreatedByUser");
+  const result = await pool.query(`SELECT p.*,
+    COUNT(t.id)::int AS task_count,
+    COUNT(t.id) FILTER (WHERE t.completed)::int AS completed_task_count,
+    COUNT(t.id) FILTER (WHERE NOT t.completed)::int AS pending_task_count
+    FROM projects p LEFT JOIN tasks t ON t.project_id = p.id
+    WHERE p.user_id=$1 GROUP BY p.id`, [
+    user_id,
+  ]);
+  return result.rows;
+}
+
+async function getTaskByProject(project_id) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[projectsDatabase] getTaskByProject");
+  const result = await pool.query("SELECT * FROM tasks WHERE project_id=$1", [
+    project_id,
+  ]);
+  return result.rows;
+}
+
+async function updateProject(id, new_project_name, new_description, new_status) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[projectsDatabase] updateProject");
+  const result = await pool.query(
+    "UPDATE projects SET project_name=COALESCE($2,project_name),description=COALESCE($3,description),status=COALESCE($4,status) WHERE id=$1 RETURNING *",
+    [id, new_project_name, new_description, new_status],
+  );
+  return result.rows[0];
+}
+
+async function deleteProject(id) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[projectsDatabase] deleteProject");
+  const result = await pool.query(
+    "DELETE FROM projects WHERE id=$1 RETURNING * ",
+    [id],
+  );
+  return result.rows[0];
+}
+
+async function getProjectActivity(project_id, limit = 50) {
+  const result = await pool.query(
+    `SELECT a.*, u.email AS actor_email
+     FROM audit_logs a LEFT JOIN users u ON u.id = a.actor_user_id
+     WHERE a.target_type = 'project' AND a.target_id = $1
+     ORDER BY a.created_at DESC LIMIT $2`,
+    [project_id, limit],
+  );
+  return result.rows;
+}
+
+module.exports = {
+  createProject,
+  getOneProject,
+  getProjectsCreatedByUser,
+  getTaskByProject,
+  updateProject,
+  deleteProject,
+  getProjectActivity,
+};

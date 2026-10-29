@@ -1,0 +1,94 @@
+const commentsDatabase = require("../repository/commentsDatabase");
+const tasksDatabase = require("../repository/tasksDatabase");
+const projectMembersDatabase = require("../repository/projectMembersDatabase");
+
+async function createComment(task_id, user_id, new_body) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[commentService] createComment");
+  const task = await tasksDatabase.getOneTask(task_id);
+  if (!task) {
+    return { success: false, error: "Task Not Exist" };
+  }
+  const membership = await projectMembersDatabase.getMembership(
+    task.project_id,
+    user_id,
+  );
+  if (!membership) {
+    return {
+      success: false,
+      error: "Forbidden Member Not Assign To Project's Task",
+    };
+  }
+
+  const result = await commentsDatabase.createComment(
+    task_id,
+    user_id,
+    new_body,
+  );
+  return { success: true, value: result };
+}
+
+async function getCommentByTask(task_id, user_id) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[commentService] getCommentByTask");
+  const task = await tasksDatabase.getOneTask(task_id);
+  if (!task) {
+    return { success: false, error: "Task Not Exist" };
+  }
+  const membership = await projectMembersDatabase.getMembership(
+    task.project_id,
+    user_id,
+  );
+  if (!membership) {
+    return {
+      success: false,
+      error: "Forbidden Member Not Assign To Project's Task",
+    };
+  }
+  const result = await commentsDatabase.getCommentByTask(task_id);
+  return { success: true, value: result };
+}
+
+async function getCommentByUser(user_id) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[commentService] getCommentByUser");
+  const result = await commentsDatabase.getCommentByUser(user_id);
+  return { success: true, value: result };
+}
+
+async function deleteCommentById(comment_id, user_id) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[commentService] deleteCommentById");
+  const result = await commentsDatabase.deleteCommentByUserAndId(
+    comment_id,
+    user_id,
+  );
+  if (!result) {
+    return { success: false, error: "Comment not found or unauthorized" };
+  }
+  return { success: true, value: result };
+}
+
+async function deleteAllCommentFromTask(task_id, user_id) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[commentService] deleteAllCommentFromTask");
+  const task = await tasksDatabase.getOneTask(task_id);
+  if (!task) {
+    return { success: false, error: "Task Not Exist" };
+  }
+  const membership = await projectMembersDatabase.getMembership(
+    task.project_id,
+    user_id,
+  );
+  if (!membership || membership.role !== "owner") {
+    return {
+      success: false,
+      error: "Only Owner Can Delete Comment",
+    };
+  }
+  const result = await commentsDatabase.deleteAllCommentFromTask(task_id);
+  return { success: true, value: result };
+}
+
+module.exports = {
+  createComment,
+  getCommentByTask,
+  getCommentByUser,
+  deleteCommentById,
+  deleteAllCommentFromTask,
+};

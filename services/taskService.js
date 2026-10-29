@@ -1,0 +1,211 @@
+const tasksDatabase = require("../repository/tasksDatabase");
+const projectsDatabase = require("../repository/projectsDatabase");
+const projectMembersDatabase = require("../repository/projectMembersDatabase");
+const securityDatabase = require("../repository/securityDatabase");
+const { canEditTask } = require("../utils/permissions");
+
+async function completeTask(user_id, id) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[taskService] completeTask");
+  const task = await tasksDatabase.getOneTask(id);
+  if (!task) return { success: false, error: "Task Not Exist" };
+
+  const membership = await projectMembersDatabase.getMembership(
+    task.project_id,
+    user_id,
+  );
+  if (!canEditTask(user_id, task, membership, await tasksDatabase.isTaskAssignee(id, user_id))) {
+    return { success: false, error: "Forbidden Not Member Of That Project" };
+  }
+  const result = await tasksDatabase.completeTask(id, !task.completed);
+  return { success: true, value: result };
+}
+
+async function createTask(
+  user_id,
+  project_id,
+  new_title,
+  new_priority,
+  new_due_date,
+) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[taskService] createTask");
+  const project = await projectsDatabase.getOneProject(project_id);
+
+  const membership = await projectMembersDatabase.getMembership(
+    project_id,
+    user_id,
+  );
+
+  if (!project) {
+    return { success: false, error: "Project Not Exist" };
+  }
+
+  if (!membership) {
+    return { success: false, error: "Forbidden Not Member Of That Project" };
+  }
+  let new_task = {
+    user_id,
+    project_id,
+    new_title,
+    new_priority,
+    new_due_date,
+  };
+  const result = await tasksDatabase.createTask(new_task);
+  await tasksDatabase.assignTask(result.id, user_id);
+  return { success: true, value: result };
+}
+
+async function getTaskByUser(user_id, page = 1, limit = 10, filters = {}) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[taskService] getTaskByUser");
+  const memberships =
+    await projectMembersDatabase.getAllProjectsOfUser(user_id);
+  const taskLists = await Promise.all(
+    memberships.map((m) => projectsDatabase.getTaskByProject(m.project_id)),
+  );
+  let all_task = taskLists.flat();
+  if (filters.search) {
+    const search = String(filters.search).toLowerCase();
+    all_task = all_task.filter((task) => task.title.toLowerCase().includes(search));
+  }
+  if (filters.priority) all_task = all_task.filter((task) => task.priority === filters.priority);
+  if (filters.completed !== undefined) {
+    const completed = filters.completed === true || filters.completed === "true";
+    all_task = all_task.filter((task) => task.completed === completed);
+  }
+  const sort = filters.sort || "created_at";
+  const direction = filters.order === "asc" ? 1 : -1;
+  if (["created_at", "updated_at", "due_date", "title", "priority"].includes(sort)) {
+    all_task.sort((a, b) => String(a[sort] ?? "").localeCompare(String(b[sort] ?? "")) * direction);
+  }
+
+  const total = all_task.length;
+  const total_pages = Math.ceil(total / limit);
+  const start = (page - 1) * limit;
+  const end = start + limit;
+  const paginated_tasks = all_task.slice(start, end);
+
+  return {
+    success: true,
+    value: await Promise.all(paginated_tasks.map(async (task) => {
+      const membership = memberships.find((m) => m.project_id === task.project_id);
+      const assignee = await tasksDatabase.isTaskAssignee(task.id, user_id);
+      const canEdit = task.user_id === user_id || membership?.role === "owner" || assignee;
+      return {
+        ...task,
+        permissions: {
+          can_edit: canEdit,
+          can_complete: canEdit,
+          can_delete: membership?.role === "owner",
+        },
+      };
+    })),
+    total, page, total_pages,
+  };
+}
+
+async function getOneTask(user_id, id) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[taskService] getOneTask");
+  const task = await tasksDatabase.getOneTask(id);
+  if (!task) return { success: false, error: "Task Not Exist" };
+
+  const membership = await projectMembersDatabase.getMembership(
+    task.project_id,
+    user_id,
+  );
+  if (!membership) {
+    return { success: false, error: "Forbidden Not Member Of That Project" };
+  }
+  const isAssignee = await tasksDatabase.isTaskAssignee(id, user_id);
+  return {
+    success: true,
+    value: {
+      ...task,
+      permissions: {
+        can_edit: task.user_id === user_id || membership.role === "owner" || isAssignee,
+        can_complete: task.user_id === user_id || membership.role === "owner" || isAssignee,
+        can_delete: membership.role === "owner",
+      },
+    },
+  };
+}
+
+async function updateTask(user_id, id, new_title, new_priority, new_due_date) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[taskService] updateTask");
+  const task = await tasksDatabase.getOneTask(id);
+  if (!task) return { success: false, error: "Task Not Exist" };
+
+  const membership = await projectMembersDatabase.getMembership(
+    task.project_id,
+    user_id,
+  );
+  if (!canEditTask(user_id, task, membership, await tasksDatabase.isTaskAssignee(id, user_id))) {
+    return { success: false, error: "Forbidden Not Member Of That Project" };
+  }
+
+  const result = await tasksDatabase.updateTask(
+    id,
+    new_title,
+    new_priority,
+    new_due_date,
+  );
+  return { success: true, value: result };
+}
+
+async function assignTask(requesting_user_id, task_id, target_user_id) {
+  const task = await tasksDatabase.getOneTask(task_id);
+  if (!task) return { success: false, error: "Task Not Exist" };
+  const owner = await projectMembersDatabase.getMembership(task.project_id, requesting_user_id);
+  const target = await projectMembersDatabase.getMembership(task.project_id, target_user_id);
+  if (!owner || owner.role !== "owner") {
+    return { success: false, error: "Forbidden Only Owner Can Assign Task" };
+  }
+  if (!target) return { success: false, error: "User Not Member Of That Project" };
+  const result = await tasksDatabase.assignTask(task_id, target_user_id);
+  await securityDatabase.createAuditLog(requesting_user_id, "task.assign", "task", String(task_id), { user_id: target_user_id });
+  return { success: true, value: result };
+}
+
+async function unassignTask(requesting_user_id, task_id, target_user_id) {
+  const task = await tasksDatabase.getOneTask(task_id);
+  if (!task) return { success: false, error: "Task Not Exist" };
+  const owner = await projectMembersDatabase.getMembership(task.project_id, requesting_user_id);
+  if (!owner || owner.role !== "owner") {
+    return { success: false, error: "Forbidden Only Owner Can Assign Task" };
+  }
+  const result = await tasksDatabase.unassignTask(task_id, target_user_id);
+  return { success: true, value: result };
+}
+
+async function getTaskAssignees(user_id, task_id) {
+  const task = await tasksDatabase.getOneTask(task_id);
+  if (!task) return { success: false, error: "Task Not Exist" };
+  const membership = await projectMembersDatabase.getMembership(task.project_id, user_id);
+  if (!membership) return { success: false, error: "Forbidden Not Member Of That Project" };
+  return { success: true, value: await tasksDatabase.getTaskAssignees(task_id) };
+}
+
+async function deleteTask(user_id, id) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[taskService] deleteTask");
+  const task = await tasksDatabase.getOneTask(id);
+  if (!task) return { success: false, error: "Task Not Exist" };
+  const membership = await projectMembersDatabase.getMembership(
+    task.project_id,
+    user_id,
+  );
+  if (!membership || membership.role !== "owner") {
+    return { success: false, error: "Forbidden Only Owner Can Delete Task" };
+  }
+
+  const result = await tasksDatabase.deleteTask(id);
+  return { success: true, value: result };
+}
+module.exports = {
+  createTask,
+  getTaskByUser,
+  getOneTask,
+  updateTask,
+  deleteTask,
+  completeTask,
+  assignTask,
+  unassignTask,
+  getTaskAssignees,
+};
