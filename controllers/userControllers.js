@@ -33,6 +33,7 @@ const update_user_schema = z.object({
 const profile_schema = z.object({
   name: z.string().min(1, "Name is required"),
   bio: z.string().min(1, "Bio is required"),
+  username: z.string().min(1, "Username is required"),
 });
 
 function handleServiceError(res, error) {
@@ -53,7 +54,10 @@ function handleServiceError(res, error) {
     return res.status(403).json({ success: false, error });
   }
 
-  if (error === "Email Already Exist") {
+  if (
+    error === "Email Already Exist" ||
+    error === "Username is not available"
+  ) {
     return res.status(409).json({ success: false, error });
   }
 
@@ -160,10 +164,10 @@ async function updateOtherEmail(req, res) {
   res.status(200).json({ success: true, value: outcome.value });
 }
 
-async function getUser(req, res) {
+async function getUserById(req, res) {
   console.log(
     new Date().toLocaleTimeString("en-GB"),
-    "[userControllers] getUser",
+    "[userControllers] getUserById",
   );
   const target_id = parseUUIDParam(req, res, "target_id");
   if (target_id === null) return;
@@ -171,7 +175,24 @@ async function getUser(req, res) {
   // Intentionally no ownership check here: this route is admin-only
   // (gated by authenticateRole("admin") in app.js), so any authenticated
   // admin is allowed to look up any user by id.
-  const outcome = await UserService.getUser(target_id);
+  const outcome = await UserService.getUserById(target_id);
+  if (outcome.success === false) {
+    return handleServiceError(res, outcome.error);
+  }
+  res.status(200).json({ success: true, value: outcome.value });
+}
+
+async function getUserByUsername(req, res) {
+  console.log(
+    new Date().toLocaleTimeString("en-GB"),
+    "[userControllers] getUserByUsername",
+  );
+  const result = profile_schema.safeParse(req.body);
+  if (!result.success) {
+    const errors = result.error.issues.map((issue) => issue.message);
+    return res.status(400).json({ success: false, error: errors });
+  }
+  const outcome = await UserService.getUserByUsername(result.data.username);
   if (outcome.success === false) {
     return handleServiceError(res, outcome.error);
   }
@@ -212,10 +233,12 @@ async function createProfile(req, res) {
     const errors = result.error.issues.map((issue) => issue.message);
     return res.status(400).json({ success: false, error: errors });
   }
+
   const outcome = await UserService.createProfile(
     req.user.id,
     result.data.name,
     result.data.bio,
+    result.data.username,
   );
   if (outcome.success === false) {
     return handleServiceError(res, outcome.error);
@@ -237,6 +260,7 @@ async function updateProfile(req, res) {
     req.user.id,
     result.data.name,
     result.data.bio,
+    result.data.username,
   );
   if (outcome.success === false) {
     return handleServiceError(res, outcome.error);
@@ -249,7 +273,12 @@ async function getProfile(req, res) {
     new Date().toLocaleTimeString("en-GB"),
     "[userControllers] getProfile",
   );
-  const outcome = await UserService.getProfile(req.user.id);
+  const result = profile_schema.safeParse(req.body);
+  if (!result.success) {
+    const errors = result.error.issues.map((issue) => issue.message);
+    return res.status(400).json({ success: false, error: errors });
+  }
+  const outcome = await UserService.getProfile(result.data.username);
   if (outcome.success === false) {
     return handleServiceError(res, outcome.error);
   }
@@ -262,7 +291,8 @@ module.exports = {
   logout,
   getAllUsers,
   deleteUser,
-  getUser,
+  getUserById,
+  getUserByUsername,
   selfUpdateEmail,
   updateOtherEmail,
   createProfile,

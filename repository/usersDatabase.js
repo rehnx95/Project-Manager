@@ -59,7 +59,10 @@ async function deleteUser(user_id) {
     await client.query("BEGIN");
     await client.query("DELETE FROM projects WHERE user_id=$1", [user_id]);
     await client.query("DELETE FROM tasks WHERE user_id=$1", [user_id]);
-    const result = await client.query("DELETE FROM users WHERE id=$1 RETURNING id,email", [user_id]);
+    const result = await client.query(
+      "DELETE FROM users WHERE id=$1 RETURNING id,email",
+      [user_id],
+    );
     await client.query("COMMIT");
     return result.rows[0];
   } catch (error) {
@@ -71,7 +74,7 @@ async function deleteUser(user_id) {
   return result.rows[0];
 }
 
-async function getUser(id) {
+async function getUserById(id) {
   console.log(
     new Date().toLocaleTimeString("en-GB"),
     "[usersDatabase] getUser",
@@ -83,8 +86,23 @@ async function getUser(id) {
   return result.rows[0];
 }
 
+async function getUserByUsername(username) {
+  console.log(
+    new Date().toLocaleTimeString("en-GB"),
+    "[usersDatabase] getUser",
+  );
+  const result = await pool.query(
+    "SELECT id,email,role FROM users WHERE username=$1",
+    [username],
+  );
+  return result.rows[0];
+}
+
 async function getAllUsers() {
-  console.log(new Date().toLocaleTimeString("en-GB"), "[usersDatabase] getAllUsers");
+  console.log(
+    new Date().toLocaleTimeString("en-GB"),
+    "[usersDatabase] getAllUsers",
+  );
   const result = await pool.query("SELECT id,email,role FROM users");
   return result.rows;
 }
@@ -95,31 +113,41 @@ async function createProfile(new_profile) {
     "[usersDatabase] createProfile",
   );
   const result = await pool.query(
-    "INSERT INTO profiles (user_id,name,bio) VALUES ($1,$2,$3) RETURNING *",
-    [new_profile.user_id, new_profile.new_name, new_profile.new_bio],
+    "INSERT INTO profiles (user_id,name,bio,username) VALUES ($1,$2,$3) RETURNING *",
+    [
+      new_profile.user_id,
+      new_profile.new_name,
+      new_profile.new_bio,
+      new_profile.new_username,
+    ],
   );
   return result.rows[0];
 }
 
-async function updateProfile(user_id, updated_name, updated_bio) {
+async function updateProfile(
+  user_id,
+  updated_name,
+  updated_bio,
+  updated_username,
+) {
   console.log(
     new Date().toLocaleTimeString("en-GB"),
     "[usersDatabase] updateProfile",
   );
   const result = await pool.query(
-    "UPDATE profiles SET name=COALESCE($2,name), bio=COALESCE($3,bio) WHERE user_id=$1 RETURNING *",
-    [user_id, updated_name, updated_bio],
+    "UPDATE profiles SET name=COALESCE($2,name), bio=COALESCE($3,bio),username=COALESCE($4,username) WHERE user_id=$1 RETURNING *",
+    [user_id, updated_name, updated_bio, updated_username],
   );
   return result.rows[0];
 }
 
-async function getProfile(user_id) {
+async function getProfile(username) {
   console.log(
     new Date().toLocaleTimeString("en-GB"),
     "[usersDatabase] getProfile",
   );
-  const result = await pool.query("SELECT * FROM profiles WHERE user_id=$1", [
-    user_id,
+  const result = await pool.query("SELECT * FROM profiles WHERE username=$1", [
+    username,
   ]);
   return result.rows[0];
 }
@@ -127,7 +155,8 @@ async function getProfile(user_id) {
 module.exports = {
   createUsers,
   findByEmail,
-  getUser,
+  getUserById,
+  getUserByUsername,
   getAllUsers,
   deleteUser,
   updateEmail,

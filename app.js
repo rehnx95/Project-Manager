@@ -127,7 +127,7 @@ app.use((err, req, res, next) => {
   res.status(500).json({ success: false, error: "Something went wrong" });
 });
 
-const port = 8000;
+const port = 9000;
 app.listen(port, "0.0.0.0", () => {
   console.log(new Date().toLocaleTimeString("en-GB"), `server is running ${port}`);
 });

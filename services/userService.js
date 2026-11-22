@@ -2,6 +2,8 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const usersDatabase = require("../repository/usersDatabase");
 const securityDatabase = require("../repository/securityDatabase");
+const { success } = require("zod");
+const { error } = require("console");
 
 async function signup(email, password) {
   console.log(new Date().toLocaleTimeString("en-GB"), "[userService] signup");
@@ -56,7 +58,13 @@ async function selfUpdateEmail(user_id, old_email, new_email) {
   if (!updated_user) {
     return { success: false, error: "User Not Exist" };
   }
-  await securityDatabase.createAuditLog(user_id, "user.email.update", "user", user_id, { old_email, new_email });
+  await securityDatabase.createAuditLog(
+    user_id,
+    "user.email.update",
+    "user",
+    user_id,
+    { old_email, new_email },
+  );
   const new_user = {
     id: updated_user.id,
     oldEmail: old_email,
@@ -97,7 +105,13 @@ async function updateOtherEmail(
   if (!updated_user) {
     return { success: false, error: "User Not Exist" };
   }
-  await securityDatabase.createAuditLog(requested_id, "user.email.admin_update", "user", target_id, { old_email: user.email, new_email });
+  await securityDatabase.createAuditLog(
+    requested_id,
+    "user.email.admin_update",
+    "user",
+    target_id,
+    { old_email: user.email, new_email },
+  );
 
   const new_user = {
     id: target_id,
@@ -109,9 +123,18 @@ async function updateOtherEmail(
   return { success: true, value: new_user };
 }
 
-async function getUser(id) {
+async function getUserById(id) {
   console.log(new Date().toLocaleTimeString("en-GB"), "[userService] getUser");
-  const user = await usersDatabase.getUser(id);
+  const user = await usersDatabase.getUserById(id);
+  if (!user) {
+    return { success: false, error: "User Not Exist" };
+  }
+  return { success: true, value: user };
+}
+
+async function getUserByUsername(username) {
+  console.log(new Date().toLocaleTimeString("en-GB"), "[userService] getUser");
+  const user = await usersDatabase.getUserByUsername(username);
   if (!user) {
     return { success: false, error: "User Not Exist" };
   }
@@ -132,7 +155,12 @@ async function deleteUser(user_id) {
     new Date().toLocaleTimeString("en-GB"),
     "[userService] deleteUser",
   );
-  await securityDatabase.createAuditLog(user_id, "user.delete", "user", user_id);
+  await securityDatabase.createAuditLog(
+    user_id,
+    "user.delete",
+    "user",
+    user_id,
+  );
   const deleted_user = await usersDatabase.deleteUser(user_id);
   if (!deleted_user) {
     return { success: false, error: "User Not Exist" };
@@ -146,44 +174,52 @@ async function logout(jti) {
   return { success: true };
 }
 
-async function createProfile(user_id, new_name, new_bio) {
+async function createProfile(user_id, new_name, new_bio, new_username) {
   console.log(
     new Date().toLocaleTimeString("en-GB"),
     "[userService] createProfile",
   );
-
+  const existing = await usersDatabase.getUserByUsername(new_username);
+  if (existing) {
+    return { success: false, error: "Username is not available" };
+  }
   const new_profile = {
     user_id,
     new_name,
     new_bio,
+    new_username,
   };
   const created_profile = await usersDatabase.createProfile(new_profile);
   return { success: true, value: created_profile };
 }
 
-async function updateProfile(user_id, new_name, new_bio) {
+async function updateProfile(user_id, new_name, new_bio, new_username) {
   console.log(
     new Date().toLocaleTimeString("en-GB"),
     "[userService] updateProfile",
   );
-
+  const existing = await usersDatabase.getUserByUsername(new_username);
+  if (existing) {
+    return { success: false, error: "Username is not available" };
+  }
   const updated_profile = await usersDatabase.updateProfile(
     user_id,
     new_name,
     new_bio,
+    new_username,
   );
   if (!updated_profile) return { success: false, error: "Profile Not Exist" };
 
   return { success: true, value: updated_profile };
 }
 
-async function getProfile(user_id) {
+async function getProfile(username) {
   console.log(
     new Date().toLocaleTimeString("en-GB"),
     "[userService] getProfile",
   );
 
-  const profile = await usersDatabase.getProfile(user_id);
+  const profile = await usersDatabase.getProfile(username);
   if (!profile) return { success: false, error: "Profile Not Exist" };
   return { success: true, value: profile };
 }
@@ -194,7 +230,8 @@ module.exports = {
   getAllUsers,
   deleteUser,
   logout,
-  getUser,
+  getUserById,
+  getUserByUsername,
   selfUpdateEmail,
   updateOtherEmail,
   updateProfile,
