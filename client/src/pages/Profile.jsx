@@ -11,10 +11,19 @@ import FormField from "../components/FormField.jsx";
 import LoadState from "../components/LoadState.jsx";
 import Pill from "../components/Pill.jsx";
 import { validEmail } from "../utils/validation.js";
+import ProfileSetup from "./ProfileSetup.jsx";
+import { getPendingProfile } from "../utils/pendingProfile.js";
 
 const sections = [{ key: "profile", label: "Profile" }, { key: "account", label: "Account" }, { key: "comments", label: "My comments" }];
 
 export default function Profile() {
+  const { user } = useAuth();
+  const pendingProfile = getPendingProfile();
+  if (pendingProfile?.email === user?.email) return <ProfileSetup pendingProfile={pendingProfile} />;
+  return <ProfileContent />;
+}
+
+function ProfileContent() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const notify = useToast();

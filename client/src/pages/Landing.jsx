@@ -35,7 +35,14 @@ export default function Landing() {
       <section id="features" className="features-grid" aria-label="Features">
         {features.map(([title, description]) => <article className="feature-card card" key={title}><h3>{title}</h3><p>{description}</p></article>)}
       </section>
-      <span id="how-it-works" className="visually-hidden">Create a project, organize tasks, and collaborate with your team.</span>
+      <section id="how-it-works" className="how-it-works card" aria-labelledby="how-it-works-title">
+        <div><span className="eyebrow">A simple workflow</span><h2 id="how-it-works-title">How it works</h2><p className="muted">Bring your team’s work together in a few steps.</p></div>
+        <div className="how-it-works-steps">
+          <article><span>01</span><div><h3>Create a project</h3><p>Give the work a home and invite your teammates.</p></div></article>
+          <article><span>02</span><div><h3>Organize tasks</h3><p>Set priorities, due dates, and clear ownership.</p></div></article>
+          <article><span>03</span><div><h3>Move forward together</h3><p>Share updates, discuss tasks, and track progress.</p></div></article>
+        </div>
+      </section>
       <footer>© Depot</footer>
     </main>
   </>;

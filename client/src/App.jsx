@@ -12,16 +12,19 @@ import Notes from "./pages/Notes.jsx";
 import Profile from "./pages/Profile.jsx";
 import Admin from "./pages/Admin.jsx";
 import NotFound from "./pages/NotFound.jsx";
+import { getPendingProfile } from "./utils/pendingProfile.js";
 
 function Guard({ children }) {
   return <ProtectedRoute>{children}</ProtectedRoute>;
 }
 
 export default function App() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
+  const pendingProfile = getPendingProfile();
+  const loginDestination = pendingProfile?.email === user?.email ? "/profile" : "/dashboard";
   return <Routes>
     <Route path="/" element={<Landing />} />
-    <Route path="/login" element={token ? <Navigate to="/dashboard" replace /> : <Auth />} />
+    <Route path="/login" element={token ? <Navigate to={loginDestination} replace /> : <Auth />} />
     <Route path="/dashboard" element={<Guard><Dashboard /></Guard>} />
     <Route path="/projects/:id" element={<Guard><Project /></Guard>} />
     <Route path="/tasks/:id" element={<Guard><Task /></Guard>} />

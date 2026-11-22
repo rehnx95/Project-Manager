@@ -1,7 +1,8 @@
 .topbar { position: sticky; top: 0; z-index: 40; height: 60px; background: rgba(255,255,255,.96); border-bottom: 1px solid var(--border); backdrop-filter: blur(12px); }
 .topbar-inner { height: 100%; max-width: 1200px; padding: 0 24px; margin: auto; display: flex; align-items: center; gap: 30px; }
 .brand { display: inline-flex; gap: 9px; align-items: center; font: 700 1.15rem/1 var(--heading); letter-spacing: -.04em; }
-.brand-mark { width: 19px; height: 19px; border-radius: 6px; background: var(--accent); display: inline-block; }
+.brand-mark { width: 24px; height: 24px; border-radius: 7px; background: var(--accent); display: inline-grid; place-items: center; overflow: hidden; }
+.brand-mark svg { width: 19px; height: 19px; fill: none; stroke: #fff; stroke-linejoin: round; stroke-width: 2.7px; }
 .primary-nav { display: flex; align-items: stretch; height: 100%; gap: 28px; }
 .primary-nav a { position: relative; display: flex; align-items: center; color: var(--muted-dark); font-size: .91rem; text-decoration: underline; text-underline-offset: 3px; }
 .primary-nav a:hover { color: var(--text); }
@@ -10,6 +11,8 @@
 .topbar-actions { margin-left: auto; display: flex; align-items: center; gap: 20px; }
 .text-link { color: var(--muted-dark); font-size: .91rem; text-decoration: underline; text-underline-offset: 3px; }
 .account-actions { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+.sample-data-trigger { width: 36px; padding: 0; }
+.sample-data-trigger svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
 .profile-menu { position: relative; }
 .avatar-button { display: flex; padding: 0; border-radius: 50%; }
 .profile-dropdown { position: absolute; top: calc(100% + 13px); right: 0; width: 210px; padding: 8px; border: 1px solid var(--border); border-radius: 12px; background: #fff; box-shadow: var(--shadow-card); }

@@ -84,7 +84,7 @@ router.get(
   "/users/:target_id",
   authenticateToken,
   authenticateRole("admin"),
-  asyncHandler(userControllers.getUser),
+  asyncHandler(userControllers.getUserById),
 );
 
 module.exports = router;

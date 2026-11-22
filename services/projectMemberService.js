@@ -56,7 +56,7 @@ async function addMemberToProject(
       error: "Forbidden Only Owner Can Add Member To That Project",
     };
   }
-  const target_user = await usersDatabase.getUser(target_user_id);
+  const target_user = await usersDatabase.getUserById(target_user_id);
   if (!target_user) {
     return { success: false, error: "User Not Exist" };
   }

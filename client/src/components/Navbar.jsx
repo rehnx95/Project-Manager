@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useToast } from "./ToastProvider.jsx";
+import { createLinkedSampleData } from "../api/sampleData.js";
 import Avatar from "./Avatar.jsx";
 import Button from "./Button.jsx";
 import FormField from "./FormField.jsx";
@@ -18,6 +19,13 @@ export default function Navbar({ marketing = false }) {
   const [testingKey, setTestingKey] = useState("");
   const [testingBusy, setTestingBusy] = useState(false);
   const [testingError, setTestingError] = useState("");
+  const [sampleOpen, setSampleOpen] = useState(false);
+  const [sampleConfirmed, setSampleConfirmed] = useState(false);
+  const [sampleBusy, setSampleBusy] = useState(false);
+  const [sampleError, setSampleError] = useState("");
+  const [sampleProgress, setSampleProgress] = useState("");
+  const [sampleAccounts, setSampleAccounts] = useState([]);
+  const [sampleResult, setSampleResult] = useState(null);
   const profileRef = useRef(null);
   const links = marketing
     ? [{ to: "#features", label: "Features" }, { to: "#how-it-works", label: "How it works" }]
@@ -69,9 +77,26 @@ export default function Navbar({ marketing = false }) {
     }
   }
 
+  async function addSampleData() {
+    setSampleBusy(true);
+    setSampleError("");
+    setSampleResult(null);
+    setSampleAccounts([]);
+    try {
+      const result = await createLinkedSampleData(setSampleProgress, setSampleAccounts);
+      setSampleResult(result);
+      notify("Linked sample workspace created.");
+    } catch (error) {
+      setSampleError(error.message);
+      if (error.accounts) setSampleAccounts(error.accounts);
+    } finally {
+      setSampleBusy(false);
+    }
+  }
+
   return <><header className={`topbar${marketing ? " topbar-marketing" : ""}`}>
     <div className="topbar-inner">
-      <Link to={user ? "/dashboard" : "/"} className="brand" aria-label="Depot home"><span className="brand-mark" />Depot</Link>
+      <Link to={user ? "/dashboard" : "/"} className="brand" aria-label="Depot home"><span className="brand-mark" aria-hidden="true"><svg viewBox="0 0 40 40"><path d="m8 17 12-8 12 8v14H8V17Z" /><path d="M15 31V21h10v10M8 17h24" /></svg></span>Depot</Link>
       <button className="menu-toggle" type="button" aria-expanded={menuOpen} aria-label="Toggle navigation" onClick={() => setMenuOpen((open) => !open)}><span /><span /><span /></button>
       <nav className={`primary-nav${menuOpen ? " nav-open" : ""}`} aria-label="Main navigation">
         {links.map((link) => marketing
@@ -80,6 +105,9 @@ export default function Navbar({ marketing = false }) {
       </nav>
       {marketing ? <div className="topbar-actions"><Link className="text-link" to={user ? "/dashboard" : "/login"}>{user ? "Open app" : "Sign in"}</Link><Link className="button button-primary button-small" to={user ? "/dashboard" : "/login"}>{user ? "Open app" : "Get started"}</Link></div> :
         <div className="account-actions">
+          {import.meta.env.DEV && <Button size="small" className="sample-data-trigger" aria-label="Add sample data for three accounts" title="Add sample data" onClick={() => { setSampleOpen(true); setSampleConfirmed(false); setSampleError(""); setSampleProgress(""); setSampleAccounts([]); setSampleResult(null); }}>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm11-4v6m-3-3h6" /></svg>
+          </Button>}
           <Button size="small" onClick={() => { setTestingError(""); setTestingOpen(true); }}>Testing</Button>
           <div className="profile-menu" ref={profileRef}>
             <button type="button" className="avatar-button" aria-label="Account menu" aria-expanded={profileOpen} onClick={() => setProfileOpen((open) => !open)}><Avatar name={user?.name} email={user?.email} /></button>
@@ -98,5 +126,15 @@ export default function Navbar({ marketing = false }) {
       <FormField id="testing-key" label="Owner key" type="password" autoComplete="off" value={testingKey} error={testingError} onChange={(event) => { setTestingKey(event.target.value); setTestingError(""); }} />
       <div className="form-row"><Button onClick={() => setTestingOpen(false)}>Cancel</Button><Button type="submit" variant="primary" disabled={testingBusy}>{testingBusy ? "Checking…" : "Open console"}</Button></div>
     </form>
+  </Modal>
+  <Modal open={sampleOpen} onClose={() => { if (!sampleBusy) setSampleOpen(false); }} title="Add linked sample data">
+    <p className="muted">Create three demo accounts in one shared project, with 12 tasks, assignments, tags, comments, and personal notes.</p>
+    <p className="sample-data-warning">This writes persistent data to the connected database. Use only a development or disposable database. Each run creates a new set of accounts.</p>
+    <label className="sample-data-confirm"><input type="checkbox" checked={sampleConfirmed} disabled={sampleBusy} onChange={(event) => setSampleConfirmed(event.target.checked)} /><span>I understand this will add sample accounts and records.</span></label>
+    {sampleProgress && <p className="sample-data-progress" role="status">{sampleProgress}</p>}
+    {sampleError && <div className="inline-error" role="alert">{sampleError}</div>}
+    {sampleResult && <p className="sample-data-success">Created “{sampleResult.projectName}” with {sampleResult.taskCount} connected tasks.</p>}
+    {sampleAccounts.length > 0 && <div className="sample-account-list"><h3>Sample account credentials</h3><p className="muted">Shown only in this dialog. Save them before closing.</p>{sampleAccounts.map((account) => <article key={account.email}><strong>{account.name}</strong><span>{account.email}</span><code>{account.password}</code></article>)}</div>}
+    <div className="form-row"><Button onClick={() => setSampleOpen(false)} disabled={sampleBusy}>{sampleResult || sampleError ? "Close" : "Cancel"}</Button><Button variant="primary" onClick={addSampleData} disabled={sampleBusy || !sampleConfirmed}>{sampleBusy ? "Adding data…" : sampleResult ? "Create another set" : "Create sample workspace"}</Button></div>
   </Modal></>;
 }

@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, useSearchParams } from "react-router-do
 import { authApi } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useToast } from "../components/ToastProvider.jsx";
+import { savePendingProfile } from "../utils/pendingProfile.js";
 import Button from "../components/Button.jsx";
 import FormField from "../components/FormField.jsx";
 import { validEmail } from "../utils/validation.js";
@@ -36,10 +37,13 @@ export default function Auth() {
     setBusy(true);
     try {
       if (mode === "signup") {
-        await authApi.signup({ email, password });
+        const normalizedEmail = email.trim().toLowerCase();
+        await authApi.signup({ email: normalizedEmail, password });
+        savePendingProfile({ email: normalizedEmail });
+        setEmail(normalizedEmail);
         setMode("login");
         setPassword("");
-        notify("Account created. Sign in to continue.");
+        notify("Account created. Sign in to finish your profile.");
       } else {
         await signIn({ email, password });
         const safePath = returnTo?.startsWith("/") && !returnTo.startsWith("//") ? returnTo : "/dashboard";
@@ -54,7 +58,7 @@ export default function Auth() {
 
   return <main className="auth-layout">
     <section className="auth-brand-panel">
-      <Link to="/" className="brand"><span className="brand-mark" />Depot</Link>
+      <Link to="/" className="brand"><span className="brand-mark" aria-hidden="true"><svg viewBox="0 0 40 40"><path d="m8 17 12-8 12 8v14H8V17Z" /><path d="M15 31V21h10v10M8 17h24" /></svg></span>Depot</Link>
       <div className="auth-brand-copy"><h1>Welcome back to your board.</h1><p>Pick up where your team left off.</p></div>
       <p className="auth-footnote">Secure sessions, revoked when you sign out</p>
     </section>

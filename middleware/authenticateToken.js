@@ -28,7 +28,7 @@ async function authenticateToken(req, res, next) {
     if (!decoded.jti || !(await securityDatabase.isTokenActive(decoded.jti, decoded.id))) {
       return res.status(401).json({ success: false, error: "Session expired or revoked" });
     }
-    const user = await userRepository.getUser(decoded.id);
+    const user = await userRepository.getUserById(decoded.id);
     if (!user) {
       return res.status(401).json({ success: false, error: "User no longer exists" });
     }
