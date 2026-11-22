@@ -21,7 +21,12 @@ async function addMemberToProject(project_id, user_id, new_role, client = pool) 
 async function getAllMembersOfProject(project_id) {
   console.log(new Date().toLocaleTimeString("en-GB"), "[projectMembersDatabase] getAllMembersOfProject");
   const result = await pool.query(
-    "SELECT * FROM project_members WHERE project_id = $1",
+    `SELECT pm.*, u.email, p.name
+     FROM project_members pm
+     JOIN users u ON u.id = pm.user_id
+     LEFT JOIN profiles p ON p.user_id = u.id
+     WHERE pm.project_id = $1
+     ORDER BY u.email`,
     [project_id],
   );
   return result.rows;

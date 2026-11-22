@@ -1,0 +1,6 @@
+.modal-backdrop { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: 20px; background: rgba(24,24,27,.42); }
+.modal { width: min(520px, 100%); max-height: min(90vh, 760px); overflow: auto; padding: 24px; background: #fff; border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 24px 60px rgba(24,24,27,.2); }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.modal-header h2 { font-size: 1.3rem; }
+.modal-header .button { min-width: 36px; font-size: 1.3rem; }
+.modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }

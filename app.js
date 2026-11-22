@@ -1,5 +1,6 @@
 require("dotenv").config();
 const path = require("path");
+const fs = require("fs");
 const express = require("express");
 const app = express();
 const cors = require("cors");
@@ -48,7 +49,28 @@ app.post("/testing/access", (req, res) => {
 app.get("/testing.html", authenticateOwner, (req, res) => {
   res.sendFile(path.join(__dirname, "frontend", "testing.html"));
 });
-app.use(express.static(path.join(__dirname, "frontend")));
+
+const clientDist = path.join(__dirname, "client", "dist");
+function acceptsHtml(req) {
+  return (req.get("accept") || "").split(",").some((mediaType) =>
+    mediaType.split(";")[0].trim().toLowerCase() === "text/html",
+  );
+}
+function serveSpaRoute(req, res, next) {
+  if (!fs.existsSync(clientDist) || !acceptsHtml(req)) return next();
+  return res.sendFile(path.join(clientDist, "index.html"));
+}
+app.get("/dashboard", serveSpaRoute);
+app.get("/projects/:project_id", (req, res, next) => {
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(req.params.project_id)) {
+    return serveSpaRoute(req, res, next);
+  }
+  return next();
+});
+app.get("/tasks/:task_id", (req, res, next) => {
+  if (/^[1-9]\d*$/.test(req.params.task_id)) return serveSpaRoute(req, res, next);
+  return next();
+});
 
 const userRoutes = require("./route/userRoutes");
 const noteRoutes = require("./route/noteRoutes");
@@ -71,6 +93,30 @@ app.use("/", databaseRoutes);
 app.get("/testing", authenticateOwner, (req, res) => {
   res.sendFile(path.join(__dirname, "frontend", "testing.html"));
 });
+
+app.get("/css/testing.css", (req, res) => {
+  res.sendFile(path.join(__dirname, "frontend", "css", "testing.css"));
+});
+app.get("/js/testing.js", (req, res) => {
+  res.sendFile(path.join(__dirname, "frontend", "js", "testing.js"));
+});
+
+if (fs.existsSync(clientDist)) {
+  app.use(express.static(clientDist));
+  app.get("*", (req, res, next) => {
+    const apiPrefixes = [
+      "/users", "/projects", "/tasks", "/dashboard", "/database",
+      "/testing", "/api",
+    ];
+    if (
+      apiPrefixes.some((prefix) => req.path === prefix || req.path.startsWith(prefix + "/")) ||
+      !acceptsHtml(req)
+    ) {
+      return next();
+    }
+    return res.sendFile(path.join(clientDist, "index.html"));
+  });
+}
 
 app.use((req, res) => {
   res.status(404).json({ success: false, error: "Route not found" });

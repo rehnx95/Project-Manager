@@ -5,7 +5,12 @@
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
-    "test": "node --test"
+    "test": "node --test",
+    "client:install": "npm install --prefix client",
+    "client:dev": "npm --prefix client run dev",
+    "client:build": "npm --prefix client run build",
+    "prebuild": "npm run client:install",
+    "build": "npm run client:build"
   },
   "dependencies": {
     "@prisma/client": "^7.9.1",

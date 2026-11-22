@@ -1,10 +1,10 @@
 # Depot — Project & Task Management API
 
-A full-stack project and task management application built with **Node.js**, **Express**, **PostgreSQL**, JWT authentication, and a vanilla JavaScript frontend. The application combines a practical project workspace with an owner-only API/testing console.
+A full-stack project and task management application built with **Node.js**, **Express**, **PostgreSQL**, JWT authentication, and a React single-page frontend. The application combines a practical project workspace with an owner-only API/testing console.
 
 **Live demo:** https://project-manager-owgl.onrender.com/
 
-The frontend and API are served from the same Express application, so the application works locally and on Render without a separate frontend build or API base URL.
+The API and built frontend are served from the same Express application. Vite proxies API requests to Express during local frontend development.
 
 ---
 
@@ -34,7 +34,7 @@ The frontend and API are served from the same Express application, so the applic
 | Database   | PostgreSQL (via `pg`)                                        |
 | Auth       | `jsonwebtoken`, `bcrypt`                                     |
 | Validation | `zod`                                                        |
-| Frontend   | Plain HTML / CSS / vanilla JS (no build step, no frameworks) |
+| Frontend   | React 18, Vite, React Router 6, plain CSS                    |
 | Hosting    | Render.com (web service + managed Postgres)                  |
 
 ---
@@ -104,32 +104,19 @@ The frontend and API are served from the same Express application, so the applic
 ├── test/
 │   └── permissions.test.js           # Permission behavior tests
 │
-└── frontend/                       # Static HTML/CSS/JS client + API console (no build step)
-    ├── index.html                  # Sign in / register
-    ├── dashboard.html              # Project list + create
-    ├── project.html                # Project detail, tasks, crew/member management
-    ├── task.html                   # Task detail, tags, comments
-    ├── tasks.html                  # Paginated view of all your tasks across projects
-    ├── profile.html                # Profile, account settings, self-service email updates
-    ├── notes.html                  # Private per-user notes
-    ├── admin.html                  # Admin-only user directory
+├── client/                         # React 18 + Vite single-page application
+│   ├── src/api/client.js           # Shared fetch wrapper and grouped endpoint clients
+│   ├── src/context/                # Authentication context
+│   ├── src/hooks/                  # Shared loading/error/refetch hooks
+│   ├── src/components/             # Accessible UI components
+│   ├── src/pages/                  # Landing, auth, dashboard and workspace pages
+│   ├── src/routes/                 # Protected and admin route guards
+│   └── dist/                       # Production build, served by Express (generated)
+│
+└── frontend/                       # Legacy API console only
     ├── testing.html                # Owner-key gated API console
-    ├── css/
-    │   ├── style.css                # Design system for the main app (dispatch-board theme)
-    │   └── testing.css              # Separate design system for the API console
-    └── js/
-        ├── api.js                  # Shared api() fetch helper, token storage, toast(), formatters
-        ├── nav.js                  # Renders the sidebar nav on every authenticated page
-        ├── auth.js                 # Sign in / register form handling
-        ├── dashboard.js
-        ├── project.js
-        ├── tasks.js
-        ├── task.js
-        ├── profile.js
-        ├── notes.js
-        ├── admin.js
-        ├── testing.js              # API console endpoint catalog, request builder, SQL picker
-        └── testingWindow.js        # Exchanges SECRET_KEY for owner-console access
+    ├── css/testing.css             # Console-only styles
+    └── js/                         # testing.js + testingWindow.js only
 ```
 
 The app follows a **controller → service → repository** layering:
@@ -250,8 +237,6 @@ psql "$DATABASE_URL" -f demoQueries.sql
 Create a `.env` file in the project root:
 
 ```env
-PORT=7000
-
 DB_USER=your_db_user
 DB_PASSWORD=your_db_password
 DB_HOST=your_db_host
@@ -272,25 +257,28 @@ SECRET_KEY=your_testing_key
 npm start
 ```
 
-The server starts on `http://localhost:7000` (or whatever `PORT` is set to), serving both the API and the static frontend from the same origin.
+The server listens on `http://localhost:8000`, serving the API and the built frontend from the same origin.
 
 ---
 
 ## Frontend
 
-A small multi-page vanilla JS client lives in `frontend/`, built to exercise the API rather than as a polished product:
+Install the frontend dependencies and run Vite with the Express API proxy:
 
-- `index.html` — sign in / register
-- `dashboard.html` — project list + create
-- `project.html` — project detail, tasks, crew/member management
-- `task.html` — task detail, tags, comments
-- `tasks.html` — paginated view of all your tasks across projects
-- `profile.html` — profile, account settings, and self-service email updates
-- `notes.html` — private per-user notes
-- `admin.html` — admin-only user directory, with lookup-by-ID and the ability to update any user's email
-- `testing.html` — interactive API console (owner-key gated through `POST /testing/access`), including a raw SQL runner with a dropdown of saved example queries
+```bash
+npm run client:install
+npm run client:dev
+```
 
-The frontend talks to the API using `location.origin`, so it works unmodified whether served locally or from the deployed URL — no config needed.
+Open `http://localhost:5173` for frontend development. Vite forwards API calls to `http://localhost:8000`; run the backend separately with `npm start` and configure its database and secrets in `.env`.
+
+Create the production frontend bundle with:
+
+```bash
+npm run build
+```
+
+`npm run build` installs the client dependencies and writes the bundle to `client/dist`. Express serves it after registering the API routes and falls back to the SPA entry point for frontend routes. The separate `/testing` API console remains owner-key gated.
 
 ---
 
@@ -300,7 +288,9 @@ Deployed on **Render.com**:
 
 - Web service auto-deploys on push to `main`
 - Managed PostgreSQL instance, connected via environment variables
-- Static frontend served directly by Express (`express.static`)
+- Build command: `npm install && npm run build`
+- Start command: `npm start`
+- Express serves `client/dist` and falls back to the SPA entry point for frontend routes
 
 ---
 

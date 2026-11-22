@@ -1,0 +1,10 @@
+.button { display: inline-flex; align-items: center; justify-content: center; gap: .45rem; min-height: 40px; padding: .58rem .95rem; border: 1px solid var(--border); border-radius: 8px; background: #fff; color: var(--text); font-weight: 600; white-space: nowrap; transition: background .16s, border-color .16s, transform .16s; }
+.button:hover:not(:disabled) { background: #f5f5f4; border-color: #d6d3d1; }
+.button:active:not(:disabled) { transform: translateY(1px); }
+.button-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.button-primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+.button-danger { color: #b91c1c; border-color: #fecaca; background: #fff; }
+.button-danger:hover:not(:disabled) { background: #fef2f2; border-color: #fca5a5; }
+.button-ghost { background: transparent; border-color: transparent; }
+.button-small { min-height: 34px; padding: .4rem .7rem; font-size: .86rem; }
+.button:disabled { opacity: .58; cursor: not-allowed; }
